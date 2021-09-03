@@ -30,6 +30,7 @@ lazy_static! {
 
 impl HieraConfig {
     pub fn read(path: &std::path::Path) -> Result<Self> {
+        log::debug!("Reading hiera config {:?}", path);
         let str = std::fs::read_to_string(path)
             .map_err(|err| anyhow::format_err!("Failed to read {:?}: {}", path, err))?;
         let r: Self = serde_yaml::from_str(&str)
@@ -50,18 +51,20 @@ impl HieraConfig {
                     let key: String = caps[1].to_string();
                     match substitutions.get(&key) {
                         None => {
-                            log::error!("Failed to substitude hiera value, key {:?} not found in substitutions", key);
+                            log::warn!("Failed to substitude hiera value, key {:?} not found in substitutions", key);
                             all_replaced = false;
-                            "".to_owned()
+                            format!("%{{{}}}", &key)
                         },
-                        Some(replacement) => replacement.to_string()
+                        Some(replacement) => {
+                            log::debug!("Substituting {:?} with {:?} in path {:?}", &key, replacement, path);
+                            replacement.to_string()
+                        }
                     }
                 });
-                if all_replaced {
-                    paths.push(new_path.to_string())
-                } else {
-                    log::error!("Some substitutions failed, removing path {:?}", path)
+                if !all_replaced {
+                    log::warn!("Some substitutions failed in path {:?}", path)
                 }
+                paths.push(new_path.to_string())
             }
             hierarchy.push(HierarchyElt {
                 paths,

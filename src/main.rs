@@ -72,8 +72,10 @@ fn substitutions(
     fqdn: &str,
     os_release: &str,
     extsite: Option<String>,
-    extgrpbase1: Option<String>,
-    extgrpbase2: Option<String>,
+    extgrpbase1: &Option<String>,
+    extgrpbase2: &Option<String>,
+    inventory_group_name: &Option<String>,
+    ext_slave_group: &Option<String>,
 ) -> std::collections::HashMap<String, String> {
     lazy_static! {
         static ref EXTGRP_RE: regex::Regex = regex::Regex::new("^(\\D+)").unwrap();
@@ -91,10 +93,19 @@ fn substitutions(
         extsite.map(|v| format!("{}/", v)).unwrap_or_default(),
     );
     if let Some(extgrpbase1) = extgrpbase1 {
-        substitutions.insert("::extgrpbase1".to_owned(), extgrpbase1);
+        substitutions.insert("::extgrpbase1".to_owned(), extgrpbase1.clone());
     }
     if let Some(extgrpbase2) = extgrpbase2 {
-        substitutions.insert("::extgrpbase2".to_owned(), extgrpbase2);
+        substitutions.insert("::extgrpbase2".to_owned(), extgrpbase2.clone());
+    }
+    if let Some(inventory_group_name) = inventory_group_name {
+        substitutions.insert(
+            "::inventory_group_name".to_owned(),
+            inventory_group_name.clone(),
+        );
+    }
+    if let Some(ext_slave_group) = ext_slave_group {
+        substitutions.insert("::ext_slave_group".to_owned(), ext_slave_group.clone());
     }
 
     if let Some(caps) = EXTGRP_RE.captures(fqdn) {
@@ -198,18 +209,28 @@ impl Get {
         }
     }
 
-    fn get(&self, repo_path: &std::path::Path) {
+    fn get_substituted(
+        &self,
+        repo_path: &std::path::Path,
+        hiera_config: &crate::hiera_config::HieraConfig,
+        extgrpbase1: &Option<String>,
+        extgrpbase2: &Option<String>,
+        inventory_group_name: &Option<String>,
+        ext_slave_group: &Option<String>,
+    ) {
         let substitutions = substitutions(
             &self.fqdn.clone(),
             &self.os_release,
             self.extsite.clone(),
-            None,
-            None,
+            extgrpbase1,
+            extgrpbase2,
+            inventory_group_name,
+            ext_slave_group,
         );
 
-        let hiera_config = crate::hiera_config::HieraConfig::read(&repo_path.join("hiera.yaml"))
-            .unwrap()
-            .substitude_paths(&substitutions);
+        log::debug!("Current substitutions: {:#?}", &substitutions);
+
+        let hiera_config = hiera_config.substitude_paths(&substitutions);
 
         for elt in &hiera_config.hierarchy {
             if self.skip_groups.contains(&elt.name) {
@@ -237,6 +258,41 @@ impl Get {
                     continue;
                 }
 
+                let new_extgrpbase1 = yaml[0]
+                    .get_string_key("extgrpbase1")
+                    .map(|v| v.get_string())
+                    .flatten();
+
+                let new_extgrpbase2 = yaml[0]
+                    .get_string_key("extgrpbase2")
+                    .map(|v| v.get_string())
+                    .flatten();
+
+                let new_inventory_group_name = yaml[0]
+                    .get_string_key("group_name")
+                    .map(|v| v.get_string())
+                    .flatten();
+
+                let new_ext_slave_group = yaml[0]
+                    .get_string_key("ext_slave_group")
+                    .map(|v| v.get_string())
+                    .flatten();
+
+                if new_extgrpbase1 > *extgrpbase1
+                    || new_extgrpbase2 > *extgrpbase2
+                    || new_inventory_group_name > *inventory_group_name
+                    || new_ext_slave_group > *ext_slave_group
+                {
+                    return self.get_substituted(
+                        repo_path,
+                        &hiera_config,
+                        std::cmp::max(extgrpbase1, &new_extgrpbase1),
+                        std::cmp::max(extgrpbase2, &new_extgrpbase2),
+                        std::cmp::max(inventory_group_name, &new_inventory_group_name),
+                        std::cmp::max(ext_slave_group, &new_ext_slave_group),
+                    );
+                }
+
                 let hash = match &yaml[0].yaml {
                     crate::yaml::YamlElt::Hash(v) => v,
                     _ => {
@@ -253,6 +309,13 @@ impl Get {
                 }
             }
         }
+    }
+
+    fn get(&self, repo_path: &std::path::Path) {
+        let hiera_config =
+            crate::hiera_config::HieraConfig::read(&repo_path.join("hiera.yaml")).unwrap();
+
+        self.get_substituted(repo_path, &hiera_config, &None, &None, &None, &None)
     }
 }
 

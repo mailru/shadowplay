@@ -146,6 +146,29 @@ impl Yaml {
             std::cmp::max(self.marker.line, child_max),
         )
     }
+
+    pub fn get_string_key(&self, key: &str) -> Option<Self> {
+        if let YamlElt::Hash(hash) = &self.yaml {
+            return hash
+                .get(&Yaml {
+                    yaml: YamlElt::String(key.to_owned()),
+                    marker: Marker {
+                        index: 0,
+                        line: 0,
+                        col: 0,
+                    },
+                })
+                .cloned();
+        }
+        None
+    }
+
+    pub fn get_string(&self) -> Option<String> {
+        match &self.yaml {
+            YamlElt::Real(v) | YamlElt::String(v) => Some(v.clone()),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
