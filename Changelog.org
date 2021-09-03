@@ -1,0 +1,10 @@
+* Changelog
+
+** [2021-09-04] v0.1.0
+
+*** New features
+
+ - Dynamic recursive substitutions (14bf7b8)
+ - Call git blame on whole key-value (b0a15de)
+ - Initial commit (736bad1)
+
