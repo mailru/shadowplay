@@ -72,43 +72,6 @@ impl std::hash::Hash for Yaml {
 pub type Array = Vec<Yaml>;
 pub type Hash = LinkedHashMap<Yaml, Yaml>;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
-#[serde(untagged)]
-pub enum Untagged {
-    String(string::String),
-    Integer(i64),
-    Boolean(bool),
-    Array(Vec<Option<Untagged>>),
-    Hash(LinkedHashMap<Untagged, Option<Untagged>>),
-}
-
-impl Untagged {
-    pub fn of_yaml(elt: &Yaml) -> Option<Self> {
-        match &elt.yaml {
-            YamlElt::Null => None,
-            YamlElt::String(v) | YamlElt::Real(v) => Some(Untagged::String(v.clone())),
-            YamlElt::Integer(v) => Some(Untagged::Integer(*v)),
-            YamlElt::Boolean(v) => Some(Untagged::Boolean(*v)),
-            YamlElt::Array(v) => {
-                let v = v.iter().map(|elt| Self::of_yaml(elt)).collect();
-                Some(Untagged::Array(v))
-            }
-            YamlElt::Hash(v) => {
-                let mut r = LinkedHashMap::new();
-                for (k, v) in v {
-                    let k = Self::of_yaml(&k).unwrap();
-                    let v = Self::of_yaml(&v);
-                    let _ = r.insert(k, v);
-                }
-                Some(Untagged::Hash(r))
-            }
-            YamlElt::Alias(_) | YamlElt::BadValue => {
-                panic!("Cannot translate yaml to untagged")
-            }
-        }
-    }
-}
-
 impl Yaml {
     pub fn new(yaml: YamlElt, marker: &yaml_rust::scanner::Marker) -> Self {
         Self {
@@ -150,6 +113,75 @@ impl Yaml {
 
     pub fn is_badvalue(&self) -> bool {
         (*self).yaml == YamlElt::BadValue
+    }
+
+    pub fn lines_range(&self) -> (usize, usize) {
+        let (child_min, child_max) = match &self.yaml {
+            YamlElt::Real(_)
+            | YamlElt::Integer(_)
+            | YamlElt::String(_)
+            | YamlElt::Alias(_)
+            | YamlElt::Null
+            | YamlElt::BadValue
+            | YamlElt::Boolean(_) => (self.marker.line, self.marker.line),
+            YamlElt::Array(v) => match v.last() {
+                None => (self.marker.line, self.marker.line),
+                Some(v) => v.lines_range(),
+            },
+            YamlElt::Hash(v) => {
+                let mut min = std::usize::MAX;
+                let mut max = std::usize::MIN;
+                for (key, val) in v {
+                    let (key_min, _) = key.lines_range();
+                    let (_, val_max) = val.lines_range();
+                    min = std::cmp::min(min, key_min);
+                    max = std::cmp::max(max, val_max);
+                }
+                (min, max)
+            }
+        };
+
+        (
+            std::cmp::min(self.marker.line, child_min),
+            std::cmp::max(self.marker.line, child_max),
+        )
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
+#[serde(untagged)]
+pub enum Untagged {
+    String(string::String),
+    Integer(i64),
+    Boolean(bool),
+    Array(Vec<Option<Untagged>>),
+    Hash(LinkedHashMap<Untagged, Option<Untagged>>),
+}
+
+impl Untagged {
+    pub fn of_yaml(elt: &Yaml) -> Option<Self> {
+        match &elt.yaml {
+            YamlElt::Null => None,
+            YamlElt::String(v) | YamlElt::Real(v) => Some(Untagged::String(v.clone())),
+            YamlElt::Integer(v) => Some(Untagged::Integer(*v)),
+            YamlElt::Boolean(v) => Some(Untagged::Boolean(*v)),
+            YamlElt::Array(v) => {
+                let v = v.iter().map(|elt| Self::of_yaml(elt)).collect();
+                Some(Untagged::Array(v))
+            }
+            YamlElt::Hash(v) => {
+                let mut r = LinkedHashMap::new();
+                for (k, v) in v {
+                    let k = Self::of_yaml(&k).unwrap();
+                    let v = Self::of_yaml(&v);
+                    let _ = r.insert(k, v);
+                }
+                Some(Untagged::Hash(r))
+            }
+            YamlElt::Alias(_) | YamlElt::BadValue => {
+                panic!("Cannot translate yaml to untagged")
+            }
+        }
     }
 }
 

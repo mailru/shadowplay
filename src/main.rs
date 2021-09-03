@@ -111,15 +111,17 @@ impl Get {
         &self,
         repo_path: &std::path::Path,
         file_path: &std::path::Path,
-        line: usize,
+        min_line: usize,
+        max_line: usize,
     ) -> anyhow::Result<()> {
         let _ = std::process::Command::new("git")
             .current_dir(repo_path)
             .args(&[
+                "--no-pager",
                 "blame",
-                "--line-porcelain",
+                "-w",
                 "-L",
-                &format!("{},{}", line, line),
+                &format!("{},{}", min_line, max_line,),
                 "--",
                 file_path.to_str().unwrap(),
             ])
@@ -155,12 +157,18 @@ impl Get {
             yaml::YamlElt::Null => "<NULL VALUE>".to_owned(),
             yaml::YamlElt::BadValue => "<BAD VALUE>".to_owned(),
         };
+        let (key_min_line, key_max_line) = key.lines_range();
+        let (val_min_line, val_max_line) = value.lines_range();
+        let min_line = std::cmp::min(key_min_line, val_min_line);
+        let max_line = std::cmp::max(key_max_line, val_max_line);
+
         println!(
-            "found in {:?} at line {}. Value: {}",
-            yaml_path, key.marker.line, s
+            "found in {:?} at lines {}:{}. Value: {}",
+            yaml_path, min_line, max_line, s
         );
         println!("===================================\nGit information:");
-        self.git_blame(repo_path, &yaml_path, key.marker.line)
+
+        self.git_blame(repo_path, &yaml_path, min_line, max_line)
             .unwrap()
     }
 
