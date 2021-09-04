@@ -1,4 +1,16 @@
 * Changelog
+** [2021-09-04] v0.2.2
+
+*** Bugfixes
+
+ - marked-json is broken unless custom serializer is implemented for hash keys (8c5f8e2)
+ - Issues reported by linter (904fa5c)
+
+*** Other changes
+
+ - Description in CI (f8d81b5)
+
+
 ** [2021-09-04] v0.2.1
 
 *** Bugfixes
