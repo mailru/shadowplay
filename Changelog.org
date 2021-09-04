@@ -1,4 +1,11 @@
 * Changelog
+** [2021-09-04] v0.2.0
+
+*** New features
+
+ - Added rpm spec, Gitlab CI (b23a9db)
+
+
 
 ** [2021-09-04] v0.1.0
 
