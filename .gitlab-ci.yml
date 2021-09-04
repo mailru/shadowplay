@@ -1,0 +1,23 @@
+
+build_hammer_el7:
+  script: |
+    lxc_rootfs:
+      base: centos/7/amd64
+      prepare_stages:
+        - cache: 30days
+          operations:
+            - Exec: yum  install -y autoconf automake libtool llvm-devel clang lxc-devel openssl-devel epel-release rpmdevtools yum-utils  gcc git autoconf
+            - Exec: "curl --tlsv1.2 -sSf https://sh.rustup.rs >/tmp/rustup-init; v=$? ; if [ $v -gt 0 ]; then exit $v; else bash /tmp/rustup-init -y; fi "
+    build:
+      builder:
+        Rpm:
+          spec_path: etc/hixplorer.spec
+    environment_variables:
+      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+      PATH: "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin:/sbin"
+    description: hixplorer, c7"
+    timeout: 2h
+  tags:
+    - hammer-dev
+  only:
+    - tags
