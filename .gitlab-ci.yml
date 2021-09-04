@@ -15,7 +15,7 @@ build_hammer_el7:
     environment_variables:
       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
       PATH: "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin:/sbin"
-    description: hixplorer, c7"
+    description: hixplorer, c7
     timeout: 2h
   tags:
     - hammer-dev
