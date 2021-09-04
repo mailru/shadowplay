@@ -1,4 +1,11 @@
 * Changelog
+** [2021-09-04] v0.2.1
+
+*** Bugfixes
+
+ - Path to Cargo.toml and macro in spec file (6fc4cae)
+
+
 ** [2021-09-04] v0.2.0
 
 *** New features
