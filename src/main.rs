@@ -10,7 +10,6 @@ extern crate lazy_static;
 pub enum ValuePrintFormat {
     Human,
     MarkedYaml,
-    MarkedJson,
     Yaml,
     Json,
 }
@@ -22,7 +21,6 @@ impl std::str::FromStr for ValuePrintFormat {
         let r = match s {
             "human" => Self::Human,
             "marked-yaml" => Self::MarkedYaml,
-            "marked-json" => Self::MarkedJson,
             "yaml" => Self::Yaml,
             "json" => Self::Json,
             _ => anyhow::bail!("Invalid format: {}", s),
@@ -46,6 +44,8 @@ pub struct Get {
     pub fqdn: String,
     /// Hiera's key name, for example "zabbix_agent::install::version"
     pub key: String,
+    /// Output format. "human" shows all related data in human readable format, including output of git blame. Other values are: yaml, json,
+    /// marked-yaml
     #[structopt(short, default_value = "human")]
     pub format: ValuePrintFormat,
     /// Skip hiera groups with specified names
@@ -194,9 +194,6 @@ impl Get {
             ValuePrintFormat::Human => self.show_human(repo_path, yaml_path, key, value),
             ValuePrintFormat::MarkedYaml => {
                 println!("{}", serde_yaml::to_string(value).unwrap())
-            }
-            ValuePrintFormat::MarkedJson => {
-                println!("{}", serde_json::to_string(value).unwrap())
             }
             ValuePrintFormat::Yaml => println!(
                 "{}",
