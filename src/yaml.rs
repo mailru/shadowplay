@@ -83,18 +83,18 @@ impl Yaml {
     // Not implementing FromStr because there is no possibility of Error.
     // This function falls back to Yaml::String if nothing else matches.
     pub fn from_str(v: &str, marker: &yaml_rust::scanner::Marker) -> Yaml {
-        if v.starts_with("0x") {
-            if let Ok(i) = i64::from_str_radix(&v[2..], 16) {
+        if let Some(suffix) = v.strip_prefix("0x") {
+            if let Ok(i) = i64::from_str_radix(&suffix, 16) {
                 return Self::new(YamlElt::Integer(i), marker);
             }
         }
-        if v.starts_with("0o") {
-            if let Ok(i) = i64::from_str_radix(&v[2..], 8) {
+        if let Some(suffix) = v.strip_prefix("0o") {
+            if let Ok(i) = i64::from_str_radix(&suffix, 8) {
                 return Self::new(YamlElt::Integer(i), marker);
             }
         }
-        if v.starts_with('+') {
-            if let Ok(i) = v[1..].parse::<i64>() {
+        if let Some(suffix) = v.strip_prefix('+') {
+            if let Ok(i) = suffix.parse::<i64>() {
                 return Self::new(YamlElt::Integer(i), marker);
             }
         }
