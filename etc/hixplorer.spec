@@ -31,7 +31,7 @@ Build details: %__hammer_build_url__
 
 %build
 if [ -e VERSION ]; then
-   sed -i -e "s/^package[.]version = .*/package.version = \"$(cat VERSION)\"/" */Cargo.toml
+   sed -i -e "s/^package[.]version = .*/package.version = \"$(cat VERSION)\"/" Cargo.toml
 fi
 cargo build --release
 
@@ -39,7 +39,7 @@ cargo build --release
 rm -rf %{buildroot}
 %{__mkdir} -p %{buildroot}%{_bindir}
 
- {__install} -pD -m 755 target/release/hixplorer %{buildroot}%{_bindir}/hixplorer
+%{__install} -pD -m 755 target/release/hixplorer %{buildroot}%{_bindir}/hixplorer
 
 %clean
 rm -rf %{buildroot}
