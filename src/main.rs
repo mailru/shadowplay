@@ -229,12 +229,14 @@ impl Get {
 
         let hiera_config = hiera_config.substitude_paths(&substitutions);
 
+        let default_paths = Vec::new();
+
         for elt in &hiera_config.hierarchy {
             if self.skip_groups.contains(&elt.name) {
                 log::debug!("Skipping hiera group {:?}", elt.name);
                 continue;
             }
-            for path in &elt.paths {
+            for path in elt.paths.as_ref().unwrap_or(&default_paths) {
                 let yaml_path = repo_path.join(&hiera_config.defaults.datadir).join(path);
                 let yaml_str = match std::fs::read_to_string(&yaml_path) {
                     Ok(v) => v,

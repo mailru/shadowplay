@@ -12,9 +12,11 @@ pub struct HierarchyElt {
     pub name: String,
     #[serde(default)]
     pub lookup_key: Option<String>,
-    pub paths: Vec<String>,
     #[serde(default)]
-    pub options: std::collections::HashMap<String, String>,
+    pub paths: Option<Vec<String>>,
+    // TODO format is not strict. There can be arrays in values
+    // #[serde(default)]
+    // pub options: std::collections::HashMap<String, String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -43,9 +45,10 @@ impl HieraConfig {
         substitutions: &std::collections::HashMap<String, String>,
     ) -> Self {
         let mut hierarchy = Vec::new();
+        let default_paths = Vec::new();
         for elt in &self.hierarchy {
             let mut paths = Vec::new();
-            for path in &elt.paths {
+            for path in elt.paths.as_ref().unwrap_or(&default_paths) {
                 let mut all_replaced = true;
                 let new_path = INTERPOLATION_RE.replace_all(&path, |caps: &regex::Captures| {
                     let key: String = caps[1].to_string();
@@ -67,7 +70,7 @@ impl HieraConfig {
                 paths.push(new_path.to_string())
             }
             hierarchy.push(HierarchyElt {
-                paths,
+                paths: Some(paths),
                 ..elt.clone()
             })
         }
