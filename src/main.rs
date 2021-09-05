@@ -148,6 +148,7 @@ impl Get {
         yaml_path: &std::path::Path,
         key: &crate::yaml::Yaml,
         value: &crate::yaml::Yaml,
+        traverse_path: &[&str],
     ) {
         let s = match &value.yaml {
             yaml::YamlElt::Real(v) => {
@@ -174,8 +175,12 @@ impl Get {
         let max_line = std::cmp::max(key_max_line, val_max_line);
 
         println!(
-            "found in {:?} at lines {}:{}. Value: {}",
-            yaml_path, min_line, max_line, s
+            "Value: {}\nFound in {:?} at lines {}:{}\nValue lookup path was: {}",
+            s,
+            yaml_path,
+            min_line,
+            max_line,
+            traverse_path.join(" -> ")
         );
         println!("===================================\nGit information:");
 
@@ -189,9 +194,12 @@ impl Get {
         yaml_path: &std::path::Path,
         key: &crate::yaml::Yaml,
         value: &crate::yaml::Yaml,
+        traverse_path: &[&str],
     ) {
         match self.format {
-            ValuePrintFormat::Human => self.show_human(repo_path, yaml_path, key, value),
+            ValuePrintFormat::Human => {
+                self.show_human(repo_path, yaml_path, key, value, traverse_path)
+            }
             ValuePrintFormat::MarkedYaml => {
                 println!("{}", serde_yaml::to_string(value).unwrap())
             }
@@ -231,12 +239,15 @@ impl Get {
 
         let default_paths = Vec::new();
 
+        let mut traverse_path = Vec::new();
+
         for elt in &hiera_config.hierarchy {
             if self.skip_groups.contains(&elt.name) {
                 log::debug!("Skipping hiera group {:?}", elt.name);
                 continue;
             }
             for path in elt.paths.as_ref().unwrap_or(&default_paths) {
+                traverse_path.push(path.as_str());
                 let yaml_path = repo_path.join(&hiera_config.defaults.datadir).join(path);
                 let yaml_str = match std::fs::read_to_string(&yaml_path) {
                     Ok(v) => v,
@@ -302,7 +313,7 @@ impl Get {
 
                 for (k, v) in hash {
                     if k.yaml == crate::yaml::YamlElt::String(self.key.clone()) {
-                        self.show(repo_path, &yaml_path, k, v);
+                        self.show(repo_path, &yaml_path, k, v, &traverse_path);
                         return;
                     }
                 }
