@@ -1,4 +1,15 @@
 * Changelog
+** [2021-09-05] v0.3.0
+
+*** New features
+
+ - Added value lookup path (e36d3a6)
+
+*** Bugfixes
+
+ - Added support of hiera.yaml from dev branch of mapuppet (be44b22)
+
+
 ** [2021-09-04] v0.2.2
 
 *** Bugfixes
