@@ -21,3 +21,37 @@ build_hammer_el7:
     - hammer-dev
   only:
     - tags
+
+build_hammer_macos:
+  script: |
+    lxc_rootfs:
+      base: centos/7/amd64
+      prepare_stages:
+        - cache: 30days
+          operations:
+            - YumRepositories:
+                repos:
+                  - name: sco
+                    baseurl: "http://mirror.i.mail.ru/centos/base/7/sclo/x86_64/rh/"
+                    gpgcheck: 0
+                  - name: devtools
+                    baseurl: "http://pkg.corp.mail.ru/centos/7/devtools/x86_64/"
+                    gpgcheck: 0
+                    includepkgs: darwin-cc*
+            - Exec: yum  install -y autoconf automake libtool llvm-devel clang openssl-devel epel-release rpmdevtools yum-utils gcc git autoconf darwin-cc
+            - Exec: "curl --tlsv1.2 -sSf https://sh.rustup.rs >/tmp/rustup-init; v=$? ; if [ $v -gt 0 ]; then exit $v; else bash /tmp/rustup-init -y; fi "
+            - Exec: "PATH=\"root/.cargo/bin:$PATH\" rustup target add x86_64-apple-darwin"
+    build:
+      builder:
+        Generic:
+          script:
+            - "sed -i -e \"s/^package[.]version = .*/package.version = \\\"$(cat VERSION)\\\"/\" Cargo.toml"
+            - cargo build --release --target x86_64-apple-darwin
+    environment_variables:
+      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+      PATH: "/opt/darwin-cc/bin:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin:/sbin"
+    description: "hixplorer, MacOS"
+  tags:
+    - hammer-dev
+  only:
+    - tags
