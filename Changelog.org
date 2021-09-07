@@ -1,4 +1,11 @@
 * Changelog
+** [2021-09-07] v0.3.1
+
+*** Bugfixes
+
+ - Added linker options for MacOS (8c85bed)
+
+
 ** [2021-09-05] v0.3.0
 
 *** New features
