@@ -1,4 +1,11 @@
 * Changelog
+** [2021-09-07] v0.3.2
+
+*** Other changes
+
+ - Added MacOS builds to CI (d2958a8)
+
+
 ** [2021-09-07] v0.3.1
 
 *** Bugfixes
