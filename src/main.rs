@@ -57,9 +57,9 @@ pub struct Get {
 
 #[derive(Debug, StructOpt)]
 pub enum Check {
-    /// Check specified yaml file
+    /// Check specified yaml files
     Yaml(crate::check::yaml::Check),
-    /// Check specified hiera yaml file
+    /// Check specified hiera yaml files
     Hiera(crate::check::hiera_yaml::Check),
 }
 
