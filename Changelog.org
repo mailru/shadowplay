@@ -1,4 +1,20 @@
 * Changelog
+** [2021-11-23] v0.4.0
+
+*** New features
+
+ - Added yaml/hiera checkers (7570d96)
+
+*** Bugfixes
+
+ - Resolved issues reported by linter (0272fd0)
+
+*** Other changes
+
+ - Added build notifications to CI (9a0b51f)
+ - Added lint checks to CI (a0b61a0)
+
+
 ** [2021-09-07] v0.3.2
 
 *** Other changes
