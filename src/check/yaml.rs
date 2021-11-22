@@ -30,7 +30,7 @@ pub fn static_check(file_path: &std::path::Path, yaml: &crate::yaml::YamlLoader)
 }
 
 impl Check {
-    pub fn check_file(&self, repo_path: &std::path::Path, file_path: &std::path::Path) {
+    pub fn check_file(&self, _repo_path: &std::path::Path, file_path: &std::path::Path) {
         let yaml = match crate::yaml::load_file(file_path) {
             Err(err) => {
                 println!("Failed to read {:?}: {}", file_path, err);

@@ -50,7 +50,7 @@ impl HieraConfig {
             let mut paths = Vec::new();
             for path in elt.paths.as_ref().unwrap_or(&default_paths) {
                 let mut all_replaced = true;
-                let new_path = INTERPOLATION_RE.replace_all(&path, |caps: &regex::Captures| {
+                let new_path = INTERPOLATION_RE.replace_all(path, |caps: &regex::Captures| {
                     let key: String = caps[1].to_string();
                     match substitutions.get(&key) {
                         None => {

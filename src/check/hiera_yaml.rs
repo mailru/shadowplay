@@ -47,7 +47,7 @@ impl Check {
                 }
             };
 
-            if let Some(puppet_module) = crate::puppet::module::Module::of_hiera(&hiera_key) {
+            if let Some(puppet_module) = crate::puppet::module::Module::of_hiera(hiera_key) {
                 let module_file = repo_path.join("modules").join(puppet_module.file_path());
                 if !module_file.exists() {
                     println!(

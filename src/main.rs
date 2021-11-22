@@ -196,7 +196,7 @@ impl Get {
         );
         println!("===================================\nGit information:");
 
-        self.git_blame(repo_path, &yaml_path, min_line, max_line)
+        self.git_blame(repo_path, yaml_path, min_line, max_line)
             .unwrap()
     }
 

@@ -107,12 +107,12 @@ impl Yaml {
     // This function falls back to Yaml::String if nothing else matches.
     pub fn from_str(v: &str, marker: &yaml_rust::scanner::Marker) -> Yaml {
         if let Some(suffix) = v.strip_prefix("0x") {
-            if let Ok(i) = i64::from_str_radix(&suffix, 16) {
+            if let Ok(i) = i64::from_str_radix(suffix, 16) {
                 return Self::new(YamlElt::Integer(i), marker);
             }
         }
         if let Some(suffix) = v.strip_prefix("0o") {
-            if let Ok(i) = i64::from_str_radix(&suffix, 8) {
+            if let Ok(i) = i64::from_str_radix(suffix, 8) {
                 return Self::new(YamlElt::Integer(i), marker);
             }
         }
@@ -212,14 +212,14 @@ impl Untagged {
             YamlElt::Integer(v) => Some(Untagged::Integer(*v)),
             YamlElt::Boolean(v) => Some(Untagged::Boolean(*v)),
             YamlElt::Array(v) => {
-                let v = v.iter().map(|elt| Self::of_yaml(elt)).collect();
+                let v = v.iter().map(Self::of_yaml).collect();
                 Some(Untagged::Array(v))
             }
             YamlElt::Hash(v) => {
                 let mut r = LinkedHashMap::new();
                 for (k, v) in v {
-                    let k = Self::of_yaml(&k).unwrap();
-                    let v = Self::of_yaml(&v);
+                    let k = Self::of_yaml(k).unwrap();
+                    let v = Self::of_yaml(v);
                     let _ = r.insert(k, v);
                 }
                 Some(Untagged::Hash(r))
@@ -251,9 +251,9 @@ pub mod error {
             match self {
                 Error::DuplicateKey(v) => {
                     let key = match &v.key {
-                        YamlElt::Real(v) => format!("{}", v),
+                        YamlElt::Real(v) => v.to_string(),
                         YamlElt::Integer(v) => format!("{}", v),
-                        YamlElt::String(v) => format!("{}", v),
+                        YamlElt::String(v) => v.to_string(),
                         YamlElt::Boolean(v) => format!("{}", v),
                         YamlElt::Array(_) => "[array value]".to_owned(),
                         YamlElt::Hash(_) => "[hash value]".to_owned(),
@@ -387,15 +387,15 @@ impl YamlLoader {
                         *cur_key = node.0;
                     // current node is a value
                     } else {
-                        let mut newkey = Yaml::new(YamlElt::BadValue, &marker);
+                        let mut newkey = Yaml::new(YamlElt::BadValue, marker);
                         mem::swap(&mut newkey, cur_key);
                         if let Some(stored_value) = h.get(&newkey) {
                             self.errors
                                 .push(error::Error::DuplicateKey(error::DuplicateKey {
                                     key: newkey.yaml.clone(),
-                                    first_mark: stored_value.marker.clone(),
+                                    first_mark: stored_value.marker,
                                     first_value: stored_value.yaml.clone(),
-                                    second_mark: Marker::from(cur_key.marker),
+                                    second_mark: cur_key.marker,
                                     second_value: node.0.yaml.clone(),
                                 }));
                         }
