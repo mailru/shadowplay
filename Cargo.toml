@@ -4,6 +4,10 @@ package.edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bin]]
+name = "hixplorer"
+path = "src/main.rs"
+
 [dependencies]
 yaml-rust = "0"
 linked-hash-map = {version = "0", features = ["serde_impl"] }

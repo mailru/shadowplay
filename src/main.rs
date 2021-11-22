@@ -1,4 +1,6 @@
+pub mod check;
 pub mod hiera_config;
+pub mod puppet;
 pub mod yaml;
 
 use structopt::StructOpt;
@@ -54,9 +56,19 @@ pub struct Get {
 }
 
 #[derive(Debug, StructOpt)]
+pub enum Check {
+    /// Check specified yaml file
+    Yaml(crate::check::yaml::Check),
+    /// Check specified hiera yaml file
+    Hiera(crate::check::hiera_yaml::Check),
+}
+
+#[derive(Debug, StructOpt)]
 pub enum Query {
     /// Get value for specific host
     Get(Get),
+    /// Checks subcommand
+    Check(Check),
 }
 
 #[derive(Debug, StructOpt)]
@@ -249,14 +261,8 @@ impl Get {
             for path in elt.paths.as_ref().unwrap_or(&default_paths) {
                 traverse_path.push(path.as_str());
                 let yaml_path = repo_path.join(&hiera_config.defaults.datadir).join(path);
-                let yaml_str = match std::fs::read_to_string(&yaml_path) {
-                    Ok(v) => v,
-                    Err(err) => {
-                        log::warn!("Failed to read {:?}: {}", yaml_path, err);
-                        continue;
-                    }
-                };
-                let yaml = match crate::yaml::YamlLoader::load_from_str(&yaml_str) {
+
+                let yaml = match crate::yaml::load_file(&yaml_path) {
                     Ok(v) => v,
                     Err(err) => {
                         log::error!("Failed to parse {:?}: {}", yaml_path, err);
@@ -264,26 +270,38 @@ impl Get {
                     }
                 };
 
-                if yaml.is_empty() {
+                if yaml.docs.is_empty() {
+                    log::error!("No documents found in yaml {:?}", yaml_path);
                     continue;
                 }
 
-                let new_extgrpbase1 = yaml[0]
+                if yaml.docs.len() > 1 {
+                    log::error!("Hiera YAML {:?} contains multiple documents", yaml_path);
+                    continue;
+                }
+
+                if !yaml.errors.is_empty() {
+                    for err in &yaml.errors {
+                        log::warn!("Static checker detected error in {:?}: {}", yaml_path, err)
+                    }
+                }
+
+                let new_extgrpbase1 = yaml.docs[0]
                     .get_string_key("extgrpbase1")
                     .map(|v| v.get_string())
                     .flatten();
 
-                let new_extgrpbase2 = yaml[0]
+                let new_extgrpbase2 = yaml.docs[0]
                     .get_string_key("extgrpbase2")
                     .map(|v| v.get_string())
                     .flatten();
 
-                let new_inventory_group_name = yaml[0]
+                let new_inventory_group_name = yaml.docs[0]
                     .get_string_key("group_name")
                     .map(|v| v.get_string())
                     .flatten();
 
-                let new_ext_slave_group = yaml[0]
+                let new_ext_slave_group = yaml.docs[0]
                     .get_string_key("ext_slave_group")
                     .map(|v| v.get_string())
                     .flatten();
@@ -303,7 +321,7 @@ impl Get {
                     );
                 }
 
-                let hash = match &yaml[0].yaml {
+                let hash = match &yaml.docs[0].yaml {
                     crate::yaml::YamlElt::Hash(v) => v,
                     _ => {
                         log::error!("Top value of {:?} is not a hash", yaml_path);
@@ -329,6 +347,15 @@ impl Get {
     }
 }
 
+impl Check {
+    pub fn check(&self, repo_path: &std::path::Path) {
+        match self {
+            Check::Yaml(v) => v.check(repo_path),
+            Check::Hiera(v) => v.check(repo_path),
+        }
+    }
+}
+
 fn main() {
     env_logger::init();
 
@@ -336,5 +363,6 @@ fn main() {
 
     match &opt.query {
         Query::Get(v) => v.get(&opt.repo_path),
+        Query::Check(v) => v.check(&opt.repo_path),
     }
 }

@@ -1,3 +1,4 @@
+use anyhow::Result;
 use linked_hash_map::LinkedHashMap;
 use serde::Serialize;
 use std::collections::BTreeMap;
@@ -12,6 +13,12 @@ pub struct Marker {
     pub index: usize,
     pub line: usize,
     pub col: usize,
+}
+
+impl std::fmt::Display for Marker {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "line {}, column {}", self.line, self.col)
+    }
 }
 
 impl From<&yaml_rust::scanner::Marker> for Marker {
@@ -49,6 +56,22 @@ pub enum YamlElt {
     /// simplifies error handling in the calling code. Invalid type conversion also
     /// returns `BadValue`.
     BadValue,
+}
+
+impl YamlElt {
+    pub fn type_name(&self) -> &str {
+        match self {
+            YamlElt::Real(_) => "real",
+            YamlElt::Integer(_) => "integer",
+            YamlElt::String(_) => "string",
+            YamlElt::Boolean(_) => "boolean",
+            YamlElt::Array(_) => "array",
+            YamlElt::Hash(_) => "map",
+            YamlElt::Alias(_) => "alias",
+            YamlElt::Null => "null",
+            YamlElt::BadValue => "badvalue",
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, Serialize)]
@@ -208,13 +231,55 @@ impl Untagged {
     }
 }
 
+pub mod error {
+    use super::{Marker, YamlElt};
+
+    pub struct DuplicateKey {
+        pub key: YamlElt,
+        pub first_mark: Marker,
+        pub first_value: YamlElt,
+        pub second_mark: Marker,
+        pub second_value: YamlElt,
+    }
+
+    pub enum Error {
+        DuplicateKey(DuplicateKey),
+    }
+
+    impl std::fmt::Display for Error {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                Error::DuplicateKey(v) => {
+                    let key = match &v.key {
+                        YamlElt::Real(v) => format!("{}", v),
+                        YamlElt::Integer(v) => format!("{}", v),
+                        YamlElt::String(v) => format!("{}", v),
+                        YamlElt::Boolean(v) => format!("{}", v),
+                        YamlElt::Array(_) => "[array value]".to_owned(),
+                        YamlElt::Hash(_) => "[hash value]".to_owned(),
+                        YamlElt::Alias(_) => "[alias value]".to_owned(),
+                        YamlElt::Null => "[null value]".to_owned(),
+                        YamlElt::BadValue => unreachable!(),
+                    };
+                    write!(
+                        f,
+                        "Duplicate key {} at {}. First occurred at {}",
+                        key, v.second_mark, v.first_mark
+                    )
+                }
+            }
+        }
+    }
+}
+
 pub struct YamlLoader {
-    docs: Vec<Yaml>,
+    pub docs: Vec<Yaml>,
     // states
     // (current node, anchor_id) tuple
     doc_stack: Vec<(Yaml, usize)>,
     key_stack: Vec<Yaml>,
     anchor_map: BTreeMap<usize, Yaml>,
+    pub errors: Vec<error::Error>,
 }
 
 impl yaml_rust::parser::MarkedEventReceiver for YamlLoader {
@@ -324,6 +389,16 @@ impl YamlLoader {
                     } else {
                         let mut newkey = Yaml::new(YamlElt::BadValue, &marker);
                         mem::swap(&mut newkey, cur_key);
+                        if let Some(stored_value) = h.get(&newkey) {
+                            self.errors
+                                .push(error::Error::DuplicateKey(error::DuplicateKey {
+                                    key: newkey.yaml.clone(),
+                                    first_mark: stored_value.marker.clone(),
+                                    first_value: stored_value.yaml.clone(),
+                                    second_mark: Marker::from(cur_key.marker),
+                                    second_value: node.0.yaml.clone(),
+                                }));
+                        }
                         h.insert(newkey, node.0);
                     }
                 }
@@ -332,16 +407,17 @@ impl YamlLoader {
         }
     }
 
-    pub fn load_from_str(source: &str) -> Result<Vec<Yaml>, yaml_rust::scanner::ScanError> {
+    pub fn load_from_str(source: &str) -> Result<YamlLoader, yaml_rust::scanner::ScanError> {
         let mut loader = YamlLoader {
             docs: Vec::new(),
             doc_stack: Vec::new(),
             key_stack: Vec::new(),
             anchor_map: BTreeMap::new(),
+            errors: Vec::new(),
         };
         let mut parser = yaml_rust::parser::Parser::new(source.chars());
         parser.load(&mut loader, true)?;
-        Ok(loader.docs)
+        Ok(loader)
     }
 }
 
@@ -352,4 +428,10 @@ fn parse_f64(v: &str) -> Option<f64> {
         ".nan" | "NaN" | ".NAN" => Some(f64::NAN),
         _ => v.parse::<f64>().ok(),
     }
+}
+
+pub fn load_file(file_path: &std::path::Path) -> Result<YamlLoader> {
+    let yaml_str = std::fs::read_to_string(file_path)?;
+    let r = YamlLoader::load_from_str(&yaml_str)?;
+    Ok(r)
 }
