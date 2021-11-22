@@ -8,6 +8,23 @@ pub struct Check {
 pub fn static_check(file_path: &std::path::Path, yaml: &crate::yaml::YamlLoader) -> usize {
     let mut errors = 0;
 
+    match file_path.metadata() {
+        Err(_) => {
+            println!(
+                "Yaml static error for {:?}: cannot get file metadata",
+                file_path
+            );
+            errors += 1;
+        }
+        Ok(metadata) => {
+            use std::os::unix::fs::PermissionsExt;
+            if metadata.permissions().mode() & 0o111 != 0 {
+                println!("Yaml static error for {:?}: file is executable", file_path);
+                errors += 1;
+            }
+        }
+    }
+
     if yaml.docs.is_empty() {
         println!("Yaml static error in {:?}: Empty (untyped) yaml. Add '{{}}' or '[]' if this is expected.", file_path);
         return errors + 1;
