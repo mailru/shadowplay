@@ -6,20 +6,22 @@ pub struct Check {
 }
 
 impl Check {
-    pub fn check_file(&self, repo_path: &std::path::Path, file_path: &std::path::Path) {
+    pub fn check_file(&self, repo_path: &std::path::Path, file_path: &std::path::Path) -> usize {
         let yaml = match crate::yaml::load_file(file_path) {
             Err(err) => {
                 println!("Failed to read {:?}: {}", file_path, err);
-                return;
+                return 1;
             }
             Ok(v) => v,
         };
 
-        let _ = crate::check::yaml::static_check(file_path, &yaml);
+        let mut errors = 0;
+
+        errors += crate::check::yaml::static_check(file_path, &yaml);
 
         let doc = match yaml.docs.as_slice() {
             [doc] => doc,
-            _ => return,
+            _ => return errors,
         };
 
         let doc = match &doc.yaml {
@@ -29,7 +31,7 @@ impl Check {
                     "Hiera static error in {:?}: Root element is not a map",
                     file_path
                 );
-                return;
+                return errors + 1;
             }
         };
 
@@ -43,6 +45,7 @@ impl Check {
                         v.type_name(),
                         key.marker
                     );
+                    errors += 1;
                     continue;
                 }
             };
@@ -54,14 +57,22 @@ impl Check {
                         "Hiera static error in {:?}: puppet module {:?} does not exists at {}",
                         file_path, module_file, key.marker
                     );
+                    errors += 1;
                 }
             }
         }
+
+        errors
     }
 
     pub fn check(&self, repo_path: &std::path::Path) {
+        let mut errors = 0;
         for file_path in &self.paths {
-            self.check_file(repo_path, file_path)
+            errors += self.check_file(repo_path, file_path)
+        }
+
+        if errors > 0 {
+            std::process::exit(1)
         }
     }
 }
