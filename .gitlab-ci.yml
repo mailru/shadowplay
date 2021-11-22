@@ -17,6 +17,8 @@ build_hammer_el7:
       PATH: "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin:/sbin"
     description: hixplorer, c7
     timeout: 2h
+    user_tags:
+      - hixplorer
   tags:
     - hammer-dev
   only:
@@ -51,7 +53,42 @@ build_hammer_macos:
       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
       PATH: "/opt/darwin-cc/bin:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin:/sbin"
     description: "hixplorer, MacOS"
+    user_tags:
+      - hixplorer
   tags:
     - hammer-dev
   only:
     - tags
+
+clippy_check:
+  script: |
+    lxc_rootfs:
+      base: centos/7/amd64
+      prepare_stages:
+        - cache: 30 days
+          operations:
+            - Exec: yum  install -y autoconf automake libtool llvm-devel clang lxc-devel openssl-devel epel-release rpmdevtools yum-utils  gcc git autoconf
+            - Exec: "curl --tlsv1.2 -sSf https://sh.rustup.rs >/tmp/rustup-init; v=$? ; if [ $v -gt 0 ]; then exit $v; else bash /tmp/rustup-init -y; fi "
+    build:
+      builder:
+        Generic:
+          script:
+            - cargo clippy -- -D warnings
+            - cargo test
+    notifications:
+      on_build_error:
+        - __author__
+      on_build_done:
+        - __author__
+    environment_variables:
+      PATH: "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin:/sbin"
+      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+    description: hammer clippy check
+    user_tags:
+      - hixplorer
+      - clippy
+  tags:
+    - hammer-dev
+  rules:
+    - changes:
+      - "**/*.rs"
