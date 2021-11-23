@@ -247,8 +247,15 @@ pub mod error {
     }
 
     #[derive(Debug, PartialEq)]
+    pub struct InvalidAliasMergeValue {
+        pub mark: Marker,
+        pub value: YamlElt,
+    }
+
+    #[derive(Debug, PartialEq)]
     pub enum Error {
         DuplicateKey(DuplicateKey),
+        InvalidAliasMergeValue(InvalidAliasMergeValue),
     }
 
     impl std::fmt::Display for Error {
@@ -270,6 +277,14 @@ pub mod error {
                         f,
                         "Duplicate key {} at {}. First occurred at {}",
                         key, v.second_mark, v.first_mark
+                    )
+                }
+                Error::InvalidAliasMergeValue(v) => {
+                    write!(
+                        f,
+                        "Tried to merge keys from anchor which has type {:?} at {}",
+                        v.value.type_name(),
+                        v.mark
                     )
                 }
             }
@@ -395,10 +410,28 @@ impl YamlLoader {
                 } else {
                     let mut newkey = Yaml::new(YamlElt::BadValue, marker);
                     mem::swap(&mut newkey, cur_key);
-                    if let Some(stored_value) = h.get(&newkey) {
-                        // Не считать дублем ключ с именем "<<"
-                        // https://yaml.org/type/merge.html
-                        if newkey.yaml != YamlElt::String("<<".to_owned()) {
+
+                    if newkey.yaml == YamlElt::String("<<".to_owned()) {
+                        // Вставляем значения по алиасу
+                        match node.0.yaml {
+                            YamlElt::Array(_) => todo!(),
+                            YamlElt::Hash(to_be_merged) => {
+                                for (k, v) in to_be_merged {
+                                    if !h.contains_key(&k) {
+                                        let _ = h.insert(k, v);
+                                    }
+                                }
+                            }
+                            _ => self.errors.push(error::Error::InvalidAliasMergeValue(
+                                error::InvalidAliasMergeValue {
+                                    mark: node.0.marker,
+                                    value: node.0.yaml,
+                                },
+                            )),
+                        }
+                    } else {
+                        // Вставляем обычный ключ
+                        if let Some(stored_value) = h.get(&newkey) {
                             self.errors
                                 .push(error::Error::DuplicateKey(error::DuplicateKey {
                                     key: newkey.yaml.clone(),
@@ -408,8 +441,8 @@ impl YamlLoader {
                                     second_value: node.0.yaml.clone(),
                                 }));
                         }
+                        h.insert(newkey, node.0);
                     }
-                    h.insert(newkey, node.0);
                 }
             }
             _ => unreachable!(),
