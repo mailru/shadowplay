@@ -1,3 +1,5 @@
+use anyhow::{bail, Result};
+
 pub struct Module {
     pub module_name: String,
     pub subclasses: Vec<String>,
@@ -5,7 +7,7 @@ pub struct Module {
 
 impl Module {
     /// Из строчки вида "norisk::client::install::version" получает имя модуля: ["norisk", "client", "install"]
-    pub fn of_hiera(hiera_key: &str) -> Option<Self> {
+    pub fn of_hiera(hiera_key: &str) -> Result<Option<Self>> {
         let elts = hiera_key
             .split("::")
             .map(|v| v.to_owned())
@@ -13,16 +15,35 @@ impl Module {
         match elts.as_slice() {
             [] => {
                 // empty key name
-                None
+                Ok(None)
             }
             [_local_value] => {
                 // some local value
-                None
+                Ok(None)
             }
-            [module_name, subclasses @ .., _class_parameter] => Some(Self {
-                module_name: module_name.to_owned(),
-                subclasses: subclasses.to_vec(),
-            }),
+            [module_name, subclasses @ .., _class_parameter] => {
+                if !module_name
+                    .chars()
+                    .all(|c| char::is_alphanumeric(c) || c == '_')
+                {
+                    bail!("Module name {:?} contains invalid characters", module_name)
+                }
+                for subclass in subclasses {
+                    if !subclass
+                        .chars()
+                        .all(|c| char::is_alphanumeric(c) || c == '_')
+                    {
+                        bail!(
+                            "Module subclass name {:?} contains invalid characters",
+                            subclass
+                        )
+                    }
+                }
+                Ok(Some(Self {
+                    module_name: module_name.to_owned(),
+                    subclasses: subclasses.to_vec(),
+                }))
+            }
         }
     }
 

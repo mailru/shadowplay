@@ -50,15 +50,25 @@ impl Check {
                 }
             };
 
-            if let Some(puppet_module) = crate::puppet::module::Module::of_hiera(hiera_key) {
-                let module_file = repo_path.join("modules").join(puppet_module.file_path());
-                if !module_file.exists() {
+            match crate::puppet::module::Module::of_hiera(hiera_key) {
+                Err(err) => {
                     println!(
-                        "Hiera static error in {:?}: puppet module {:?} does not exists at {}",
-                        file_path, module_file, key.marker
+                        "Hiera static error in {:?}: {} at {}",
+                        file_path, err, key.marker
                     );
                     errors += 1;
                 }
+                Ok(Some(puppet_module)) => {
+                    let module_file = repo_path.join("modules").join(puppet_module.file_path());
+                    if !module_file.exists() {
+                        println!(
+                            "Hiera static error in {:?}: puppet module {:?} does not exists at {}",
+                            file_path, module_file, key.marker
+                        );
+                        errors += 1;
+                    }
+                }
+                Ok(None) => (),
             }
         }
 
