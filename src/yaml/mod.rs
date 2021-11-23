@@ -381,38 +381,38 @@ impl YamlLoader {
         }
         if self.doc_stack.is_empty() {
             self.doc_stack.push(node);
-        } else {
-            let parent = self.doc_stack.last_mut().unwrap();
-            match (*parent).0.yaml {
-                YamlElt::Array(ref mut v) => v.push(node.0),
-                YamlElt::Hash(ref mut h) => {
-                    let cur_key = self.key_stack.last_mut().unwrap();
-                    // current node is a key
-                    if cur_key.is_badvalue() {
-                        *cur_key = node.0;
-                    // current node is a value
-                    } else {
-                        let mut newkey = Yaml::new(YamlElt::BadValue, marker);
-                        mem::swap(&mut newkey, cur_key);
-                        if let Some(stored_value) = h.get(&newkey) {
-                            // Не считать дублем ключ с именем "<<"
-                            // https://yaml.org/type/merge.html
-                            if newkey.yaml != YamlElt::String("<<".to_owned()) {
-                                self.errors
-                                    .push(error::Error::DuplicateKey(error::DuplicateKey {
-                                        key: newkey.yaml.clone(),
-                                        first_mark: stored_value.marker,
-                                        first_value: stored_value.yaml.clone(),
-                                        second_mark: cur_key.marker,
-                                        second_value: node.0.yaml.clone(),
-                                    }));
-                            }
+            return;
+        }
+        let parent = self.doc_stack.last_mut().unwrap();
+        match (*parent).0.yaml {
+            YamlElt::Array(ref mut v) => v.push(node.0),
+            YamlElt::Hash(ref mut h) => {
+                let cur_key = self.key_stack.last_mut().unwrap();
+                // current node is a key
+                if cur_key.is_badvalue() {
+                    *cur_key = node.0;
+                // current node is a value
+                } else {
+                    let mut newkey = Yaml::new(YamlElt::BadValue, marker);
+                    mem::swap(&mut newkey, cur_key);
+                    if let Some(stored_value) = h.get(&newkey) {
+                        // Не считать дублем ключ с именем "<<"
+                        // https://yaml.org/type/merge.html
+                        if newkey.yaml != YamlElt::String("<<".to_owned()) {
+                            self.errors
+                                .push(error::Error::DuplicateKey(error::DuplicateKey {
+                                    key: newkey.yaml.clone(),
+                                    first_mark: stored_value.marker,
+                                    first_value: stored_value.yaml.clone(),
+                                    second_mark: cur_key.marker,
+                                    second_value: node.0.yaml.clone(),
+                                }));
                         }
-                        h.insert(newkey, node.0);
                     }
+                    h.insert(newkey, node.0);
                 }
-                _ => unreachable!(),
             }
+            _ => unreachable!(),
         }
     }
 
