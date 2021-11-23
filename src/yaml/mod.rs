@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use anyhow::Result;
 use linked_hash_map::LinkedHashMap;
 use serde::Serialize;
@@ -234,6 +237,7 @@ impl Untagged {
 pub mod error {
     use super::{Marker, YamlElt};
 
+    #[derive(Debug, PartialEq)]
     pub struct DuplicateKey {
         pub key: YamlElt,
         pub first_mark: Marker,
@@ -242,6 +246,7 @@ pub mod error {
         pub second_value: YamlElt,
     }
 
+    #[derive(Debug, PartialEq)]
     pub enum Error {
         DuplicateKey(DuplicateKey),
     }
