@@ -1,4 +1,27 @@
 * Changelog
+** [2021-11-23] v0.5.0
+
+*** New features
+
+ - Added hiera check: key {...} contains single semicolon (5cd8fe9)
+ - Detect invalid characters in puppet module names (4455914)
+ - Initial merge keys support (416f1dc)
+ - Added unit tests for yaml duplicate keys (75c130b)
+ - Check if yaml is not executable (32f0c68)
+ - Count errors, exit with code 1 on error (6c0c572)
+
+*** Bugfixes
+
+ - Do not throw DuplicateKey error for merge operation (973e03f)
+ - Fixed error message (03d4595)
+
+*** Other changes
+
+ - Added documentation for TODO (a3afc5b)
+ - Early return (2f7e08c)
+ - Fixed typo in docstrings (3dc0add)
+
+
 ** [2021-11-23] v0.4.0
 
 *** New features
