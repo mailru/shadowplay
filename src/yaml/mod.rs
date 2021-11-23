@@ -414,7 +414,12 @@ impl YamlLoader {
                     if newkey.yaml == YamlElt::String("<<".to_owned()) {
                         // Вставляем значения по алиасу
                         match node.0.yaml {
-                            YamlElt::Array(_) => todo!(),
+                            YamlElt::Array(_) =>
+                            // Мы не умеем мержить массивы алиасов:
+                            // <<: [*ONE, *TWO]
+                            {
+                                todo!()
+                            }
                             YamlElt::Hash(to_be_merged) => {
                                 for (k, v) in to_be_merged {
                                     if !h.contains_key(&k) {
