@@ -50,6 +50,19 @@ impl Check {
                 }
             };
 
+            lazy_static! {
+                // Строка начинается с одиночного ":", содержит его в середине, или заканчивается одиночным ":"
+                static ref SINGLE_SEMICOLON_RE: regex::Regex = regex::Regex::new("(?:^:[^:]|[^:]:[^:]|[^:]:$)").unwrap();
+            }
+
+            if SINGLE_SEMICOLON_RE.is_match(hiera_key) {
+                println!(
+                    "Hiera static error in {:?}: key {:?} contains single semicolon at {}",
+                    file_path, hiera_key, key.marker
+                );
+                errors += 1;
+            }
+
             match crate::puppet::module::Module::of_hiera(hiera_key) {
                 Err(err) => {
                     println!(
