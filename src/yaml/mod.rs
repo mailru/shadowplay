@@ -395,14 +395,18 @@ impl YamlLoader {
                         let mut newkey = Yaml::new(YamlElt::BadValue, marker);
                         mem::swap(&mut newkey, cur_key);
                         if let Some(stored_value) = h.get(&newkey) {
-                            self.errors
-                                .push(error::Error::DuplicateKey(error::DuplicateKey {
-                                    key: newkey.yaml.clone(),
-                                    first_mark: stored_value.marker,
-                                    first_value: stored_value.yaml.clone(),
-                                    second_mark: cur_key.marker,
-                                    second_value: node.0.yaml.clone(),
-                                }));
+                            // Не считать дублем ключ с именем "<<"
+                            // https://yaml.org/type/merge.html
+                            if newkey.yaml != YamlElt::String("<<".to_owned()) {
+                                self.errors
+                                    .push(error::Error::DuplicateKey(error::DuplicateKey {
+                                        key: newkey.yaml.clone(),
+                                        first_mark: stored_value.marker,
+                                        first_value: stored_value.yaml.clone(),
+                                        second_mark: cur_key.marker,
+                                        second_value: node.0.yaml.clone(),
+                                    }));
+                            }
                         }
                         h.insert(newkey, node.0);
                     }
