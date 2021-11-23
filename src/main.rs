@@ -324,7 +324,7 @@ impl Get {
                 let hash = match &yaml.docs[0].yaml {
                     crate::yaml::YamlElt::Hash(v) => v,
                     _ => {
-                        log::error!("Top value of {:?} is not a hash", yaml_path);
+                        log::error!("Top value of {:?} is not a map", yaml_path);
                         continue;
                     }
                 };
