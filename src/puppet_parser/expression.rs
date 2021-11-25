@@ -29,14 +29,14 @@ where
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Variable<'a> {
-    name: Vec<&'a str>,
+pub struct Variable {
+    name: Vec<String>,
     is_toplevel: bool,
-    accessor: Vec<Expression<'a>>,
+    accessor: Vec<Expression>,
 }
 
-impl<'a> Variable<'a> {
-    pub fn parser<E>(input: &'a str) -> IResult<&'a str, Self, E>
+impl Variable {
+    pub fn parser<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
     where
         E: nom::error::ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
     {
@@ -46,7 +46,7 @@ impl<'a> Variable<'a> {
             pair(variable_base, accessor_parser),
             |((is_toplevel, name), accessor)| Self {
                 is_toplevel,
-                name,
+                name: name.into_iter().map(String::from).collect(),
                 accessor,
             },
         )(input)
@@ -54,14 +54,14 @@ impl<'a> Variable<'a> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct FunctionCall<'a> {
+pub struct FunctionCall {
     is_toplevel: bool,
-    name: Vec<&'a str>,
-    args: Vec<Term<'a>>,
+    name: Vec<String>,
+    args: Vec<Term>,
 }
 
-impl<'a> FunctionCall<'a> {
-    fn parser<E>(input: &'a str) -> IResult<&'a str, Self, E>
+impl FunctionCall {
+    fn parser<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
     where
         E: nom::error::ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
     {
@@ -72,7 +72,7 @@ impl<'a> FunctionCall<'a> {
             ),
             |((is_toplevel, name), args)| Self {
                 is_toplevel,
-                name,
+                name: name.into_iter().map(String::from).collect(),
                 args,
             },
         )(input)
@@ -80,21 +80,21 @@ impl<'a> FunctionCall<'a> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Term<'a> {
+pub enum Term {
     SingleQuoted(String),
     DoubleQuoted(String),
     Float(f32),
     Boolean(bool),
-    Array(Vec<Term<'a>>),
-    Map(Vec<(Term<'a>, Term<'a>)>),
+    Array(Vec<Term>),
+    Map(Vec<(Term, Term)>),
     Undef,
-    Variable(Variable<'a>),
-    FunctionCall(FunctionCall<'a>),
-    TypeSpecitifaction(super::typing::TypeSpecification<'a>),
+    Variable(Variable),
+    FunctionCall(FunctionCall),
+    TypeSpecitifaction(super::typing::TypeSpecification),
 }
 
-impl<'a> Term<'a> {
-    fn map_parser<E>(input: &'a str) -> IResult<&'a str, Self, E>
+impl Term {
+    fn map_parser<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
     where
         E: nom::error::ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
     {
@@ -108,7 +108,7 @@ impl<'a> Term<'a> {
         map(parser, Self::Map)(input)
     }
 
-    pub fn parse<E>(input: &'a str) -> IResult<&'a str, Self, E>
+    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
     where
         E: nom::error::ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
     {
@@ -135,16 +135,16 @@ impl<'a> Term<'a> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Expression<'a> {
-    Multiply((Box<Expression<'a>>, Box<Expression<'a>>)),
-    Divide((Box<Expression<'a>>, Box<Expression<'a>>)),
-    Plus((Box<Expression<'a>>, Box<Expression<'a>>)),
-    Minus((Box<Expression<'a>>, Box<Expression<'a>>)),
-    Term(Term<'a>),
+pub enum Expression {
+    Multiply((Box<Expression>, Box<Expression>)),
+    Divide((Box<Expression>, Box<Expression>)),
+    Plus((Box<Expression>, Box<Expression>)),
+    Minus((Box<Expression>, Box<Expression>)),
+    Term(Term),
 }
 
-impl<'a> Expression<'a> {
-    pub fn fold_many0<E, F, G, O, R>(
+impl Expression {
+    pub fn fold_many0<'a, E, F, G, O, R>(
         mut f: F,
         init: R,
         g: G,
@@ -186,7 +186,7 @@ impl<'a> Expression<'a> {
         }
     }
 
-    fn parse_l1<E>(input: &'a str) -> IResult<&'a str, Self, E>
+    fn parse_l1<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
     where
         E: nom::error::ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
     {
@@ -207,7 +207,7 @@ impl<'a> Expression<'a> {
         )(input)
     }
 
-    pub fn parse<E>(input: &'a str) -> IResult<&'a str, Self, E>
+    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
     where
         E: nom::error::ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
     {
@@ -307,7 +307,7 @@ fn test_function_call() {
             "",
             Term::FunctionCall(FunctionCall {
                 is_toplevel: false,
-                name: vec!["lookup"],
+                name: vec!["lookup".to_owned()],
                 args: vec![Term::SingleQuoted("ask8s::docker::gpu_nvidia".to_owned())]
             })
         )
@@ -321,7 +321,7 @@ fn test_variable() {
         (
             "",
             Variable {
-                name: vec!["a"],
+                name: vec!["a".to_owned()],
                 is_toplevel: false,
                 accessor: Vec::new()
             }
@@ -332,7 +332,7 @@ fn test_variable() {
         (
             "",
             Variable {
-                name: vec!["a", "b"],
+                name: vec!["a".to_owned(), "b".to_owned()],
                 is_toplevel: true,
                 accessor: Vec::new()
             }
@@ -343,7 +343,7 @@ fn test_variable() {
         (
             "",
             Variable {
-                name: vec!["a"],
+                name: vec!["a".to_owned()],
                 is_toplevel: false,
                 accessor: vec![
                     Expression::Term(Term::Float(1.0)),

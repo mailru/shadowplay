@@ -6,14 +6,14 @@ use nom::{
 };
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Argument<'a> {
-    pub type_spec: Option<super::typing::TypeSpecification<'a>>,
-    pub name: &'a str,
-    pub default: Option<super::expression::Expression<'a>>,
+pub struct Argument {
+    pub type_spec: Option<super::typing::TypeSpecification>,
+    pub name: String,
+    pub default: Option<super::expression::Expression>,
 }
 
-impl<'a> Argument<'a> {
-    pub fn parse<E>(input: &'a str) -> IResult<&'a str, Self, E>
+impl Argument {
+    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
     where
         E: nom::error::ParseError<&'a str>
             + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
@@ -29,7 +29,7 @@ impl<'a> Argument<'a> {
             )),
             |(type_spec, name, default)| Self {
                 type_spec,
-                name,
+                name: name.to_string(),
                 default,
             },
         )(input)
@@ -44,7 +44,7 @@ fn test_argument() {
             "",
             Argument {
                 type_spec: Some(super::typing::TypeSpecification::Any),
-                name: "v",
+                name: "v".to_owned(),
                 default: Some(super::expression::Expression::Term(
                     super::expression::Term::Float(1.0)
                 ))

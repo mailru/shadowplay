@@ -7,7 +7,7 @@ use nom::{
 
 pub fn header_parser<'a, E>(
     input: &'a str,
-) -> IResult<&'a str, (Vec<&'a str>, Vec<super::argument::Argument<'a>>), E>
+) -> IResult<&'a str, (Vec<&'a str>, Vec<super::argument::Argument>), E>
 where
     E: nom::error::ParseError<&'a str>
         + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
@@ -26,14 +26,14 @@ where
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Class<'a> {
-    pub identifier: Vec<&'a str>,
-    pub arguments: Vec<super::argument::Argument<'a>>,
-    pub inherits: Option<(bool, Vec<&'a str>)>,
+pub struct Class {
+    pub identifier: Vec<String>,
+    pub arguments: Vec<super::argument::Argument>,
+    pub inherits: Option<(bool, Vec<String>)>,
 }
 
-impl<'a> Class<'a> {
-    pub fn parse<E>(input: &'a str) -> IResult<&'a str, Self, E>
+impl Class {
+    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
     where
         E: nom::error::ParseError<&'a str>
             + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
@@ -54,22 +54,28 @@ impl<'a> Class<'a> {
                 )),
             ),
             |((identifier, arguments), inherits, _body)| Self {
-                identifier,
+                identifier: identifier.into_iter().map(String::from).collect(),
                 arguments,
-                inherits,
+                inherits: inherits.map(|(is_toplevel, id)| {
+                    (is_toplevel, id.into_iter().map(String::from).collect())
+                }),
             },
         )(input)
+    }
+
+    pub fn get_argument(&self, name: &str) -> Option<&super::argument::Argument> {
+        self.arguments.iter().find(|v| v.name == name)
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Definition<'a> {
-    pub identifier: Vec<&'a str>,
-    pub arguments: Vec<super::argument::Argument<'a>>,
+pub struct Definition {
+    pub identifier: Vec<String>,
+    pub arguments: Vec<super::argument::Argument>,
 }
 
-impl<'a> Definition<'a> {
-    pub fn parse<E>(input: &'a str) -> IResult<&'a str, Self, E>
+impl Definition {
+    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
     where
         E: nom::error::ParseError<&'a str>
             + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
@@ -84,7 +90,7 @@ impl<'a> Definition<'a> {
                 ),
             ),
             |((identifier, arguments), _body)| Self {
-                identifier,
+                identifier: identifier.into_iter().map(String::from).collect(),
                 arguments,
             },
         )(input)
@@ -92,13 +98,13 @@ impl<'a> Definition<'a> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Plan<'a> {
-    pub identifier: Vec<&'a str>,
-    pub arguments: Vec<super::argument::Argument<'a>>,
+pub struct Plan {
+    pub identifier: Vec<String>,
+    pub arguments: Vec<super::argument::Argument>,
 }
 
-impl<'a> Plan<'a> {
-    pub fn parse<E>(input: &'a str) -> IResult<&'a str, Self, E>
+impl Plan {
+    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
     where
         E: nom::error::ParseError<&'a str>
             + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
@@ -113,7 +119,7 @@ impl<'a> Plan<'a> {
                 ),
             ),
             |((identifier, arguments), _body)| Self {
-                identifier,
+                identifier: identifier.into_iter().map(String::from).collect(),
                 arguments,
             },
         )(input)
@@ -127,7 +133,7 @@ fn test_class() {
         (
             "\n TODO }\n",
             Class {
-                identifier: vec!["abc", "def"],
+                identifier: vec!["abc".to_owned(), "def".to_owned()],
                 arguments: Vec::new(),
                 inherits: None,
             }
@@ -187,24 +193,25 @@ TODO}"
         (
             "TODO}",
             Class {
-                identifier: vec!["ab__c", "de11f"],
+                identifier: vec!["ab__c".to_owned(), "de11f".to_owned()],
                 arguments: vec![
                     super::argument::Argument {
-                        name: "a",
+                        name: "a".to_owned(),
                         type_spec: Some(super::typing::TypeSpecification::String(
                             super::typing::TypeString { min: 1, max: 10 }
                         )),
                         default: None,
                     },
                     super::argument::Argument {
-                        name: "b",
+                        name: "b".to_owned(),
                         type_spec: Some(super::typing::TypeSpecification::Custom(vec![
-                            "Stdlib", "Unixpath"
+                            "Stdlib".to_owned(),
+                            "Unixpath".to_owned()
                         ])),
                         default: None,
                     },
                     super::argument::Argument {
-                        name: "c",
+                        name: "c".to_owned(),
                         type_spec: None,
                         default: None,
                     },

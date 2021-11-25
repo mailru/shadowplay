@@ -172,14 +172,14 @@ impl TypeString {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct TypeArray<'a> {
-    pub inner: Option<Box<TypeSpecification<'a>>>,
+pub struct TypeArray {
+    pub inner: Option<Box<TypeSpecification>>,
     pub min: usize,
     pub max: usize,
 }
 
-impl<'a> TypeArray<'a> {
-    fn parse<E>(input: &'a str) -> IResult<&'a str, Self, E>
+impl TypeArray {
+    fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
     where
         E: nom::error::ParseError<&'a str>
             + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
@@ -249,15 +249,15 @@ fn test_array() {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct TypeHash<'a> {
-    pub key: Option<Box<TypeSpecification<'a>>>,
-    pub value: Option<Box<TypeSpecification<'a>>>,
+pub struct TypeHash {
+    pub key: Option<Box<TypeSpecification>>,
+    pub value: Option<Box<TypeSpecification>>,
     pub min: usize,
     pub max: usize,
 }
 
-impl<'a> TypeHash<'a> {
-    fn parse<E>(input: &'a str) -> IResult<&'a str, Self, E>
+impl TypeHash {
+    fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
     where
         E: nom::error::ParseError<&'a str>
             + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
@@ -321,13 +321,13 @@ fn test_hash() {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum TypeOptional<'a> {
-    TypeSpecification(Box<TypeSpecification<'a>>),
-    Term(Box<super::expression::Term<'a>>),
+pub enum TypeOptional {
+    TypeSpecification(Box<TypeSpecification>),
+    Term(Box<super::expression::Term>),
 }
 
-impl<'a> TypeOptional<'a> {
-    fn parse<E>(input: &'a str) -> IResult<&'a str, Self, E>
+impl TypeOptional {
+    fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
     where
         E: nom::error::ParseError<&'a str>
             + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
@@ -345,13 +345,13 @@ impl<'a> TypeOptional<'a> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum TypeSensitive<'a> {
-    TypeSpecification(Box<TypeSpecification<'a>>),
-    Term(Box<super::expression::Term<'a>>),
+pub enum TypeSensitive {
+    TypeSpecification(Box<TypeSpecification>),
+    Term(Box<super::expression::Term>),
 }
 
-impl<'a> TypeSensitive<'a> {
-    fn parse<E>(input: &'a str) -> IResult<&'a str, Self, E>
+impl TypeSensitive {
+    fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
     where
         E: nom::error::ParseError<&'a str>
             + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
@@ -408,12 +408,12 @@ impl TypeStructKey {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct TypeStruct<'a> {
-    pub keys: Vec<(TypeStructKey, TypeSpecification<'a>)>,
+pub struct TypeStruct {
+    pub keys: Vec<(TypeStructKey, TypeSpecification)>,
 }
 
-impl<'a> TypeStruct<'a> {
-    fn parse<E>(input: &'a str) -> IResult<&'a str, Self, E>
+impl TypeStruct {
+    fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
     where
         E: nom::error::ParseError<&'a str>
             + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
@@ -455,14 +455,14 @@ fn test_struct() {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct TypeTuple<'a> {
-    pub list: Vec<TypeSpecification<'a>>,
+pub struct TypeTuple {
+    pub list: Vec<TypeSpecification>,
     pub min: usize,
     pub max: usize,
 }
 
-impl<'a> TypeTuple<'a> {
-    pub fn parse<E>(input: &'a str) -> IResult<&'a str, Self, E>
+impl TypeTuple {
+    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
     where
         E: nom::error::ParseError<&'a str>
             + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
@@ -535,29 +535,29 @@ fn test_tuple() {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum TypeSpecification<'a> {
+pub enum TypeSpecification {
     Float(TypeFloat),
     Integer(TypeInteger),
     Numeric,
     String(TypeString),
     Pattern(Vec<String>),
     Regex(String),
-    Hash(TypeHash<'a>),
+    Hash(TypeHash),
     Boolean,
-    Array(TypeArray<'a>),
+    Array(TypeArray),
     Undef,
     Any,
-    Optional(TypeOptional<'a>),
-    Variant(Vec<TypeSpecification<'a>>),
-    Enum(Vec<super::expression::Term<'a>>),
-    Struct(TypeStruct<'a>),
-    Custom(Vec<&'a str>),
-    Sensitive(TypeSensitive<'a>),
-    Tuple(TypeTuple<'a>),
+    Optional(TypeOptional),
+    Variant(Vec<TypeSpecification>),
+    Enum(Vec<super::expression::Term>),
+    Struct(TypeStruct),
+    Custom(Vec<String>),
+    Sensitive(TypeSensitive),
+    Tuple(TypeTuple),
 }
 
-impl<'a> TypeSpecification<'a> {
-    pub fn parse<E>(input: &'a str) -> IResult<&'a str, Self, E>
+impl TypeSpecification {
+    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
     where
         E: nom::error::ParseError<&'a str>
             + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
@@ -601,7 +601,7 @@ impl<'a> TypeSpecification<'a> {
             value(Self::Undef, tag("Undef")),
             value(Self::Any, tag("Any")),
             map(super::common::camelcase_identifier_with_ns, |v| {
-                Self::Custom(v)
+                Self::Custom(v.into_iter().map(String::from).collect())
             }),
         ))(input)
     }
@@ -611,7 +611,10 @@ impl<'a> TypeSpecification<'a> {
 fn test_type_specification() {
     assert_eq!(
         TypeSpecification::parse::<nom::error::Error<_>>("Stdlib::Unixpath").unwrap(),
-        ("", TypeSpecification::Custom(vec!["Stdlib", "Unixpath"]))
+        (
+            "",
+            TypeSpecification::Custom(vec!["Stdlib".to_owned(), "Unixpath".to_owned()])
+        )
     );
     assert_eq!(
         TypeSpecification::parse::<nom::error::Error<_>>("Numeric").unwrap(),
