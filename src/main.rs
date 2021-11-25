@@ -1,6 +1,7 @@
 pub mod check;
 pub mod hiera_config;
 pub mod puppet;
+mod puppet_parser;
 pub mod yaml;
 
 use structopt::StructOpt;
@@ -61,6 +62,8 @@ pub enum Check {
     Yaml(crate::check::yaml::Check),
     /// Check specified hiera yaml files
     Hiera(crate::check::hiera_yaml::Check),
+    /// Check specified *.pp files
+    Pp(crate::check::pp::Check),
 }
 
 #[derive(Debug, StructOpt)]
@@ -352,6 +355,7 @@ impl Check {
         match self {
             Check::Yaml(v) => v.check(repo_path),
             Check::Hiera(v) => v.check(repo_path),
+            Check::Pp(v) => v.check(repo_path),
         }
     }
 }
