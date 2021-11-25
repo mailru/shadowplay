@@ -6,12 +6,9 @@ pub struct Module {
 }
 
 impl Module {
-    /// Из строчки вида "norisk::client::install::version" получает имя модуля: ["norisk", "client", "install"]
-    pub fn of_hiera(hiera_key: &str) -> Result<Option<Self>> {
-        let elts = hiera_key
-            .split("::")
-            .map(|v| v.to_owned())
-            .collect::<Vec<String>>();
+    /// Из строчки вида "norisk::client::install::version" получает имя модуля: ["norisk", "client", "install"] и имя параметра
+    pub fn of_hiera<'a>(hiera_key: &'a str) -> Result<Option<(Self, &'a str)>> {
+        let elts = hiera_key.split("::").collect::<Vec<&'a str>>();
         match elts.as_slice() {
             [] => {
                 // empty key name
@@ -21,7 +18,7 @@ impl Module {
                 // some local value
                 Ok(None)
             }
-            [module_name, subclasses @ .., _class_parameter] => {
+            [module_name, subclasses @ .., class_parameter] => {
                 if !module_name
                     .chars()
                     .all(|c| char::is_alphanumeric(c) || c == '_')
@@ -39,10 +36,11 @@ impl Module {
                         )
                     }
                 }
-                Ok(Some(Self {
-                    module_name: module_name.to_owned(),
-                    subclasses: subclasses.to_vec(),
-                }))
+                let module = Self {
+                    module_name: module_name.to_string(),
+                    subclasses: subclasses.iter().map(|v| v.to_string()).collect(),
+                };
+                Ok(Some((module, class_parameter)))
             }
         }
     }
@@ -65,5 +63,27 @@ impl Module {
                 path
             }
         }
+    }
+
+    pub fn full_file_path(&self, repo_path: &std::path::Path) -> std::path::PathBuf {
+        repo_path.join("modules").join(self.file_path())
+    }
+
+    pub fn name(&self) -> String {
+        format!(
+            "{}{}",
+            self.module_name,
+            self.subclasses
+                .iter()
+                .map(|v| format!("::{}", v))
+                .collect::<Vec<_>>()
+                .join("")
+        )
+    }
+
+    pub fn identifier(&self) -> Vec<&str> {
+        let mut r = vec![self.module_name.as_str()];
+        r.extend(self.subclasses.iter().map(|v| v.as_str()));
+        r
     }
 }
