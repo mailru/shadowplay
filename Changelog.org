@@ -1,4 +1,20 @@
 * Changelog
+** [2021-11-29] v0.6.0
+
+*** New features
+
+ - Added configuration file (a3681bb)
+ - Improved error reporting (76a1d36)
+ - *.pp AST cache (add99ce)
+ - AST with location markers (ef613b5)
+ - Check if class has arguments specified in hiera files (c8ad50f)
+ - Initial *.pp parser (0abcde0, b381c05)
+
+*** Other changes
+
+ - Got rid of AST with borrowed values (a660687)
+
+
 ** [2021-11-23] v0.5.0
 
 *** New features
