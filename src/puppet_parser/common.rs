@@ -168,12 +168,15 @@ where
         delimited(
             pair(tag("("), separator0),
             parser,
-            pair(separator0, tag(")")),
+            ParseError::protect(
+                |_| "Closing ')' expected".to_string(),
+                pair(separator0, tag(")")),
+            ),
         ),
     )
 }
 
-pub fn square_brackets_delimimited<'a, O, F>(mut parser: F) -> impl FnMut(Span<'a>) -> IResult<O>
+pub fn square_brackets_delimimited<'a, O, F>(parser: F) -> impl FnMut(Span<'a>) -> IResult<O>
 where
     F: Parser<Span<'a>, Marked<O>, ParseError<'a>>,
     O: Clone,
@@ -182,8 +185,11 @@ where
         separator0,
         delimited(
             pair(tag("["), separator0),
-            move |i| parser.parse(i),
-            pair(separator0, tag("]")),
+            parser,
+            ParseError::protect(
+                |_| "Closing ']' expected".to_string(),
+                pair(separator0, tag("]")),
+            ),
         ),
     )
 }
@@ -198,7 +204,10 @@ where
         delimited(
             pair(tag("{"), separator0),
             parser,
-            pair(separator0, tag("}")),
+            ParseError::protect(
+                |_| "Closing '}' expected".to_string(),
+                pair(separator0, tag("}")),
+            ),
         ),
     )
 }
@@ -211,13 +220,13 @@ where
     O: Clone,
 {
     move |input: Span| {
-        round_brackets_delimimited(map(
-            terminated(
+        Marked::parse(map(
+            round_brackets_delimimited(Marked::parse(terminated(
                 separated_list0(comma_separator, |i| parser.parse(i)),
                 // В конце не обязательная запятая
                 opt(comma_separator),
-            ),
-            |v| Marked::new(&input, v),
+            ))),
+            |v| v.data,
         ))(input)
     }
 }
@@ -266,13 +275,13 @@ where
     O: Clone,
 {
     move |input: Span| {
-        square_brackets_delimimited(map(
-            terminated(
+        Marked::parse(map(
+            square_brackets_delimimited(Marked::parse(terminated(
                 separated_list0(comma_separator, |i| parser.parse(i)),
                 // В конце не обязательная запятая
                 opt(comma_separator),
-            ),
-            |v| Marked::new(&input, v),
+            ))),
+            |v| v.data,
         ))(input)
     }
 }
@@ -285,13 +294,13 @@ where
     O: Clone,
 {
     move |input: Span| {
-        square_brackets_delimimited(map(
-            terminated(
+        Marked::parse(map(
+            square_brackets_delimimited(Marked::parse(terminated(
                 separated_list1(comma_separator, |i| parser.parse(i)),
                 // В конце не обязательная запятая
                 opt(comma_separator),
-            ),
-            |v| Marked::new(&input, v),
+            ))),
+            |v| v.data,
         ))(input)
     }
 }
@@ -304,13 +313,13 @@ where
     O: Clone,
 {
     move |input: Span| {
-        curly_brackets_delimimited(map(
-            terminated(
+        Marked::parse(map(
+            curly_brackets_delimimited(Marked::parse(terminated(
                 separated_list0(comma_separator, |i| parser.parse(i)),
                 // В конце не обязательная запятая
                 opt(comma_separator),
-            ),
-            |v| Marked::new(&input, v),
+            ))),
+            |v| v.data,
         ))(input)
     }
 }

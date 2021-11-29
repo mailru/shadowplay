@@ -1,4 +1,4 @@
-use super::parser::{IResult, IResultUnmarked, Marked, Span};
+use super::parser::{IResult, IResultUnmarked, Marked, ParseError, Span};
 use nom::{
     bytes::complete::tag,
     combinator::{map, opt},
@@ -17,9 +17,13 @@ pub fn header_parser(input: Span) -> IResultUnmarked<(Marked<Vec<&str>>, Argumen
     );
 
     tuple((
-        Marked::parse(map(super::common::lower_identifier_with_ns, |v| {
-            v.data.into_iter().map(|v| v.data).collect()
-        })),
+        Marked::parse(map(
+            ParseError::protect(
+                |_| "Invalid class name".to_owned(),
+                super::common::lower_identifier_with_ns,
+            ),
+            |v| v.data.into_iter().map(|v| v.data).collect(),
+        )),
         preceded(super::common::separator0, arguments_parser),
     ))(input)
 }
@@ -37,18 +41,32 @@ impl Class {
             preceded(
                 tag("class"),
                 tuple((
-                    preceded(super::common::separator1, header_parser),
-                    super::common::space0_delimimited(opt(preceded(
-                        tag("inherits"),
-                        super::common::space0_delimimited(
-                            super::expression::identifier_with_toplevel,
+                    preceded(
+                        super::common::separator1,
+                        ParseError::protect(
+                            |_| "Failed to parse class header".to_owned(),
+                            header_parser,
                         ),
-                    ))),
-                    // TODO body
-                    tag("{"),
+                    ),
+                    ParseError::protect(
+                        |_| "'{' or 'inherits' expected".to_string(),
+                        pair(
+                            super::common::space0_delimimited(opt(preceded(
+                                tag("inherits"),
+                                ParseError::protect(
+                                    |_| "Failed to parse what class inherits".to_owned(),
+                                    super::common::space0_delimimited(
+                                        super::expression::identifier_with_toplevel,
+                                    ),
+                                ),
+                            ))),
+                            // TODO body
+                            tag("{"),
+                        ),
+                    ),
                 )),
             ),
-            |((identifier, arguments), inherits, _body)| Self {
+            |((identifier, arguments), (inherits, _body))| Self {
                 identifier: identifier.map(|v| v.into_iter().map(String::from).collect()),
                 arguments,
                 inherits: inherits.map(|v| {
@@ -264,5 +282,5 @@ TODO}"
     ))
     .is_ok());
 
-    assert!(Class::parse(Span::new("class a ( $a = INFO) {TODO}")).is_err())
+    assert!(Class::parse(Span::new("class a ( $a = ,) {TODO}")).is_err())
 }

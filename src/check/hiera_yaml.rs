@@ -37,7 +37,7 @@ impl Check {
             Ok(v) => v,
             Err(err) => {
                 let _ = state.pp_ast_cache.insert(file_path.to_path_buf(), None);
-                return Err(err);
+                return Err(anyhow::format_err!("{:?}", err));
             }
         };
 
@@ -61,7 +61,7 @@ impl Check {
         let ast = match self.parse_pp(repo_path, &module_file, state) {
             Err(err) => {
                 println!(
-                    "Hiera static error in {:?} at {}: reference to puppet class {:?} which failed to parse with error {:?}",
+                    "Hiera static error in {:?} at {}: reference to puppet class {:?} which failed to parse with error: {:?}",
                     yaml_path, yaml_marker, puppet_module.name(), err
                 );
                 return 1;

@@ -6,7 +6,7 @@ use nom::character::complete::alphanumeric1;
 use nom::character::complete::char;
 use nom::combinator::{map, map_opt, map_res, recognize, value, verify};
 use nom::multi::{fold_many0, many1, separated_list1};
-use nom::sequence::{delimited, preceded};
+use nom::sequence::{delimited, preceded, terminated};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum StringFragment<'a> {
@@ -21,8 +21,11 @@ fn parse_literal(input: Span) -> IResult<&str> {
     })(input)
 }
 
-fn parse_unicode(input: Span) -> IResult<char> {
-    let parse_hex = take_while_m_n(1, 6, |c: char| c.is_ascii_hexdigit());
+pub fn parse_unicode(input: Span) -> IResult<char> {
+    let parse_hex = ParseError::protect(
+        |_| "unexpected sequence in UTF character".to_owned(),
+        take_while_m_n(1, 6, |c: char| c.is_ascii_hexdigit()),
+    );
 
     let parse_delimited_hex = preceded(char('u'), delimited(char('{'), parse_hex, char('}')));
 
@@ -33,13 +36,6 @@ fn parse_unicode(input: Span) -> IResult<char> {
     map_opt(parse_u32, |v| {
         std::char::from_u32(v).map(|v| Marked::new(&input, v))
     })(input)
-    .map_err(|e| match e {
-        nom::Err::Error(_) => nom::Err::Failure(ParseError::new(
-            "unexpected sequence in UTF character".to_owned(),
-            input,
-        )),
-        e => e,
-    })
 }
 
 fn parse_escaped_char(input: Span) -> IResult<char> {
@@ -54,18 +50,19 @@ fn parse_escaped_char(input: Span) -> IResult<char> {
                     value('\u{08}', char('b')),
                     value('\u{0C}', char('f')),
                     value('\\', char('\\')),
-                    value('/', char('/')),
                     value('\'', char('\'')),
                 )),
                 |v: char| Marked::new(&input, v),
             ),
-            parse_unicode,
-            |s: Span| {
-                Err(nom::Err::Failure(ParseError::new(
-                    format!("Unexpected escape sequence \\{}", s),
-                    input,
-                )))
-            },
+            ParseError::protect(
+                |s: Span| {
+                    format!(
+                        "Unexpected escaped character {:?}",
+                        s.chars().next().unwrap()
+                    )
+                },
+                parse_unicode,
+            ),
         )),
     )(input)
 }
@@ -101,7 +98,16 @@ pub fn parse(input: Span) -> IResult<String> {
 
     let build_string = map(build_string, |s: String| Marked::new(&input, s));
 
-    alt((delimited(char('\''), build_string, char('\'')), bareword))(input)
+    alt((
+        preceded(
+            char('\''),
+            ParseError::protect(
+                |_| "Unterminated quoted string".to_string(),
+                terminated(build_string, char('\'')),
+            ),
+        ),
+        bareword,
+    ))(input)
 }
 
 #[test]

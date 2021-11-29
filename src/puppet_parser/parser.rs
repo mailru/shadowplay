@@ -17,6 +17,52 @@ impl<'a> ParseError<'a> {
             message: Some(message),
         }
     }
+
+    pub fn protect<O, M, F>(
+        mut message_generator: M,
+        mut parser: F,
+    ) -> impl FnMut(Span<'a>) -> IResultUnmarked<O>
+    where
+        M: FnMut(Span<'a>) -> String + Copy,
+        F: nom::Parser<Span<'a>, O, ParseError<'a>>,
+        O: Clone,
+    {
+        move |input: Span| {
+            // println!("PARSING PROTECTED: {:?}", input);
+            parser.parse(input).map_err(|err| match err {
+                nom::Err::Error(_err) => {
+                    let err = if input.is_empty() {
+                        "Unexpected EOF".to_string()
+                    } else {
+                        message_generator(input)
+                    };
+                    nom::Err::Failure(ParseError::new(err, input))
+                }
+                e => e,
+            })
+        }
+    }
+
+    pub fn fatal<O>(message: String, span: Span<'a>) -> IResultUnmarked<O>
+    where
+        O: Clone,
+    {
+        Err(nom::Err::Failure(ParseError::new(message, span)))
+    }
+}
+
+impl<'a> std::fmt::Display for ParseError<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(message) = &self.message {
+            write!(f, "{}", message)?
+        }
+        write!(
+            f,
+            " at line {} column {}",
+            self.span.location_line(),
+            self.span.get_utf8_column()
+        )
+    }
 }
 
 // That's what makes it nom-compatible.

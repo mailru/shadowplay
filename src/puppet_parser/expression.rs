@@ -1,11 +1,13 @@
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    combinator::{map, opt},
+    character::complete::digit1,
+    combinator::{map, opt, recognize},
     multi::many0,
-    number::complete::float,
-    sequence::{pair, preceded},
+    sequence::{delimited, pair, preceded},
 };
+
+use crate::puppet_parser::common::round_brackets_delimimited;
 
 use super::parser::{IResult, IResultUnmarked, Marked, ParseError, Span};
 
@@ -81,17 +83,74 @@ impl FunctionCall {
     }
 }
 
+pub struct Float;
+
+impl Float {
+    pub fn plain_parse(input: Span) -> IResultUnmarked<f32> {
+        let number = delimited(digit1, alt((tag("e"), tag("E"), tag("."))), digit1);
+        let (tail, s) = Marked::parse(recognize(pair(opt(tag("-")), number)))(input)?;
+
+        let f = match s.data.parse::<f32>() {
+            Ok(v) => v,
+            Err(err) => return ParseError::fatal(format!("{}", err), input),
+        };
+
+        Ok((tail, f))
+    }
+
+    pub fn parse(input: Span) -> IResultUnmarked<Term> {
+        map(Self::plain_parse, Term::Float)(input)
+    }
+}
+
+pub struct Integer;
+
+impl Integer {
+    pub fn parse(input: Span) -> IResultUnmarked<Term> {
+        let (tail, s) = Marked::parse(recognize(pair(opt(tag("-")), digit1)))(input)?;
+
+        let n = match s.data.parse::<i64>() {
+            Ok(v) => v,
+            Err(err) => return ParseError::fatal(format!("{}", err), input),
+        };
+
+        Ok((tail, Term::Integer(n)))
+    }
+}
+
+pub struct Sensitive;
+
+impl Sensitive {
+    pub fn parse(input: Span) -> IResultUnmarked<Term> {
+        preceded(
+            tag("Sensitive"),
+            map(
+                ParseError::protect(
+                    |_| "Expected round brackets after Sensitive value".to_string(),
+                    round_brackets_delimimited(ParseError::protect(
+                        |_| "Expected single quoted string".to_string(),
+                        super::single_quoted::parse,
+                    )),
+                ),
+                |v| Term::Sensitive(v.data),
+            ),
+        )(input)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Term {
     SingleQuoted(String),
     DoubleQuoted(String),
     Float(f32),
+    Integer(i64),
     Boolean(bool),
     Array(Vec<Marked<Expression>>),
     Map(Vec<(Marked<Expression>, Marked<Expression>)>),
     Undef,
     Variable(Variable),
     FunctionCall(FunctionCall),
+    Sensitive(String),
     TypeSpecitifaction(super::typing::TypeSpecification),
 }
 
@@ -121,7 +180,12 @@ impl Term {
             map(tag("undef"), |_| Self::Undef),
             map(tag("true"), |_| Self::Boolean(true)),
             map(tag("false"), |_| Self::Boolean(false)),
-            map(float, Self::Float),
+            Sensitive::parse,
+            map(super::typing::TypeSpecification::parse, |v| {
+                Self::TypeSpecitifaction(v.data)
+            }),
+            Float::parse,
+            Integer::parse,
             map(FunctionCall::parser, |v| Self::FunctionCall(v.data)),
             map(super::double_quoted::parse, |v| Self::DoubleQuoted(v.data)),
             map(super::single_quoted::parse, |v| Self::SingleQuoted(v.data)),
@@ -131,9 +195,6 @@ impl Term {
             ),
             Self::map_parser,
             map(Variable::parser, |v| Self::Variable(v.data)),
-            map(super::typing::TypeSpecification::parse, |v| {
-                Self::TypeSpecitifaction(v.data)
-            }),
         ));
 
         map(parser, |v| Marked::new(&input, v))(input)
@@ -194,7 +255,10 @@ impl Expression {
         let parser = Self::fold_many0(
             pair(
                 alt((tag("*"), tag("/"))),
-                super::common::space0_delimimited(Self::parse_l1),
+                super::common::space0_delimimited(ParseError::protect(
+                    |_| "Second argument of operator is expected".to_string(),
+                    Self::parse_l1,
+                )),
             ),
             term,
             |prev, (op, cur)| {
@@ -214,7 +278,10 @@ impl Expression {
         let parser = Self::fold_many0(
             pair(
                 alt((tag("+"), tag("-"))),
-                super::common::space0_delimimited(Self::parse_l1),
+                super::common::space0_delimimited(ParseError::protect(
+                    |_| "Second argument of operator is expected".to_string(),
+                    Self::parse_l1,
+                )),
             ),
             l1,
             |prev, (op, cur)| {
@@ -255,11 +322,11 @@ fn test_double_quoted() {
 }
 
 #[test]
-fn test_float() {
+fn test_numbers() {
     assert_eq!(
         Term::parse(Span::new("12345")).unwrap().1,
         Marked {
-            data: Term::Float(12345.0),
+            data: Term::Integer(12345),
             line: 1,
             column: 1
         }
@@ -348,7 +415,7 @@ fn test_map() {
                     column: 2
                 },
                 Marked {
-                    data: Expression::Term(Term::Float(1.0)),
+                    data: Expression::Term(Term::Integer(1)),
                     line: 1,
                     column: 11
                 }
@@ -423,7 +490,7 @@ fn test_variable() {
                     Marked {
                         line: 1,
                         column: 5,
-                        data: Expression::Term(Term::Float(1.0))
+                        data: Expression::Term(Term::Integer(1))
                     },
                     Marked {
                         line: 1,
@@ -447,12 +514,12 @@ fn test_multiply() {
                 Box::new(Marked {
                     line: 1,
                     column: 1,
-                    data: Expression::Term(Term::Float(2.0))
+                    data: Expression::Term(Term::Integer(2))
                 }),
                 Box::new(Marked {
                     line: 1,
                     column: 3,
-                    data: Expression::Term(Term::Float(3.0))
+                    data: Expression::Term(Term::Integer(3))
                 })
             ))
         }
@@ -474,7 +541,7 @@ fn test_operators_precendence() {
                         Box::new(Marked {
                             line: 1,
                             column: 1,
-                            data: Expression::Term(Term::Float(1.0))
+                            data: Expression::Term(Term::Integer(1))
                         }),
                         Box::new(Marked {
                             line: 1,
@@ -483,7 +550,7 @@ fn test_operators_precendence() {
                                 Box::new(Marked {
                                     line: 1,
                                     column: 4,
-                                    data: Expression::Term(Term::Float(2.0))
+                                    data: Expression::Term(Term::Integer(2))
                                 }),
                                 Box::new(Marked {
                                     line: 1,
@@ -492,12 +559,12 @@ fn test_operators_precendence() {
                                         Box::new(Marked {
                                             line: 1,
                                             column: 8,
-                                            data: Expression::Term(Term::Float(3.0))
+                                            data: Expression::Term(Term::Integer(3))
                                         }),
                                         Box::new(Marked {
                                             line: 1,
                                             column: 11,
-                                            data: Expression::Term(Term::Float(4.0))
+                                            data: Expression::Term(Term::Integer(4))
                                         })
                                     ))
                                 })
@@ -508,7 +575,7 @@ fn test_operators_precendence() {
                 Box::new(Marked {
                     line: 1,
                     column: 15,
-                    data: Expression::Term(Term::Float(10.0))
+                    data: Expression::Term(Term::Integer(10))
                 })
             ))
         }

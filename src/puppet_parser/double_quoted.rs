@@ -1,8 +1,8 @@
 use super::parser::{IResult, Marked, ParseError, Span};
 use nom::branch::alt;
-use nom::bytes::complete::{is_not, take_while_m_n};
+use nom::bytes::complete::is_not;
 use nom::character::complete::char;
-use nom::combinator::{map, map_opt, map_res, value, verify};
+use nom::combinator::{map, value, verify};
 use nom::multi::fold_many0;
 use nom::sequence::{delimited, preceded};
 
@@ -17,27 +17,6 @@ fn parse_literal(input: Span) -> IResult<&str> {
     verify(map(not_quote_slash, |s| Marked::new(&s, *s)), |s| {
         !s.data.is_empty()
     })(input)
-}
-
-fn parse_unicode(input: Span) -> IResult<char> {
-    let parse_hex = take_while_m_n(1, 6, |c: char| c.is_ascii_hexdigit());
-
-    let parse_delimited_hex = preceded(char('u'), delimited(char('{'), parse_hex, char('}')));
-
-    let parse_u32 = map_res(parse_delimited_hex, move |hex: Span| {
-        u32::from_str_radix(*hex, 16)
-    });
-
-    map_opt(parse_u32, |v| {
-        std::char::from_u32(v).map(|v| Marked::new(&input, v))
-    })(input)
-    .map_err(|e| match e {
-        nom::Err::Error(_) => nom::Err::Failure(ParseError::new(
-            "unexpected sequence in UTF character".to_owned(),
-            input,
-        )),
-        e => e,
-    })
 }
 
 fn parse_escaped_char(input: Span) -> IResult<char> {
@@ -56,13 +35,15 @@ fn parse_escaped_char(input: Span) -> IResult<char> {
                 )),
                 |v: char| Marked::new(&input, v),
             ),
-            parse_unicode,
-            |s: Span| {
-                Err(nom::Err::Failure(ParseError::new(
-                    format!("Unexpected escape sequence \\{}", s),
-                    input,
-                )))
-            },
+            ParseError::protect(
+                |s: Span| {
+                    format!(
+                        "Unexpected escaped character {:?}",
+                        s.chars().next().unwrap()
+                    )
+                },
+                super::single_quoted::parse_unicode,
+            ),
         )),
     )(input)
 }

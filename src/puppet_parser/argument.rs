@@ -1,4 +1,4 @@
-use super::parser::{IResult, Marked, Span};
+use super::parser::{IResult, Marked, ParseError, Span};
 use nom::{
     bytes::complete::tag,
     combinator::{map, opt},
@@ -17,10 +17,22 @@ impl Argument {
         let parser = map(
             tuple((
                 super::common::space0_delimimited(opt(super::typing::TypeSpecification::parse)),
-                preceded(tag("$"), super::common::identifier),
+                preceded(
+                    tag("$"),
+                    ParseError::protect(
+                        |_| "Invalid variable name".to_owned(),
+                        super::common::identifier,
+                    ),
+                ),
                 opt(preceded(
                     super::common::space0_delimimited(Marked::parse(tag("="))),
-                    super::common::space0_delimimited(super::expression::Expression::parse),
+                    ParseError::protect(
+                        |_| {
+                            println!("================= Expected expression after '='");
+                            "Expected expression after '='".to_owned()
+                        },
+                        super::expression::Expression::parse,
+                    ),
                 )),
             )),
             |(type_spec, name, default)| Self {
@@ -51,7 +63,7 @@ fn test_argument() {
                 default: Some(Marked {
                     line: 1,
                     column: 13,
-                    data: super::expression::Expression::Term(super::expression::Term::Float(1.0))
+                    data: super::expression::Expression::Term(super::expression::Term::Integer(1))
                 })
             }
         }

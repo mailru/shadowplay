@@ -6,7 +6,6 @@ use nom::{
     bytes::complete::tag,
     combinator::{map, opt, value},
     multi::separated_list0,
-    number::complete::float,
     sequence::{pair, preceded, tuple},
     Parser,
 };
@@ -76,7 +75,11 @@ impl TypeFloat {
     pub fn parse(input: Span) -> IResult<Self> {
         let parser = preceded(
             tag("Float"),
-            parse_min_max_args(float, primitive::f32::MIN, primitive::f32::MAX),
+            parse_min_max_args(
+                super::expression::Float::plain_parse,
+                primitive::f32::MIN,
+                primitive::f32::MAX,
+            ),
         );
 
         map(parser, |(min, max)| Marked::new(&input, Self { min, max }))(input)
@@ -105,7 +108,7 @@ fn test_float() {
         }
     );
     assert_eq!(
-        TypeFloat::parse(Span::new("Float[ 100 ]")).unwrap().1,
+        TypeFloat::parse(Span::new("Float[ 100.0 ]")).unwrap().1,
         Marked {
             line: 1,
             column: 1,
@@ -124,7 +127,9 @@ fn test_float() {
         }
     );
     assert_eq!(
-        TypeFloat::parse(Span::new("Float[ 100,1000]")).unwrap().1,
+        TypeFloat::parse(Span::new("Float[ 100.0,1000.0]"))
+            .unwrap()
+            .1,
         Marked {
             line: 1,
             column: 1,
@@ -136,13 +141,13 @@ fn test_float() {
                 },
                 max: Marked {
                     line: 1,
-                    column: 12,
+                    column: 14,
                     data: 1000.
                 },
             }
         }
     );
-    assert!(TypeFloat::parse(Span::new("Float[ 100,  1000, 10]")).is_ok());
+    assert!(TypeFloat::parse(Span::new("Float[ 100,  1000, 10.0]")).is_ok());
     assert!(TypeFloat::parse(Span::new("Float[]")).is_ok())
 }
 

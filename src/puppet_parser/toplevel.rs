@@ -1,5 +1,4 @@
 use super::parser::{IResultUnmarked, Marked, Span};
-use anyhow::Result;
 use nom::{branch::alt, combinator::map};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -26,11 +25,13 @@ pub struct Ast {
 }
 
 impl Ast {
-    pub fn parse(input: &str) -> Result<Self> {
+    pub fn parse(input: &str) -> anyhow::Result<Self> {
         let input = input.to_string();
-        let (_, data) = Toplevel::parse(Span::new(&input))
-            .map_err(|err| anyhow::format_err!("Parsing error: {:?}", err))?;
-        Ok(Self { data, input })
+        match Toplevel::parse(Span::new(&input)) {
+            Ok((_remaining, data)) => Ok(Self { data, input }),
+            Err(nom::Err::Failure(err)) => return Err(anyhow::format_err!("{}", err.to_string())),
+            Err(err) => return Err(anyhow::format_err!("{}", err)),
+        }
     }
 }
 
