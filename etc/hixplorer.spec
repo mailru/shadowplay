@@ -40,6 +40,7 @@ rm -rf %{buildroot}
 %{__mkdir} -p %{buildroot}%{_bindir}
 
 %{__install} -pD -m 755 target/release/hixplorer %{buildroot}%{_bindir}/hixplorer
+%{__install} -pD -m 644 etc/config.yaml.example %{buildroot}%{_confdir}/hixplorer.yaml.example
 
 %clean
 rm -rf %{buildroot}

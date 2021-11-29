@@ -1,4 +1,5 @@
 pub mod check;
+pub mod config;
 pub mod hiera_config;
 pub mod puppet;
 mod puppet_parser;
@@ -8,6 +9,8 @@ use structopt::StructOpt;
 
 #[macro_use]
 extern crate lazy_static;
+
+const APP_CONFIG: &str = "/etc/hixplorer.yaml";
 
 #[derive(Debug, StructOpt)]
 pub enum ValuePrintFormat {
@@ -72,6 +75,8 @@ pub enum Query {
     Get(Get),
     /// Checks subcommand
     Check(Check),
+    /// Generates default config
+    GenerateConfig,
 }
 
 #[derive(Debug, StructOpt)]
@@ -79,6 +84,8 @@ pub enum Query {
 struct Opt {
     #[structopt(default_value = "./", long)]
     pub repo_path: std::path::PathBuf,
+    #[structopt(long)]
+    pub config: Option<std::path::PathBuf>,
     #[structopt(subcommand)]
     pub query: Query,
 }
@@ -351,11 +358,11 @@ impl Get {
 }
 
 impl Check {
-    pub fn check(&self, repo_path: &std::path::Path) {
+    pub fn check(&self, repo_path: &std::path::Path, config: crate::config::Config) {
         match self {
-            Check::Yaml(v) => v.check(repo_path),
-            Check::Hiera(v) => v.check(repo_path),
-            Check::Pp(v) => v.check(repo_path),
+            Check::Yaml(v) => v.check(repo_path, &config),
+            Check::Hiera(v) => v.check(repo_path, &config),
+            Check::Pp(v) => v.check(repo_path, &config),
         }
     }
 }
@@ -364,9 +371,20 @@ fn main() {
     env_logger::init();
 
     let opt = Opt::from_args();
+    let config = opt
+        .config
+        .map(|path| crate::config::Config::read(&path).unwrap())
+        .unwrap_or_default();
 
     match &opt.query {
         Query::Get(v) => v.get(&opt.repo_path),
-        Query::Check(v) => v.check(&opt.repo_path),
+        Query::Check(v) => v.check(&opt.repo_path, config),
+        Query::GenerateConfig => {
+            print!(
+                "Below is default configuration. Save it to {}\n\n{}",
+                APP_CONFIG,
+                serde_yaml::to_string(&crate::config::Config::default()).unwrap()
+            )
+        }
     }
 }

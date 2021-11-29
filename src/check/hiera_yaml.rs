@@ -48,6 +48,7 @@ impl Check {
         Ok(Some(ast))
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn check_class_argument(
         &self,
         repo_path: &std::path::Path,
@@ -56,6 +57,7 @@ impl Check {
         puppet_module: &crate::puppet::module::Module,
         argument: &str,
         state: &mut State,
+        config: &crate::config::Config,
     ) -> usize {
         let module_file = puppet_module.full_file_path(repo_path);
         let ast = match self.parse_pp(repo_path, &module_file, state) {
@@ -98,11 +100,20 @@ impl Check {
 
         let _class_argument = match class.data.get_argument(argument) {
             None => {
-                println!(
+                if config
+                    .checks
+                    .hiera_yaml
+                    .forced_values_exists
+                    .contains(&format!("{}::{}", puppet_module.name(), argument))
+                {
+                    // OK, value is whitelisted
+                } else {
+                    println!(
                     "Hiera static error in {:?} at {}: reference to puppet class {:?} does not have argument {:?}",
                     yaml_path, yaml_marker, puppet_module.name(), argument
                 );
-                return 1;
+                    return 1;
+                }
             }
             Some(_) => (),
         };
@@ -115,6 +126,7 @@ impl Check {
         repo_path: &std::path::Path,
         file_path: &std::path::Path,
         state: &mut State,
+        config: &crate::config::Config,
     ) -> usize {
         let yaml = match crate::yaml::load_file(file_path) {
             Err(err) => {
@@ -183,11 +195,20 @@ impl Check {
                 Ok(Some((puppet_module, class_argument))) => {
                     let module_file = puppet_module.full_file_path(repo_path);
                     if !module_file.exists() {
-                        println!(
-                            "Hiera static error in {:?}: puppet module {:?} does not exists at {}",
-                            file_path, module_file, key.marker
-                        );
-                        errors += 1;
+                        if config
+                            .checks
+                            .hiera_yaml
+                            .forced_modules_exists
+                            .contains(&puppet_module.name())
+                        {
+                            // whitelisted module
+                        } else {
+                            println!(
+                                "Hiera static error in {:?}: puppet module {:?} does not exists at {}",
+                                file_path, module_file, key.marker
+                            );
+                            errors += 1;
+                        }
                         continue;
                     }
                     errors += self.check_class_argument(
@@ -197,6 +218,7 @@ impl Check {
                         &puppet_module,
                         class_argument,
                         state,
+                        config,
                     )
                 }
                 Ok(None) => (),
@@ -206,11 +228,11 @@ impl Check {
         errors
     }
 
-    pub fn check(&self, repo_path: &std::path::Path) {
+    pub fn check(&self, repo_path: &std::path::Path, config: &crate::config::Config) {
         let mut state = State::default();
         let mut errors = 0;
         for file_path in &self.paths {
-            errors += self.check_file(repo_path, file_path, &mut state)
+            errors += self.check_file(repo_path, file_path, &mut state, config)
         }
 
         if errors > 0 {

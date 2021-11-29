@@ -28,7 +28,7 @@ impl Check {
         errors
     }
 
-    pub fn check(&self, repo_path: &std::path::Path) {
+    pub fn check(&self, repo_path: &std::path::Path, _config: &crate::config::Config) {
         let mut errors = 0;
         for file_path in &self.paths {
             errors += self.check_file(repo_path, file_path)

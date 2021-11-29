@@ -1,0 +1,32 @@
+checks:
+  hiera_yaml:
+    forced_modules_exists:
+      - ameli
+      - ask8s
+      - ask8s::kubernetes
+      - centos::repo
+      - envoy::assist
+      - fe::mpop
+      - global::features::delayed_delivery::jigurda
+      - journald
+      - radius
+      - system::rclocal
+    forced_values_exists:
+      - ask8s::kubernetes::node::static_pods
+      - bird::config::vips
+      - envoy::envoy_services
+      - fe::caproninitfix
+      - justpkg::installed
+      - mailru_mysql_multi::config::instances
+      - mras_utils_settings::config::instances
+      - mrmon::load
+      - network::config::neighbours
+      - nginx2::config::submodules
+      - nginx2::config::upsync_files
+      - nginx2::config::vhosts
+      - rb2::rbdata
+      - rb2::rbstat
+      - rclocal::extralines
+      - redis::servers
+      - ripper::servers
+      - yum::config::repos
