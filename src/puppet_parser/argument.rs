@@ -1,61 +1,66 @@
+use super::parser::{IResult, Marked, Span};
 use nom::{
     bytes::complete::tag,
     combinator::{map, opt},
     sequence::{preceded, tuple},
-    IResult,
 };
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Argument {
-    pub type_spec: Option<super::typing::TypeSpecification>,
+    pub type_spec: Option<Marked<super::typing::TypeSpecification>>,
     pub name: String,
-    pub default: Option<super::expression::Expression>,
+    pub default: Option<Marked<super::expression::Expression>>,
 }
 
 impl Argument {
-    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str>
-            + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
-    {
-        map(
+    pub fn parse(input: Span) -> IResult<Self> {
+        let parser = map(
             tuple((
                 super::common::space0_delimimited(opt(super::typing::TypeSpecification::parse)),
                 preceded(tag("$"), super::common::identifier),
                 opt(preceded(
-                    super::common::space0_delimimited(tag("=")),
+                    super::common::space0_delimimited(Marked::parse(tag("="))),
                     super::common::space0_delimimited(super::expression::Expression::parse),
                 )),
             )),
             |(type_spec, name, default)| Self {
                 type_spec,
-                name: name.to_string(),
+                name: name.data.to_string(),
                 default,
             },
-        )(input)
+        );
+
+        Marked::parse(parser)(input)
     }
 }
 
 #[test]
 fn test_argument() {
     assert_eq!(
-        Argument::parse::<nom::error::Error<_>>("Any $v   =  1").unwrap(),
-        (
-            "",
-            Argument {
-                type_spec: Some(super::typing::TypeSpecification::Any),
+        Argument::parse(Span::new("Any $v   =  1")).unwrap().1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: Argument {
+                type_spec: Some(Marked {
+                    line: 1,
+                    column: 1,
+                    data: super::typing::TypeSpecification::Any
+                }),
                 name: "v".to_owned(),
-                default: Some(super::expression::Expression::Term(
-                    super::expression::Term::Float(1.0)
-                ))
+                default: Some(Marked {
+                    line: 1,
+                    column: 13,
+                    data: super::expression::Expression::Term(super::expression::Term::Float(1.0))
+                })
             }
-        )
+        }
     );
 
-    assert!(tuple::<_, _, nom::error::Error<_>, _>((
+    assert!(tuple((
         super::common::space0_delimimited(opt(super::typing::TypeSpecification::parse)),
         tag("$")
-    ))("Hash[String, String] $aaa")
+    ))(Span::new("Hash[String, String] $aaa"))
     .is_ok());
-    assert!(Argument::parse::<nom::error::Error<_>>("Hash[String, String] $aaa").is_ok());
+    assert!(Argument::parse(Span::new("Hash[String, String] $aaa")).is_ok());
 }

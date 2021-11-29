@@ -1,44 +1,39 @@
+use super::parser::{IResult, IResultUnmarked, Marked, Span};
 use nom::{
     bytes::complete::tag,
     combinator::{map, opt},
     sequence::{pair, preceded, tuple},
-    IResult,
 };
 
-pub fn header_parser<'a, E>(
-    input: &'a str,
-) -> IResult<&'a str, (Vec<&'a str>, Vec<super::argument::Argument>), E>
-where
-    E: nom::error::ParseError<&'a str>
-        + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
-{
+pub type ArgumentList = Vec<Marked<super::argument::Argument>>;
+
+pub fn header_parser(input: Span) -> IResultUnmarked<(Marked<Vec<&str>>, ArgumentList)> {
     let arguments_parser = map(
-        opt(super::common::round_brackets_comma_separated0(
-            super::argument::Argument::parse,
+        opt(map(
+            super::common::round_brackets_comma_separated0(super::argument::Argument::parse),
+            |v| v.data,
         )),
-        |v: Option<Vec<super::argument::Argument>>| v.unwrap_or_default(),
+        |v: Option<Vec<Marked<super::argument::Argument>>>| v.unwrap_or_default(),
     );
 
     tuple((
-        super::common::lower_identifier_with_ns,
+        Marked::parse(map(super::common::lower_identifier_with_ns, |v| {
+            v.data.into_iter().map(|v| v.data).collect()
+        })),
         preceded(super::common::separator0, arguments_parser),
     ))(input)
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Class {
-    pub identifier: Vec<String>,
-    pub arguments: Vec<super::argument::Argument>,
-    pub inherits: Option<(bool, Vec<String>)>,
+    pub identifier: Marked<Vec<String>>,
+    pub arguments: Vec<Marked<super::argument::Argument>>,
+    pub inherits: Option<Marked<(bool, Vec<String>)>>,
 }
 
 impl Class {
-    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str>
-            + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
-    {
-        map(
+    pub fn parse(input: Span) -> IResult<Self> {
+        let parser = map(
             preceded(
                 tag("class"),
                 tuple((
@@ -54,33 +49,33 @@ impl Class {
                 )),
             ),
             |((identifier, arguments), inherits, _body)| Self {
-                identifier: identifier.into_iter().map(String::from).collect(),
+                identifier: identifier.map(|v| v.into_iter().map(String::from).collect()),
                 arguments,
-                inherits: inherits.map(|(is_toplevel, id)| {
-                    (is_toplevel, id.into_iter().map(String::from).collect())
+                inherits: inherits.map(|v| {
+                    v.map(|(is_toplevel, id)| {
+                        (is_toplevel, id.into_iter().map(String::from).collect())
+                    })
                 }),
             },
-        )(input)
+        );
+
+        Marked::parse(parser)(input)
     }
 
-    pub fn get_argument(&self, name: &str) -> Option<&super::argument::Argument> {
-        self.arguments.iter().find(|v| v.name == name)
+    pub fn get_argument(&self, name: &str) -> Option<&Marked<super::argument::Argument>> {
+        self.arguments.iter().find(|v| v.data.name == name)
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Definition {
-    pub identifier: Vec<String>,
-    pub arguments: Vec<super::argument::Argument>,
+    pub identifier: Marked<Vec<String>>,
+    pub arguments: Vec<Marked<super::argument::Argument>>,
 }
 
 impl Definition {
-    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str>
-            + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
-    {
-        map(
+    pub fn parse(input: Span) -> IResult<Self> {
+        let parser = map(
             preceded(
                 tag("define"),
                 pair(
@@ -90,26 +85,24 @@ impl Definition {
                 ),
             ),
             |((identifier, arguments), _body)| Self {
-                identifier: identifier.into_iter().map(String::from).collect(),
+                identifier: identifier.map(|v| v.into_iter().map(String::from).collect()),
                 arguments,
             },
-        )(input)
+        );
+
+        Marked::parse(parser)(input)
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Plan {
-    pub identifier: Vec<String>,
-    pub arguments: Vec<super::argument::Argument>,
+    pub identifier: Marked<Vec<String>>,
+    pub arguments: Vec<Marked<super::argument::Argument>>,
 }
 
 impl Plan {
-    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str>
-            + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
-    {
-        map(
+    pub fn parse(input: Span) -> IResult<Self> {
+        let parser = map(
             preceded(
                 tag("plan"),
                 pair(
@@ -119,28 +112,37 @@ impl Plan {
                 ),
             ),
             |((identifier, arguments), _body)| Self {
-                identifier: identifier.into_iter().map(String::from).collect(),
+                identifier: identifier.map(|v| v.into_iter().map(String::from).collect()),
                 arguments,
             },
-        )(input)
+        );
+
+        Marked::parse(parser)(input)
     }
 }
 
 #[test]
 fn test_class() {
     assert_eq!(
-        Class::parse::<nom::error::Error<_>>("class  abc::def () {\n TODO }\n").unwrap(),
-        (
-            "\n TODO }\n",
-            Class {
-                identifier: vec!["abc".to_owned(), "def".to_owned()],
+        Class::parse(Span::new("class  abc::def () {\n TODO }\n"))
+            .unwrap()
+            .1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: Class {
+                identifier: Marked {
+                    line: 1,
+                    column: 8,
+                    data: vec!["abc".to_owned(), "def".to_owned()]
+                },
                 arguments: Vec::new(),
                 inherits: None,
             }
-        )
+        }
     );
 
-    assert!(Class::parse::<nom::error::Error<_>>(
+    assert!(Class::parse(Span::new(
         "class tarantool2::add (
     $prefix                 = 'tarantool_box',
     $root_dir               = '/var',
@@ -182,48 +184,85 @@ fn test_class() {
     $clean_logs_time        = '12 6 * * *',
 ) {
 TODO}"
-    )
+    ))
     .is_ok());
 
     assert_eq!(
-        Class::parse::<nom::error::Error<_>>(
+        Class::parse(Span::new(
             "class  ab__c::de11f ( String[1,10] $a, Stdlib::Unixpath $b  ,  $c) {TODO}"
-        )
-        .unwrap(),
-        (
-            "TODO}",
-            Class {
-                identifier: vec!["ab__c".to_owned(), "de11f".to_owned()],
+        ))
+        .unwrap()
+        .1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: Class {
+                identifier: Marked {
+                    line: 1,
+                    column: 8,
+                    data: vec!["ab__c".to_owned(), "de11f".to_owned()]
+                },
                 arguments: vec![
-                    super::argument::Argument {
-                        name: "a".to_owned(),
-                        type_spec: Some(super::typing::TypeSpecification::String(
-                            super::typing::TypeString { min: 1, max: 10 }
-                        )),
-                        default: None,
+                    Marked {
+                        line: 1,
+                        column: 23,
+                        data: super::argument::Argument {
+                            name: "a".to_owned(),
+                            type_spec: Some(Marked {
+                                line: 1,
+                                column: 23,
+                                data: super::typing::TypeSpecification::String(
+                                    super::typing::TypeString {
+                                        min: Marked {
+                                            line: 1,
+                                            column: 30,
+                                            data: 1
+                                        },
+                                        max: Marked {
+                                            line: 1,
+                                            column: 32,
+                                            data: 10
+                                        }
+                                    }
+                                )
+                            }),
+                            default: None,
+                        }
                     },
-                    super::argument::Argument {
-                        name: "b".to_owned(),
-                        type_spec: Some(super::typing::TypeSpecification::Custom(vec![
-                            "Stdlib".to_owned(),
-                            "Unixpath".to_owned()
-                        ])),
-                        default: None,
+                    Marked {
+                        line: 1,
+                        column: 40,
+                        data: super::argument::Argument {
+                            name: "b".to_owned(),
+                            type_spec: Some(Marked {
+                                line: 1,
+                                column: 40,
+                                data: super::typing::TypeSpecification::Custom(vec![
+                                    "Stdlib".to_owned(),
+                                    "Unixpath".to_owned()
+                                ])
+                            }),
+                            default: None,
+                        }
                     },
-                    super::argument::Argument {
-                        name: "c".to_owned(),
-                        type_spec: None,
-                        default: None,
+                    Marked {
+                        line: 1,
+                        column: 64,
+                        data: super::argument::Argument {
+                            name: "c".to_owned(),
+                            type_spec: None,
+                            default: None,
+                        }
                     },
                 ],
                 inherits: None,
             }
-        )
+        }
     );
-    assert!(Class::parse::<nom::error::Error<_>>(
+    assert!(Class::parse(Span::new(
         "class  ab__c::de11f ( String[1,10] $a, Stdlib::Unixpath $b  ,  $c) inherits aa::bb {TODO}"
-    )
+    ))
     .is_ok());
 
-    assert!(Class::parse::<nom::error::Error<_>>("class a ( $a = INFO) {TODO}").is_err())
+    assert!(Class::parse(Span::new("class a ( $a = INFO) {TODO}")).is_err())
 }

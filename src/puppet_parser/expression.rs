@@ -2,29 +2,25 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     combinator::{map, opt},
-    error::FromExternalError,
     multi::many0,
     number::complete::float,
     sequence::{pair, preceded},
-    IResult,
 };
+
+use super::parser::{IResult, IResultUnmarked, Marked, ParseError, Span};
 
 use super::common::square_brackets_delimimited;
 
-pub fn identifier_with_toplevel<'a, E>(input: &'a str) -> IResult<&'a str, (bool, Vec<&'a str>), E>
-where
-    E: nom::error::ParseError<&'a str>,
-{
-    pair(
+pub fn identifier_with_toplevel(input: Span) -> IResult<(bool, Vec<&str>)> {
+    Marked::parse(pair(
         map(opt(tag("::")), |v| v.is_some()),
-        super::common::lower_identifier_with_ns,
-    )(input)
+        map(super::common::lower_identifier_with_ns, |v| {
+            v.data.into_iter().map(|v| v.data).collect()
+        }),
+    ))(input)
 }
 
-fn variable_base<'a, E>(input: &'a str) -> IResult<&'a str, (bool, Vec<&'a str>), E>
-where
-    E: nom::error::ParseError<&'a str>,
-{
+fn variable_base(input: Span) -> IResult<(bool, Vec<&str>)> {
     preceded(tag("$"), identifier_with_toplevel)(input)
 }
 
@@ -32,22 +28,25 @@ where
 pub struct Variable {
     name: Vec<String>,
     is_toplevel: bool,
-    accessor: Vec<Expression>,
+    accessor: Vec<Marked<Expression>>,
 }
 
 impl Variable {
-    pub fn parser<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
-    {
+    pub fn parser(input: Span) -> IResult<Self> {
         let accessor_parser = many0(square_brackets_delimimited(Expression::parse));
 
         map(
             pair(variable_base, accessor_parser),
-            |((is_toplevel, name), accessor)| Self {
-                is_toplevel,
-                name: name.into_iter().map(String::from).collect(),
-                accessor,
+            |(variable_base, accessor)| {
+                let (is_toplevel, name) = variable_base.data;
+                Marked::new(
+                    &input,
+                    Self {
+                        is_toplevel,
+                        name: name.into_iter().map(String::from).collect(),
+                        accessor,
+                    },
+                )
             },
         )(input)
     }
@@ -57,23 +56,26 @@ impl Variable {
 pub struct FunctionCall {
     is_toplevel: bool,
     name: Vec<String>,
-    args: Vec<Term>,
+    args: Vec<Marked<Expression>>,
 }
 
 impl FunctionCall {
-    fn parser<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
-    {
+    fn parser(input: Span) -> IResult<Self> {
         map(
             pair(
                 identifier_with_toplevel,
-                super::common::round_brackets_comma_separated0(Term::parse),
+                super::common::round_brackets_comma_separated0(Expression::parse),
             ),
-            |((is_toplevel, name), args)| Self {
-                is_toplevel,
-                name: name.into_iter().map(String::from).collect(),
-                args,
+            |(identifier, args)| {
+                let (is_toplevel, name) = identifier.data;
+                Marked::new(
+                    &input,
+                    Self {
+                        is_toplevel,
+                        name: name.into_iter().map(String::from).collect(),
+                        args: args.data,
+                    },
+                )
             },
         )(input)
     }
@@ -85,8 +87,8 @@ pub enum Term {
     DoubleQuoted(String),
     Float(f32),
     Boolean(bool),
-    Array(Vec<Term>),
-    Map(Vec<(Term, Term)>),
+    Array(Vec<Marked<Expression>>),
+    Map(Vec<(Marked<Expression>, Marked<Expression>)>),
     Undef,
     Variable(Variable),
     FunctionCall(FunctionCall),
@@ -94,69 +96,68 @@ pub enum Term {
 }
 
 impl Term {
-    fn map_parser<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
-    {
-        let kv_parser = pair(
-            super::common::space0_delimimited(Self::parse),
-            preceded(tag("=>"), super::common::space0_delimimited(Self::parse)),
-        );
+    fn map_parser(input: Span) -> IResultUnmarked<Self> {
+        let kv_parser = move |input| {
+            map(
+                pair(
+                    super::common::space0_delimimited(Expression::parse),
+                    preceded(
+                        tag("=>"),
+                        super::common::space0_delimimited(Expression::parse),
+                    ),
+                ),
+                |v| Marked::new(&input, v),
+            )(input)
+        };
 
-        let parser = super::common::curly_brackets_comma_separated0(kv_parser);
-
-        map(parser, Self::Map)(input)
+        map(
+            super::common::curly_brackets_comma_separated0(kv_parser),
+            |v| Self::Map(v.data.into_iter().map(|v| v.data).collect()),
+        )(input)
     }
 
-    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
-    {
-        alt((
+    pub fn parse(input: Span) -> IResult<Self> {
+        let parser = alt((
             map(tag("undef"), |_| Self::Undef),
             map(tag("true"), |_| Self::Boolean(true)),
             map(tag("false"), |_| Self::Boolean(false)),
             map(float, Self::Float),
-            map(FunctionCall::parser, Self::FunctionCall),
-            map(super::double_quoted::parse, Self::DoubleQuoted),
-            map(super::single_quoted::parse, Self::SingleQuoted),
+            map(FunctionCall::parser, |v| Self::FunctionCall(v.data)),
+            map(super::double_quoted::parse, |v| Self::DoubleQuoted(v.data)),
+            map(super::single_quoted::parse, |v| Self::SingleQuoted(v.data)),
             map(
-                super::common::square_brackets_comma_separated0(Term::parse),
-                Self::Array,
+                super::common::square_brackets_comma_separated0(Expression::parse),
+                |v| Self::Array(v.data),
             ),
             Self::map_parser,
-            map(Variable::parser, Self::Variable),
-            map(
-                super::typing::TypeSpecification::parse,
-                Self::TypeSpecitifaction,
-            ),
-        ))(input)
+            map(Variable::parser, |v| Self::Variable(v.data)),
+            map(super::typing::TypeSpecification::parse, |v| {
+                Self::TypeSpecitifaction(v.data)
+            }),
+        ));
+
+        map(parser, |v| Marked::new(&input, v))(input)
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expression {
-    Multiply((Box<Expression>, Box<Expression>)),
-    Divide((Box<Expression>, Box<Expression>)),
-    Plus((Box<Expression>, Box<Expression>)),
-    Minus((Box<Expression>, Box<Expression>)),
+    Multiply((Box<Marked<Expression>>, Box<Marked<Expression>>)),
+    Divide((Box<Marked<Expression>>, Box<Marked<Expression>>)),
+    Plus((Box<Marked<Expression>>, Box<Marked<Expression>>)),
+    Minus((Box<Marked<Expression>>, Box<Marked<Expression>>)),
     Term(Term),
 }
 
 impl Expression {
-    pub fn fold_many0<'a, E, F, G, O, R>(
-        mut f: F,
-        init: R,
-        g: G,
-    ) -> impl FnMut(&'a str) -> IResult<&'a str, R, E>
+    pub fn fold_many0<'a, F, G, O, R>(mut f: F, init: R, g: G) -> impl FnMut(Span<'a>) -> IResult<R>
     where
-        F: nom::Parser<&'a str, O, E>,
+        F: nom::Parser<Span<'a>, O, ParseError<'a>>,
         G: Fn(R, O) -> R,
-        E: nom::error::ParseError<&'a str>,
         R: Clone,
     {
         let mut res = init;
-        move |i: &'a str| {
+        move |i: Span| {
             let mut input = i;
 
             loop {
@@ -166,9 +167,9 @@ impl Expression {
                     Ok((i, o)) => {
                         // infinite loop check: the parser must always consume
                         if i.len() == len {
-                            return Err(nom::Err::Error(E::from_error_kind(
+                            return Err(nom::Err::Error(ParseError::new(
+                                "Parsed empty token in list".to_string(),
                                 input,
-                                nom::error::ErrorKind::Many0,
                             )));
                         }
 
@@ -176,7 +177,7 @@ impl Expression {
                         input = i;
                     }
                     Err(nom::Err::Error(_)) => {
-                        return Ok((input, res.clone()));
+                        return Ok((input, Marked::new(&i, res.clone())));
                     }
                     Err(e) => {
                         return Err(e);
@@ -186,207 +187,330 @@ impl Expression {
         }
     }
 
-    fn parse_l1<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
-    {
+    fn parse_l1(input: Span) -> IResult<Self> {
         let (input, term) = map(super::common::space0_delimimited(Term::parse), |v| {
-            Self::Term(v)
+            v.map(Self::Term)
         })(input)?;
-        Self::fold_many0(
+        let parser = Self::fold_many0(
             pair(
                 alt((tag("*"), tag("/"))),
                 super::common::space0_delimimited(Self::parse_l1),
             ),
             term,
-            |prev, (op, cur)| match op {
-                "*" => Expression::Multiply((Box::new(prev), Box::new(cur))),
-                "/" => Expression::Divide((Box::new(prev), Box::new(cur))),
-                _ => unreachable!(),
+            |prev, (op, cur)| {
+                let r = match *op {
+                    "*" => Expression::Multiply((Box::new(prev), Box::new(cur))),
+                    "/" => Expression::Divide((Box::new(prev), Box::new(cur))),
+                    _ => unreachable!(),
+                };
+                Marked::new(&op, r)
             },
-        )(input)
+        );
+        map(parser, |v| v.data)(input)
     }
 
-    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
-    {
+    pub fn parse(input: Span) -> IResult<Self> {
         let (input, l1) = super::common::space0_delimimited(Self::parse_l1)(input)?;
-        Self::fold_many0(
+        let parser = Self::fold_many0(
             pair(
                 alt((tag("+"), tag("-"))),
                 super::common::space0_delimimited(Self::parse_l1),
             ),
             l1,
-            |prev, (op, cur)| match op {
-                "+" => Expression::Plus((Box::new(prev), Box::new(cur))),
-                "-" => Expression::Minus((Box::new(prev), Box::new(cur))),
-                _ => unreachable!(),
+            |prev, (op, cur)| {
+                let r = match *op {
+                    "+" => Expression::Plus((Box::new(prev), Box::new(cur))),
+                    "-" => Expression::Minus((Box::new(prev), Box::new(cur))),
+                    _ => unreachable!(),
+                };
+                Marked::new(&op, r)
             },
-        )(input)
+        );
+        map(parser, |v| v.data)(input)
     }
 }
 
 #[test]
 fn test_single_quoted() {
     assert_eq!(
-        Term::parse::<nom::error::Error<_>>("'aaa'").unwrap(),
-        ("", Term::SingleQuoted("aaa".to_owned()))
+        Term::parse(Span::new("'aaa'")).unwrap().1,
+        Marked {
+            data: Term::SingleQuoted("aaa".to_owned()),
+            line: 1,
+            column: 1
+        }
     );
 }
 
 #[test]
 fn test_double_quoted() {
     assert_eq!(
-        Term::parse::<nom::error::Error<_>>("\"aaa\"").unwrap(),
-        ("", Term::DoubleQuoted("aaa".to_owned()))
+        Term::parse(Span::new("\"aaa\"")).unwrap().1,
+        Marked {
+            data: Term::DoubleQuoted("aaa".to_owned()),
+            line: 1,
+            column: 1
+        }
     );
 }
 
 #[test]
 fn test_float() {
     assert_eq!(
-        Term::parse::<nom::error::Error<_>>("12345").unwrap(),
-        ("", Term::Float(12345.0))
+        Term::parse(Span::new("12345")).unwrap().1,
+        Marked {
+            data: Term::Float(12345.0),
+            line: 1,
+            column: 1
+        }
     );
     assert_eq!(
-        Term::parse::<nom::error::Error<_>>("12345.1").unwrap(),
-        ("", Term::Float(12345.1))
+        Term::parse(Span::new("12345.1")).unwrap().1,
+        Marked {
+            data: Term::Float(12345.1),
+            line: 1,
+            column: 1
+        }
     );
     assert_eq!(
-        Term::parse::<nom::error::Error<_>>("-12345.3").unwrap(),
-        ("", Term::Float(-12345.3))
+        Term::parse(Span::new("-12345.3")).unwrap().1,
+        Marked {
+            data: Term::Float(-12345.3),
+            line: 1,
+            column: 1
+        }
     );
 }
 
 #[test]
 fn test_bool() {
     assert_eq!(
-        Term::parse::<nom::error::Error<_>>("true").unwrap(),
-        ("", Term::Boolean(true))
+        Term::parse(Span::new("true")).unwrap().1,
+        Marked {
+            data: Term::Boolean(true),
+            line: 1,
+            column: 1
+        }
     );
     assert_eq!(
-        Term::parse::<nom::error::Error<_>>("false").unwrap(),
-        ("", Term::Boolean(false))
+        Term::parse(Span::new("false")).unwrap().1,
+        Marked {
+            data: Term::Boolean(false),
+            line: 1,
+            column: 1
+        }
     );
 }
 
 #[test]
 fn test_array() {
     assert_eq!(
-        Term::parse::<nom::error::Error<_>>("[]").unwrap(),
-        ("", Term::Array(vec![]))
+        Term::parse(Span::new("[]")).unwrap().1,
+        Marked {
+            data: Term::Array(vec![]),
+            line: 1,
+            column: 1
+        }
     );
+
     assert_eq!(
-        Term::parse::<nom::error::Error<_>>("[false]").unwrap(),
-        ("", Term::Array(vec![Term::Boolean(false)]))
+        Term::parse(Span::new("[false]")).unwrap().1,
+        Marked {
+            data: Term::Array(vec![Marked {
+                data: Expression::Term(Term::Boolean(false)),
+                line: 1,
+                column: 2
+            }]),
+            line: 1,
+            column: 1
+        }
     );
 }
 
 #[test]
 fn test_map() {
     assert_eq!(
-        Term::parse::<nom::error::Error<_>>("{}").unwrap(),
-        ("", Term::Map(vec![]))
+        Term::parse(Span::new("{}")).unwrap().1,
+        Marked {
+            data: Term::Map(vec![]),
+            line: 1,
+            column: 1
+        }
     );
+
     assert_eq!(
-        Term::parse::<nom::error::Error<_>>("{false => 1}").unwrap(),
-        (
-            "",
-            Term::Map(vec![(Term::Boolean(false), Term::Float(1.0))])
-        )
+        Term::parse(Span::new("{false => 1}")).unwrap().1,
+        Marked {
+            data: Term::Map(vec![(
+                Marked {
+                    data: Expression::Term(Term::Boolean(false)),
+                    line: 1,
+                    column: 2
+                },
+                Marked {
+                    data: Expression::Term(Term::Float(1.0)),
+                    line: 1,
+                    column: 11
+                }
+            )]),
+            line: 1,
+            column: 1
+        }
     );
-    assert!(Term::parse::<nom::error::Error<_>>("{'asdasd' => {}, 'a' => 'b', }").is_ok());
+
+    assert!(Term::parse(Span::new("{'asdasd' => {}, 'a' => 'b', }")).is_ok());
 }
 
 #[test]
 fn test_function_call() {
     assert_eq!(
-        Term::parse::<nom::error::Error<_>>("lookup('ask8s::docker::gpu_nvidia')").unwrap(),
-        (
-            "",
-            Term::FunctionCall(FunctionCall {
+        Term::parse(Span::new("lookup('ask8s::docker::gpu_nvidia')"))
+            .unwrap()
+            .1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: Term::FunctionCall(FunctionCall {
                 is_toplevel: false,
                 name: vec!["lookup".to_owned()],
-                args: vec![Term::SingleQuoted("ask8s::docker::gpu_nvidia".to_owned())]
+                args: vec![Marked {
+                    data: Expression::Term(Term::SingleQuoted(
+                        "ask8s::docker::gpu_nvidia".to_owned()
+                    )),
+                    line: 1,
+                    column: 8
+                }]
             })
-        )
+        }
     );
 }
 
 #[test]
 fn test_variable() {
     assert_eq!(
-        Variable::parser::<nom::error::Error<_>>("$a").unwrap(),
-        (
-            "",
-            Variable {
+        Variable::parser(Span::new("$a")).unwrap().1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: Variable {
                 name: vec!["a".to_owned()],
                 is_toplevel: false,
                 accessor: Vec::new()
             }
-        )
+        }
     );
     assert_eq!(
-        Variable::parser::<nom::error::Error<_>>("$::a::b").unwrap(),
-        (
-            "",
-            Variable {
+        Variable::parser(Span::new("$::a::b")).unwrap().1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: Variable {
                 name: vec!["a".to_owned(), "b".to_owned()],
                 is_toplevel: true,
                 accessor: Vec::new()
             }
-        )
+        }
     );
     assert_eq!(
-        Variable::parser::<nom::error::Error<_>>("$a[ 1 ]['z']").unwrap(),
-        (
-            "",
-            Variable {
+        Variable::parser(Span::new("$a[ 1 ]['z']")).unwrap().1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: Variable {
                 name: vec!["a".to_owned()],
                 is_toplevel: false,
                 accessor: vec![
-                    Expression::Term(Term::Float(1.0)),
-                    Expression::Term(Term::SingleQuoted("z".to_owned()))
+                    Marked {
+                        line: 1,
+                        column: 5,
+                        data: Expression::Term(Term::Float(1.0))
+                    },
+                    Marked {
+                        line: 1,
+                        column: 9,
+                        data: Expression::Term(Term::SingleQuoted("z".to_owned()))
+                    },
                 ]
             }
-        )
+        }
     );
 }
 
 #[test]
 fn test_multiply() {
     assert_eq!(
-        Expression::parse::<nom::error::Error<_>>("2*3").unwrap(),
-        (
-            "",
-            Expression::Multiply((
-                Box::new(Expression::Term(Term::Float(2.0))),
-                Box::new(Expression::Term(Term::Float(3.0)))
+        Expression::parse(Span::new("2*3")).unwrap().1,
+        Marked {
+            line: 1,
+            column: 2,
+            data: Expression::Multiply((
+                Box::new(Marked {
+                    line: 1,
+                    column: 1,
+                    data: Expression::Term(Term::Float(2.0))
+                }),
+                Box::new(Marked {
+                    line: 1,
+                    column: 3,
+                    data: Expression::Term(Term::Float(3.0))
+                })
             ))
-        )
+        }
     );
 }
 
 #[test]
 fn test_operators_precendence() {
     assert_eq!(
-        Expression::parse::<nom::error::Error<_>>("1 +2 * 3* 4 - 10").unwrap(),
-        (
-            "",
-            Expression::Minus((
-                Box::new(Expression::Plus((
-                    Box::new(Expression::Term(Term::Float(1.0))),
-                    Box::new(Expression::Multiply((
-                        Box::new(Expression::Term(Term::Float(2.0))),
-                        Box::new(Expression::Multiply((
-                            Box::new(Expression::Term(Term::Float(3.0))),
-                            Box::new(Expression::Term(Term::Float(4.0)))
-                        )))
-                    )))
-                ))),
-                Box::new(Expression::Term(Term::Float(10.0)))
+        Expression::parse(Span::new("1 +2 * 3* 4 - 10")).unwrap().1,
+        Marked {
+            line: 1,
+            column: 13,
+            data: Expression::Minus((
+                Box::new(Marked {
+                    line: 1,
+                    column: 3,
+                    data: Expression::Plus((
+                        Box::new(Marked {
+                            line: 1,
+                            column: 1,
+                            data: Expression::Term(Term::Float(1.0))
+                        }),
+                        Box::new(Marked {
+                            line: 1,
+                            column: 6,
+                            data: Expression::Multiply((
+                                Box::new(Marked {
+                                    line: 1,
+                                    column: 4,
+                                    data: Expression::Term(Term::Float(2.0))
+                                }),
+                                Box::new(Marked {
+                                    line: 1,
+                                    column: 9,
+                                    data: Expression::Multiply((
+                                        Box::new(Marked {
+                                            line: 1,
+                                            column: 8,
+                                            data: Expression::Term(Term::Float(3.0))
+                                        }),
+                                        Box::new(Marked {
+                                            line: 1,
+                                            column: 11,
+                                            data: Expression::Term(Term::Float(4.0))
+                                        })
+                                    ))
+                                })
+                            ))
+                        })
+                    ))
+                }),
+                Box::new(Marked {
+                    line: 1,
+                    column: 15,
+                    data: Expression::Term(Term::Float(10.0))
+                })
             ))
-        )
+        }
     );
 }

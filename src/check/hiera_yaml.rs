@@ -40,7 +40,7 @@ impl Check {
 
         let class = match ast.data {
             Toplevel::Class(class) => {
-                if class.identifier != puppet_module.identifier() {
+                if class.data.identifier.data != puppet_module.identifier() {
                     println!(
                     "Hiera static error in {:?} at {}: reference to puppet file {:?} which toplevel class does not match module name",
                     yaml_path, yaml_marker, puppet_module.file_path()
@@ -58,7 +58,7 @@ impl Check {
             }
         };
 
-        let _class_argument = match class.get_argument(argument) {
+        let _class_argument = match class.data.get_argument(argument) {
             None => {
                 println!(
                     "Hiera static error in {:?} at {}: reference to puppet class {:?} does not have argument {:?}",

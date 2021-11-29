@@ -1,136 +1,159 @@
 use std::primitive;
 
+use super::parser::{IResult, IResultUnmarked, Marked, ParseError, Span};
 use nom::{
     branch::alt,
     bytes::complete::tag,
     combinator::{map, opt, value},
-    error::FromExternalError,
     multi::separated_list0,
     number::complete::float,
     sequence::{pair, preceded, tuple},
-    IResult, Parser,
+    Parser,
 };
 
-pub fn parse_or_default<'a, O, F, E>(
-    parser: F,
-    default: O,
-) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
+pub fn parse_or_default<'a, O, F>(parser: F, default: O) -> impl FnMut(Span<'a>) -> IResult<O>
 where
-    F: Parser<&'a str, O, E>,
+    F: Parser<Span<'a>, O, ParseError<'a>>,
     O: Clone,
-    E: nom::error::ParseError<&'a str>,
 {
-    alt((parser, value(default, tag("default"))))
+    Marked::parse(alt((parser, value(default, tag("default")))))
 }
 
-fn parse_min_max<'a, O, F, E>(
+fn parse_min_max<'a, O, F>(
     parser: F,
     default_min: O,
     default_max: O,
-) -> impl FnMut(&'a str) -> IResult<&'a str, (O, O), E>
+) -> impl FnMut(Span<'a>) -> IResultUnmarked<(Marked<O>, Marked<O>)>
 where
-    F: Parser<&'a str, O, E> + Copy,
-    O: Clone + Copy,
-    E: nom::error::ParseError<&'a str>,
+    F: Parser<Span<'a>, O, ParseError<'a>> + Copy,
+    O: Copy,
 {
-    let parser = pair(
-        super::common::space0_delimimited(parse_or_default(parser, default_min)),
-        opt(super::common::space0_delimimited(preceded(
-            super::common::comma_separator,
-            parse_or_default(parser, default_max),
-        ))),
-    );
-
-    map(parser, move |(min, max)| (min, max.unwrap_or(default_max)))
+    move |input| {
+        map(
+            pair(
+                super::common::space0_delimimited(parse_or_default(parser, default_min)),
+                opt(super::common::space0_delimimited(preceded(
+                    super::common::comma_separator,
+                    parse_or_default(parser, default_max),
+                ))),
+            ),
+            move |(min, max)| (min, max.unwrap_or_else(|| Marked::new(&input, default_max))),
+        )(input)
+    }
 }
 
-fn parse_min_max_args<'a, O, F, E>(
+fn parse_min_max_args<'a, O, F>(
     parser: F,
     default_min: O,
     default_max: O,
-) -> impl FnMut(&'a str) -> IResult<&'a str, (O, O), E>
+) -> impl FnMut(Span<'a>) -> IResultUnmarked<(Marked<O>, Marked<O>)>
 where
-    F: Parser<&'a str, O, E> + Copy,
+    F: Parser<Span<'a>, O, ParseError<'a>> + Copy,
     O: Clone + Copy,
-    E: nom::error::ParseError<&'a str>,
 {
-    map(
-        opt(super::common::square_brackets_delimimited(parse_min_max(
-            parser,
-            default_min,
-            default_max,
-        ))),
-        move |args| args.unwrap_or((default_min, default_max)),
-    )
+    move |input: Span| {
+        map(
+            opt(super::common::square_brackets_delimimited(Marked::parse(
+                parse_min_max(parser, default_min, default_max),
+            ))),
+            move |args: Option<Marked<(Marked<O>, Marked<O>)>>| {
+                args.map(|v| v.data).unwrap_or((
+                    Marked::new(&input, default_min),
+                    Marked::new(&input, default_max),
+                ))
+            },
+        )(input)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TypeFloat {
-    pub min: f32,
-    pub max: f32,
+    pub min: Marked<f32>,
+    pub max: Marked<f32>,
 }
 
 impl TypeFloat {
-    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str>,
-    {
+    pub fn parse(input: Span) -> IResult<Self> {
         let parser = preceded(
             tag("Float"),
             parse_min_max_args(float, primitive::f32::MIN, primitive::f32::MAX),
         );
 
-        map(parser, |(min, max)| Self { min, max })(input)
+        map(parser, |(min, max)| Marked::new(&input, Self { min, max }))(input)
     }
 }
 
 #[test]
 fn test_float() {
     assert_eq!(
-        TypeFloat::parse::<nom::error::Error<_>>("Float").unwrap(),
-        (
-            "",
-            TypeFloat {
-                min: primitive::f32::MIN,
-                max: primitive::f32::MAX
+        TypeFloat::parse(Span::new("Float")).unwrap().1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: TypeFloat {
+                min: Marked {
+                    line: 1,
+                    column: 6,
+                    data: primitive::f32::MIN
+                },
+                max: Marked {
+                    line: 1,
+                    column: 6,
+                    data: primitive::f32::MAX
+                }
             }
-        )
+        }
     );
     assert_eq!(
-        TypeFloat::parse::<nom::error::Error<_>>("Float[ 100 ]").unwrap(),
-        (
-            "",
-            TypeFloat {
-                min: 100.,
-                max: primitive::f32::MAX
+        TypeFloat::parse(Span::new("Float[ 100 ]")).unwrap().1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: TypeFloat {
+                min: Marked {
+                    line: 1,
+                    column: 8,
+                    data: 100.
+                },
+                max: Marked {
+                    line: 1,
+                    column: 8,
+                    data: primitive::f32::MAX
+                }
             }
-        )
+        }
     );
     assert_eq!(
-        TypeFloat::parse::<nom::error::Error<_>>("Float[ 100,1000]").unwrap(),
-        (
-            "",
-            TypeFloat {
-                min: 100.,
-                max: 1000.,
+        TypeFloat::parse(Span::new("Float[ 100,1000]")).unwrap().1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: TypeFloat {
+                min: Marked {
+                    line: 1,
+                    column: 8,
+                    data: 100.
+                },
+                max: Marked {
+                    line: 1,
+                    column: 12,
+                    data: 1000.
+                },
             }
-        )
+        }
     );
-    assert!(TypeFloat::parse::<nom::error::Error<_>>("Float[ 100,  1000, 10]").is_ok());
-    assert!(TypeFloat::parse::<nom::error::Error<_>>("Float[]").is_ok())
+    assert!(TypeFloat::parse(Span::new("Float[ 100,  1000, 10]")).is_ok());
+    assert!(TypeFloat::parse(Span::new("Float[]")).is_ok())
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TypeInteger {
-    pub min: i64,
-    pub max: i64,
+    pub min: Marked<i64>,
+    pub max: Marked<i64>,
 }
 
 impl TypeInteger {
-    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str>,
-    {
+    pub fn parse(input: Span) -> IResult<Self> {
         let parser = preceded(
             tag("Integer"),
             parse_min_max_args(
@@ -140,21 +163,18 @@ impl TypeInteger {
             ),
         );
 
-        map(parser, |(min, max)| Self { min, max })(input)
+        map(parser, |(min, max)| Marked::new(&input, Self { min, max }))(input)
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TypeString {
-    pub min: usize,
-    pub max: usize,
+    pub min: Marked<usize>,
+    pub max: Marked<usize>,
 }
 
 impl TypeString {
-    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str>,
-    {
+    pub fn parse(input: Span) -> IResult<Self> {
         let parser = preceded(
             tag("String"),
             parse_min_max_args(
@@ -164,28 +184,29 @@ impl TypeString {
             ),
         );
 
-        map(parser, |(min, max)| Self {
-            min: min as usize,
-            max: max as usize,
+        map(parser, |(min, max)| {
+            Marked::new(
+                &input,
+                Self {
+                    min: min.map(|v| v as usize),
+                    max: max.map(|v| v as usize),
+                },
+            )
         })(input)
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TypeArray {
-    pub inner: Option<Box<TypeSpecification>>,
-    pub min: usize,
-    pub max: usize,
+    pub inner: Option<Box<Marked<TypeSpecification>>>,
+    pub min: Marked<usize>,
+    pub max: Marked<usize>,
 }
 
 impl TypeArray {
-    fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str>
-            + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
-    {
+    fn parse(input: Span) -> IResult<Self> {
         let parser = pair(
-            TypeSpecification::parse,
+            Marked::parse(TypeSpecification::parse),
             opt(preceded(
                 super::common::comma_separator,
                 parse_min_max(
@@ -195,73 +216,104 @@ impl TypeArray {
                 ),
             )),
         );
-        let parser = map(parser, |(inner, limits)| {
-            let (min, max) = limits.unwrap_or((primitive::u64::MIN, primitive::u64::MAX));
+        let parser = Marked::parse(map(parser, |(inner, limits)| {
+            let (min, max) = limits.unwrap_or((
+                Marked::new(&input, primitive::u64::MIN),
+                Marked::new(&input, primitive::u64::MAX),
+            ));
             Self {
-                inner: Some(Box::new(inner)),
-                min: min as usize,
-                max: max as usize,
+                inner: Some(Box::new(inner.data)),
+                min: min.map(|v| v as usize),
+                max: max.map(|v| v as usize),
             }
-        });
-        preceded(
+        }));
+        Marked::parse(preceded(
             tag("Array"),
             map(
                 opt(super::common::square_brackets_delimimited(parser)),
                 |v| {
-                    v.unwrap_or(Self {
+                    v.map(|v| v.data).unwrap_or(Self {
                         inner: None,
-                        min: primitive::u64::MIN as usize,
-                        max: primitive::u64::MAX as usize,
+                        min: Marked::new(&input, primitive::usize::MIN),
+                        max: Marked::new(&input, primitive::usize::MAX),
                     })
                 },
             ),
-        )(input)
+        ))(input)
     }
 }
 
 #[test]
 fn test_array() {
     assert_eq!(
-        TypeArray::parse::<nom::error::Error<_>>("Array [String[1,2 ],10]").unwrap(),
-        (
-            "",
-            TypeArray {
-                inner: Some(Box::new(TypeSpecification::String(TypeString {
-                    min: 1,
-                    max: 2
-                }))),
-                min: 10,
-                max: primitive::u64::MAX as usize
+        TypeArray::parse(Span::new("Array [String[1,2 ],10]"))
+            .unwrap()
+            .1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: TypeArray {
+                inner: Some(Box::new(Marked {
+                    line: 1,
+                    column: 8,
+                    data: TypeSpecification::String(TypeString {
+                        min: Marked {
+                            line: 1,
+                            column: 15,
+                            data: 1
+                        },
+                        max: Marked {
+                            line: 1,
+                            column: 17,
+                            data: 2
+                        }
+                    })
+                })),
+                min: Marked {
+                    line: 1,
+                    column: 21,
+                    data: 10
+                },
+                max: Marked {
+                    line: 1,
+                    column: 21,
+                    data: primitive::usize::MAX
+                }
             }
-        )
+        }
     );
     assert_eq!(
-        TypeArray::parse::<nom::error::Error<_>>("Array").unwrap(),
-        (
-            "",
-            TypeArray {
+        TypeArray::parse(Span::new("Array")).unwrap().1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: TypeArray {
                 inner: None,
-                min: primitive::u64::MIN as usize,
-                max: primitive::u64::MAX as usize
+                min: Marked {
+                    line: 1,
+                    column: 1,
+                    data: primitive::usize::MIN
+                },
+                max: Marked {
+                    line: 1,
+                    column: 1,
+                    data: primitive::usize::MAX
+                }
             }
-        )
+        }
     );
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TypeHash {
-    pub key: Option<Box<TypeSpecification>>,
-    pub value: Option<Box<TypeSpecification>>,
-    pub min: usize,
-    pub max: usize,
+    pub key: Option<Box<Marked<TypeSpecification>>>,
+    pub value: Option<Box<Marked<TypeSpecification>>>,
+    pub min: Marked<usize>,
+    pub max: Marked<usize>,
 }
 
 impl TypeHash {
-    fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str>
-            + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
-    {
+    fn parse(input: Span) -> IResult<Self> {
         let parser = tuple((
             TypeSpecification::parse,
             preceded(super::common::comma_separator, TypeSpecification::parse),
@@ -275,24 +327,35 @@ impl TypeHash {
             )),
         ));
         let parser = map(parser, |(key, value, limits)| {
-            let (min, max) = limits.unwrap_or((primitive::u64::MIN, primitive::u64::MAX));
-            Self {
-                key: Some(Box::new(key)),
-                value: Some(Box::new(value)),
-                min: min as usize,
-                max: max as usize,
-            }
+            let (min, max) = limits.unwrap_or((
+                Marked::new(&input, primitive::u64::MIN),
+                Marked::new(&input, primitive::u64::MAX),
+            ));
+            Marked::new(
+                &input,
+                Self {
+                    key: Some(Box::new(key)),
+                    value: Some(Box::new(value)),
+                    min: min.map(|v| v as usize),
+                    max: max.map(|v| v as usize),
+                },
+            )
         });
         preceded(
             tag("Hash"),
             map(
                 opt(super::common::square_brackets_delimimited(parser)),
                 |v| {
-                    v.unwrap_or(Self {
-                        key: None,
-                        value: None,
-                        min: primitive::u64::MIN as usize,
-                        max: primitive::u64::MAX as usize,
+                    v.unwrap_or_else(|| {
+                        Marked::new(
+                            &input,
+                            Self {
+                                key: None,
+                                value: None,
+                                min: Marked::new(&input, primitive::usize::MIN),
+                                max: Marked::new(&input, primitive::usize::MAX),
+                            },
+                        )
                     })
                 },
             ),
@@ -303,44 +366,66 @@ impl TypeHash {
 #[test]
 fn test_hash() {
     assert_eq!(
-        TypeHash::parse::<nom::error::Error<_>>("Hash [String[1,2 ], Boolean]").unwrap(),
-        (
-            "",
-            TypeHash {
-                key: Some(Box::new(TypeSpecification::String(TypeString {
-                    min: 1,
-                    max: 2
-                }))),
-                value: Some(Box::new(TypeSpecification::Boolean)),
-                min: primitive::u64::MIN as usize,
-                max: primitive::u64::MAX as usize
+        TypeHash::parse(Span::new("Hash [String[1,2 ], Boolean]"))
+            .unwrap()
+            .1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: TypeHash {
+                key: Some(Box::new(Marked {
+                    line: 1,
+                    column: 7,
+                    data: TypeSpecification::String(TypeString {
+                        min: Marked {
+                            line: 1,
+                            column: 14,
+                            data: 1
+                        },
+                        max: Marked {
+                            line: 1,
+                            column: 16,
+                            data: 2
+                        }
+                    })
+                })),
+                value: Some(Box::new(Marked {
+                    line: 1,
+                    column: 21,
+                    data: TypeSpecification::Boolean
+                })),
+                min: Marked {
+                    line: 1,
+                    column: 1,
+                    data: primitive::usize::MIN
+                },
+                max: Marked {
+                    line: 1,
+                    column: 1,
+                    data: primitive::usize::MAX
+                }
             }
-        )
+        }
     );
-    assert!(TypeHash::parse::<nom::error::Error<_>>("Hash[String, Hash[ String, String]]]").is_ok())
+    assert!(TypeHash::parse(Span::new("Hash[String, Hash[ String, String]]]")).is_ok())
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TypeOptional {
-    TypeSpecification(Box<TypeSpecification>),
-    Term(Box<super::expression::Term>),
+    TypeSpecification(Box<Marked<TypeSpecification>>),
+    Term(Box<Marked<super::expression::Term>>),
 }
 
 impl TypeOptional {
-    fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str>
-            + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
-    {
-        preceded(
-            tag("Optional"),
-            super::common::square_brackets_delimimited(alt((
-                map(TypeSpecification::parse, |v| {
-                    Self::TypeSpecification(Box::new(v))
-                }),
-                map(super::expression::Term::parse, |v| Self::Term(Box::new(v))),
-            ))),
-        )(input)
+    fn parse(input: Span) -> IResult<Self> {
+        let arguments_parser = super::common::square_brackets_delimimited(Marked::parse(alt((
+            map(TypeSpecification::parse, |v| {
+                Self::TypeSpecification(Box::new(v))
+            }),
+            map(super::expression::Term::parse, |v| Self::Term(Box::new(v))),
+        ))));
+
+        Marked::parse(preceded(tag("Optional"), map(arguments_parser, |v| v.data)))(input)
     }
 }
 
@@ -351,19 +436,17 @@ pub enum TypeSensitive {
 }
 
 impl TypeSensitive {
-    fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str>
-            + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
-    {
+    fn parse(input: Span) -> IResult<Self> {
         preceded(
             tag("Sensitive"),
-            super::common::square_brackets_delimimited(alt((
+            super::common::square_brackets_delimimited(Marked::parse(alt((
                 map(TypeSpecification::parse, |v| {
-                    Self::TypeSpecification(Box::new(v))
+                    Self::TypeSpecification(Box::new(v.data))
                 }),
-                map(super::expression::Term::parse, |v| Self::Term(Box::new(v))),
-            ))),
+                map(super::expression::Term::parse, |v| {
+                    Self::Term(Box::new(v.data))
+                }),
+            )))),
         )(input)
     }
 }
@@ -371,14 +454,29 @@ impl TypeSensitive {
 #[test]
 fn test_optional() {
     assert_eq!(
-        TypeOptional::parse::<nom::error::Error<_>>("Optional [String[1,2 ] ]").unwrap(),
-        (
-            "",
-            TypeOptional::TypeSpecification(Box::new(TypeSpecification::String(TypeString {
-                min: 1,
-                max: 2
-            })))
-        )
+        TypeOptional::parse(Span::new("Optional [String[1,2 ] ]"))
+            .unwrap()
+            .1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: TypeOptional::TypeSpecification(Box::new(Marked {
+                line: 1,
+                column: 11,
+                data: TypeSpecification::String(TypeString {
+                    min: Marked {
+                        line: 1,
+                        column: 18,
+                        data: 1
+                    },
+                    max: Marked {
+                        line: 1,
+                        column: 20,
+                        data: 2
+                    }
+                })
+            }))
+        }
     )
 }
 
@@ -390,34 +488,30 @@ pub enum TypeStructKey {
 }
 
 impl TypeStructKey {
-    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
-    {
+    pub fn parse(input: Span) -> IResult<Self> {
         let inner_parse = super::common::square_brackets_delimimited(alt((
             super::double_quoted::parse,
             super::single_quoted::parse,
         )));
 
-        alt((
-            preceded(tag("Optional"), map(inner_parse, Self::Optional)),
-            map(super::double_quoted::parse, Self::DoubleQuoted),
-            map(super::single_quoted::parse, Self::SingleQuoted),
-        ))(input)
+        Marked::parse(alt((
+            preceded(
+                tag("Optional"),
+                map(inner_parse, |v| Self::Optional(v.data)),
+            ),
+            map(super::double_quoted::parse, |v| Self::DoubleQuoted(v.data)),
+            map(super::single_quoted::parse, |v| Self::SingleQuoted(v.data)),
+        )))(input)
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TypeStruct {
-    pub keys: Vec<(TypeStructKey, TypeSpecification)>,
+    pub keys: Vec<(Marked<TypeStructKey>, Marked<TypeSpecification>)>,
 }
 
 impl TypeStruct {
-    fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str>
-            + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
-    {
+    fn parse(input: Span) -> IResult<Self> {
         let kv_parser = pair(
             super::common::space0_delimimited(TypeStructKey::parse),
             preceded(
@@ -426,50 +520,61 @@ impl TypeStruct {
             ),
         );
 
-        preceded(
+        let parser = preceded(
             tag("Struct"),
             map(
                 super::common::square_brackets_delimimited(
-                    super::common::curly_brackets_comma_separated0(kv_parser),
+                    super::common::curly_brackets_comma_separated0(Marked::parse(kv_parser)),
                 ),
-                |keys| Self { keys },
+                |keys: Marked<_>| Self {
+                    keys: keys.data.into_iter().map(|v| v.data).collect(),
+                },
             ),
-        )(input)
+        );
+
+        Marked::parse(parser)(input)
     }
 }
 
 #[test]
 fn test_struct() {
     assert_eq!(
-        TypeStruct::parse::<nom::error::Error<_>>("Struct [{some_key => Boolean } ]").unwrap(),
-        (
-            "",
-            TypeStruct {
+        TypeStruct::parse(Span::new("Struct [{some_key => Boolean } ]"))
+            .unwrap()
+            .1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: TypeStruct {
                 keys: vec![(
-                    TypeStructKey::SingleQuoted("some_key".to_owned()),
-                    TypeSpecification::Boolean
+                    Marked {
+                        line: 1,
+                        column: 10,
+                        data: TypeStructKey::SingleQuoted("some_key".to_owned())
+                    },
+                    Marked {
+                        line: 1,
+                        column: 22,
+                        data: TypeSpecification::Boolean
+                    }
                 )]
             }
-        )
+        }
     );
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TypeTuple {
-    pub list: Vec<TypeSpecification>,
-    pub min: usize,
-    pub max: usize,
+    pub list: Vec<Marked<TypeSpecification>>,
+    pub min: Marked<usize>,
+    pub max: Marked<usize>,
 }
 
 impl TypeTuple {
-    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str>
-            + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
-    {
+    pub fn parse(input: Span) -> IResult<Self> {
         let parser = preceded(
             tag("Tuple"),
-            super::common::square_brackets_delimimited(pair(
+            super::common::square_brackets_delimimited(Marked::parse(pair(
                 separated_list0(super::common::comma_separator, TypeSpecification::parse),
                 opt(preceded(
                     super::common::comma_separator,
@@ -479,59 +584,158 @@ impl TypeTuple {
                         primitive::u64::MAX,
                     ),
                 )),
-            )),
+            ))),
         );
 
-        map(parser, move |(list, min_max)| {
-            let (min, max) = min_max.unwrap_or((primitive::u64::MIN, primitive::u64::MAX));
+        let parser = map(parser, move |parsed| {
+            let (list, min_max) = parsed.data;
+            let (min, max) = min_max.unwrap_or((
+                Marked::new(&input, primitive::u64::MIN),
+                Marked::new(&input, primitive::u64::MAX),
+            ));
             Self {
                 list,
-                min: min as usize,
-                max: max as usize,
+                min: min.map(|v| v as usize),
+                max: max.map(|v| v as usize),
             }
-        })(input)
+        });
+
+        Marked::parse(parser)(input)
     }
 }
 
 #[test]
 fn test_tuple() {
     assert_eq!(
-        TypeTuple::parse::<nom::error::Error<_>>("Tuple [Integer[1,2], 10, 100 ]").unwrap(),
-        (
-            "",
-            TypeTuple {
-                list: vec![TypeSpecification::Integer(TypeInteger { min: 1, max: 2 })],
-                min: 10,
-                max: 100,
+        TypeTuple::parse(Span::new("Tuple [Integer[1,2], 10, 100 ]"))
+            .unwrap()
+            .1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: TypeTuple {
+                list: vec![Marked {
+                    line: 1,
+                    column: 8,
+                    data: TypeSpecification::Integer(TypeInteger {
+                        min: Marked {
+                            line: 1,
+                            column: 16,
+                            data: 1
+                        },
+                        max: Marked {
+                            line: 1,
+                            column: 18,
+                            data: 2
+                        }
+                    })
+                }],
+                min: Marked {
+                    line: 1,
+                    column: 22,
+                    data: 10
+                },
+                max: Marked {
+                    line: 1,
+                    column: 26,
+                    data: 100
+                },
             }
-        )
+        }
     );
     assert_eq!(
-        TypeTuple::parse::<nom::error::Error<_>>("Tuple [Integer[1,2] ]").unwrap(),
-        (
-            "",
-            TypeTuple {
-                list: vec![TypeSpecification::Integer(TypeInteger { min: 1, max: 2 })],
-                min: primitive::u64::MIN as usize,
-                max: primitive::u64::MAX as usize,
+        TypeTuple::parse(Span::new("Tuple [Integer[1,2] ]"))
+            .unwrap()
+            .1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: TypeTuple {
+                list: vec![Marked {
+                    line: 1,
+                    column: 8,
+                    data: TypeSpecification::Integer(TypeInteger {
+                        min: Marked {
+                            line: 1,
+                            column: 16,
+                            data: 1
+                        },
+                        max: Marked {
+                            line: 1,
+                            column: 18,
+                            data: 2
+                        }
+                    })
+                }],
+                min: Marked {
+                    line: 1,
+                    column: 1,
+                    data: primitive::u64::MIN as usize
+                },
+                max: Marked {
+                    line: 1,
+                    column: 1,
+                    data: primitive::u64::MAX as usize
+                },
             }
-        )
+        }
     );
     assert_eq!(
-        TypeTuple::parse::<nom::error::Error<_>>("Tuple [Integer[1,2], Integer[1,2] ]").unwrap(),
-        (
-            "",
-            TypeTuple {
+        TypeTuple::parse(Span::new("Tuple [Integer[1,2], Integer[1,2] ]"))
+            .unwrap()
+            .1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: TypeTuple {
                 list: vec![
-                    TypeSpecification::Integer(TypeInteger { min: 1, max: 2 }),
-                    TypeSpecification::Integer(TypeInteger { min: 1, max: 2 })
+                    Marked {
+                        line: 1,
+                        column: 8,
+                        data: TypeSpecification::Integer(TypeInteger {
+                            min: Marked {
+                                line: 1,
+                                column: 16,
+                                data: 1
+                            },
+                            max: Marked {
+                                line: 1,
+                                column: 18,
+                                data: 2
+                            }
+                        })
+                    },
+                    Marked {
+                        line: 1,
+                        column: 22,
+                        data: TypeSpecification::Integer(TypeInteger {
+                            min: Marked {
+                                line: 1,
+                                column: 30,
+                                data: 1
+                            },
+                            max: Marked {
+                                line: 1,
+                                column: 32,
+                                data: 2
+                            }
+                        })
+                    }
                 ],
-                min: primitive::u64::MIN as usize,
-                max: primitive::u64::MAX as usize,
+                min: Marked {
+                    line: 1,
+                    column: 1,
+                    data: primitive::u64::MIN as usize
+                },
+                max: Marked {
+                    line: 1,
+                    column: 1,
+                    data: primitive::u64::MAX as usize
+                },
             }
-        )
+        }
     );
-    assert!(TypeTuple::parse::<nom::error::Error<_>>("Tuple").is_err());
+    assert!(TypeTuple::parse(Span::new("Tuple")).is_err());
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -540,7 +744,7 @@ pub enum TypeSpecification {
     Integer(TypeInteger),
     Numeric,
     String(TypeString),
-    Pattern(Vec<String>),
+    Pattern(Vec<Marked<String>>),
     Regex(String),
     Hash(TypeHash),
     Boolean,
@@ -548,8 +752,8 @@ pub enum TypeSpecification {
     Undef,
     Any,
     Optional(TypeOptional),
-    Variant(Vec<TypeSpecification>),
-    Enum(Vec<super::expression::Term>),
+    Variant(Vec<Marked<TypeSpecification>>),
+    Enum(Vec<Marked<super::expression::Term>>),
     Struct(TypeStruct),
     Custom(Vec<String>),
     Sensitive(TypeSensitive),
@@ -557,11 +761,7 @@ pub enum TypeSpecification {
 }
 
 impl TypeSpecification {
-    pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, Self, E>
-    where
-        E: nom::error::ParseError<&'a str>
-            + nom::error::FromExternalError<&'a str, std::num::ParseIntError>,
-    {
+    pub fn parse(input: Span) -> IResult<Self> {
         let variant_parser = preceded(
             tag("Variant"),
             super::common::square_brackets_comma_separated1(Self::parse),
@@ -582,44 +782,53 @@ impl TypeSpecification {
             super::common::square_brackets_delimimited(super::regex::parse),
         );
 
-        alt((
-            map(TypeInteger::parse, Self::Integer),
-            map(TypeFloat::parse, Self::Float),
+        let parser = alt((
+            map(TypeInteger::parse, |v| Self::Integer(v.data)),
+            map(TypeFloat::parse, |v| Self::Float(v.data)),
             value(Self::Numeric, tag("Numeric")),
-            map(TypeString::parse, Self::String),
+            map(TypeString::parse, |v| Self::String(v.data)),
             value(Self::Boolean, tag("Boolean")),
-            map(TypeArray::parse, Self::Array),
-            map(TypeHash::parse, Self::Hash),
-            map(TypeOptional::parse, Self::Optional),
-            map(TypeSensitive::parse, Self::Sensitive),
-            map(TypeStruct::parse, Self::Struct),
-            map(TypeTuple::parse, Self::Tuple),
-            map(variant_parser, Self::Variant),
-            map(enum_parser, Self::Enum),
-            map(pattern_parser, Self::Pattern),
-            map(regex_parser, Self::Regex),
+            map(TypeArray::parse, |v| Self::Array(v.data)),
+            map(TypeHash::parse, |v| Self::Hash(v.data)),
+            map(TypeOptional::parse, |v| Self::Optional(v.data)),
+            map(TypeSensitive::parse, |v| Self::Sensitive(v.data)),
+            map(TypeStruct::parse, |v| Self::Struct(v.data)),
+            map(TypeTuple::parse, |v| Self::Tuple(v.data)),
+            map(variant_parser, |v| Self::Variant(v.data)),
+            map(enum_parser, |v| Self::Enum(v.data)),
+            map(pattern_parser, |v| Self::Pattern(v.data)),
+            map(regex_parser, |v| Self::Regex(v.data)),
             value(Self::Undef, tag("Undef")),
             value(Self::Any, tag("Any")),
             map(super::common::camelcase_identifier_with_ns, |v| {
-                Self::Custom(v.into_iter().map(String::from).collect())
+                Self::Custom(v.data.into_iter().map(|v| String::from(v.data)).collect())
             }),
-        ))(input)
+        ));
+
+        Marked::parse(parser)(input)
     }
 }
 
 #[test]
 fn test_type_specification() {
     assert_eq!(
-        TypeSpecification::parse::<nom::error::Error<_>>("Stdlib::Unixpath").unwrap(),
-        (
-            "",
-            TypeSpecification::Custom(vec!["Stdlib".to_owned(), "Unixpath".to_owned()])
-        )
+        TypeSpecification::parse(Span::new("Stdlib::Unixpath"))
+            .unwrap()
+            .1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: TypeSpecification::Custom(vec!["Stdlib".to_owned(), "Unixpath".to_owned()])
+        }
     );
     assert_eq!(
-        TypeSpecification::parse::<nom::error::Error<_>>("Numeric").unwrap(),
-        ("", TypeSpecification::Numeric)
+        TypeSpecification::parse(Span::new("Numeric")).unwrap().1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: TypeSpecification::Numeric
+        }
     );
-    assert!(TypeSpecification::parse::<nom::error::Error<_>>("Pattern[//, /sdfsdf/]").is_ok());
-    assert!(TypeSpecification::parse::<nom::error::Error<_>>("Regexp[/sdfsdf/]").is_ok());
+    assert!(TypeSpecification::parse(Span::new("Pattern[//, /sdfsdf/]")).is_ok());
+    assert!(TypeSpecification::parse(Span::new("Regexp[/sdfsdf/]")).is_ok());
 }

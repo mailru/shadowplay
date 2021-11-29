@@ -1,71 +1,77 @@
+use super::parser::{IResult, IResultUnmarked, Marked, Span};
 use nom::branch::alt;
 use nom::bytes::complete::{is_not, tag};
 use nom::character::complete::{anychar, char};
 use nom::combinator::{map, recognize, verify};
-use nom::error::{FromExternalError, ParseError};
 use nom::multi::fold_many0;
 use nom::sequence::{delimited, pair};
-use nom::IResult;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum StringFragment<'a> {
-    Literal(&'a str),
-    EscapedChar(&'a str),
+    Literal(Span<'a>),
+    EscapedChar(Span<'a>),
 }
 
-fn parse_literal<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, &'a str, E> {
+fn parse_literal(input: Span) -> IResultUnmarked<Span> {
     let not_quote_slash = is_not("/\\");
-    verify(not_quote_slash, |s: &str| !s.is_empty())(input)
+    verify(not_quote_slash, |s: &Span| !s.is_empty())(input)
 }
 
-fn parse_escaped_char<'a, E>(input: &'a str) -> IResult<&'a str, &'a str, E>
-where
-    E: ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
-{
+fn parse_escaped_char(input: Span) -> IResultUnmarked<Span> {
     recognize(pair(tag("\\"), anychar))(input)
 }
 
-fn parse_fragment<'a, E>(input: &'a str) -> IResult<&'a str, StringFragment<'a>, E>
-where
-    E: ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
-{
+fn parse_fragment(input: Span) -> IResultUnmarked<StringFragment> {
     alt((
         map(parse_literal, StringFragment::Literal),
         map(parse_escaped_char, StringFragment::EscapedChar),
     ))(input)
 }
 
-pub fn parse<'a, E>(input: &'a str) -> IResult<&'a str, String, E>
-where
-    E: ParseError<&'a str> + FromExternalError<&'a str, std::num::ParseIntError>,
-{
+pub fn parse(input: Span) -> IResult<String> {
     let build_string = fold_many0(parse_fragment, String::new, |mut string, fragment| {
         match fragment {
-            StringFragment::Literal(s) => string.push_str(s),
-            StringFragment::EscapedChar(s) => string.push_str(s),
+            StringFragment::Literal(s) => string.push_str(&s),
+            StringFragment::EscapedChar(s) => string.push_str(&s),
         }
         string
     });
 
-    delimited(char('/'), build_string, char('/'))(input)
+    Marked::parse(delimited(char('/'), build_string, char('/')))(input)
 }
 
 #[test]
 fn test() {
     assert_eq!(
-        parse::<nom::error::Error<_>>("//").unwrap(),
-        ("", "".to_owned())
+        parse(Span::new("//")).unwrap().1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: "".to_owned()
+        }
     );
     assert_eq!(
-        parse::<nom::error::Error<_>>("/aaa/").unwrap(),
-        ("", "aaa".to_owned())
+        parse(Span::new("/aaa/")).unwrap().1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: "aaa".to_owned()
+        }
     );
     assert_eq!(
-        parse::<nom::error::Error<_>>("/\\//").unwrap(),
-        ("", "\\/".to_owned())
+        parse(Span::new("/\\//")).unwrap().1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: "\\/".to_owned()
+        }
     );
     assert_eq!(
-        parse::<nom::error::Error<_>>("/\\d/").unwrap(),
-        ("", "\\d".to_owned())
+        parse(Span::new("/\\d/")).unwrap().1,
+        Marked {
+            line: 1,
+            column: 1,
+            data: "\\d".to_owned()
+        }
     );
 }
