@@ -40,7 +40,7 @@ rm -rf %{buildroot}
 %{__mkdir} -p %{buildroot}%{_bindir}
 
 %{__install} -pD -m 755 target/release/hixplorer %{buildroot}%{_bindir}/hixplorer
-%{__install} -pD -m 644 etc/config.yaml.example %{buildroot}%{_confdir}/hixplorer.yaml.example
+%{__install} -pD -m 644 etc/config.yaml.example %{buildroot}%{_sysconfdir}/hixplorer.yaml.example
 
 %clean
 rm -rf %{buildroot}
@@ -48,3 +48,4 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 %{_bindir}/hixplorer
+%{_sysconfdir}/hixplorer.yaml.example
