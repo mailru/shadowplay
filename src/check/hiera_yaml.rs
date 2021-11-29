@@ -3,19 +3,49 @@ use structopt::StructOpt;
 
 use crate::puppet_parser::{toplevel::Ast, toplevel::Toplevel};
 
+#[derive(Default)]
+pub struct State {
+    pp_ast_cache:
+        std::collections::HashMap<std::path::PathBuf, Option<crate::puppet_parser::toplevel::Ast>>,
+}
+
 #[derive(Debug, StructOpt)]
 pub struct Check {
     paths: Vec<std::path::PathBuf>,
 }
 
 impl Check {
-    fn parse_pp(&self, repo_path: &std::path::Path, file_path: &std::path::Path) -> Result<Ast> {
-        let pp_content = std::fs::read_to_string(repo_path.join(file_path))?;
+    fn parse_pp(
+        &self,
+        repo_path: &std::path::Path,
+        file_path: &std::path::Path,
+        state: &mut State,
+    ) -> Result<Option<Ast>> {
+        if let Some(parsed) = state.pp_ast_cache.get(file_path) {
+            return Ok((*parsed).clone());
+        }
 
-        let ast =
-            Ast::parse(&pp_content).map_err(|err| anyhow::format_err!("Parsing error: {}", err))?;
+        let pp_content = match std::fs::read_to_string(repo_path.join(file_path)) {
+            Ok(v) => v,
+            Err(err) => {
+                let _ = state.pp_ast_cache.insert(file_path.to_path_buf(), None);
+                return Err(anyhow::Error::from(err));
+            }
+        };
 
-        Ok(ast)
+        let ast = match Ast::parse(&pp_content) {
+            Ok(v) => v,
+            Err(err) => {
+                let _ = state.pp_ast_cache.insert(file_path.to_path_buf(), None);
+                return Err(err);
+            }
+        };
+
+        let _ = state
+            .pp_ast_cache
+            .insert(file_path.to_path_buf(), Some(ast.clone()));
+
+        Ok(Some(ast))
     }
 
     fn check_class_argument(
@@ -25,9 +55,10 @@ impl Check {
         yaml_marker: &crate::yaml::Marker,
         puppet_module: &crate::puppet::module::Module,
         argument: &str,
+        state: &mut State,
     ) -> usize {
         let module_file = puppet_module.full_file_path(repo_path);
-        let ast = match self.parse_pp(repo_path, &module_file) {
+        let ast = match self.parse_pp(repo_path, &module_file, state) {
             Err(err) => {
                 println!(
                     "Hiera static error in {:?} at {}: reference to puppet class {:?} which failed to parse with error {:?}",
@@ -35,7 +66,14 @@ impl Check {
                 );
                 return 1;
             }
-            Ok(v) => v,
+            Ok(None) => {
+                println!(
+                    "Hiera static error in {:?} at {}: reference to puppet class {:?} which failed to parse earlier",
+                    yaml_path, yaml_marker, puppet_module.name()
+                );
+                return 1;
+            }
+            Ok(Some(v)) => v,
         };
 
         let class = match ast.data {
@@ -72,7 +110,12 @@ impl Check {
         0
     }
 
-    pub fn check_file(&self, repo_path: &std::path::Path, file_path: &std::path::Path) -> usize {
+    pub fn check_file(
+        &self,
+        repo_path: &std::path::Path,
+        file_path: &std::path::Path,
+        state: &mut State,
+    ) -> usize {
         let yaml = match crate::yaml::load_file(file_path) {
             Err(err) => {
                 println!("Failed to read {:?}: {}", file_path, err);
@@ -153,6 +196,7 @@ impl Check {
                         &key.marker,
                         &puppet_module,
                         class_argument,
+                        state,
                     )
                 }
                 Ok(None) => (),
@@ -163,9 +207,10 @@ impl Check {
     }
 
     pub fn check(&self, repo_path: &std::path::Path) {
+        let mut state = State::default();
         let mut errors = 0;
         for file_path in &self.paths {
-            errors += self.check_file(repo_path, file_path)
+            errors += self.check_file(repo_path, file_path, &mut state)
         }
 
         if errors > 0 {

@@ -19,6 +19,7 @@ impl Toplevel {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Ast {
     pub input: String,
     pub data: Toplevel,
