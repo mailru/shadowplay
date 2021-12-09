@@ -15,15 +15,22 @@ impl Check {
             Ok(v) => v,
         };
 
-        let errors = 0;
+        let mut errors = 0;
 
-        let _ = match crate::puppet_parser::toplevel::Ast::parse(&pp) {
+        let ast = match crate::puppet_parser::toplevel::Ast::parse(&pp) {
             Err(err) => {
                 println!("Parse error in {:?}: {}", file_path, err);
                 return 1;
             }
             Ok(v) => v,
         };
+
+        // TODO count errors
+        let linter_storage = crate::check::pp_static::lint::Storage::new();
+        let linter = crate::check::pp_static::lint::AstLinter;
+        linter.check_toplevel(&linter_storage, &ast.data);
+
+        // errors += ast.data.static_check();
 
         errors
     }
