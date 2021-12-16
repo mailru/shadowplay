@@ -2,10 +2,10 @@ use super::parser::{IResultUnmarked, Marked, Span};
 use nom::{branch::alt, combinator::map};
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Toplevel {
-    Class(Marked<super::class::Class>),
-    Definition(Marked<super::class::Definition>),
-    Plan(Marked<super::class::Plan>),
+pub enum Toplevel<EXTRA> {
+    Class(super::class::Class<EXTRA>),
+    Definition(super::class::Definition<EXTRA>),
+    Plan(super::class::Plan<EXTRA>),
 }
 
 impl Toplevel {

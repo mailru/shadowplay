@@ -1,4 +1,3 @@
-use lazy_static::__Deref;
 use nom;
 use nom_locate::LocatedSpan;
 
@@ -21,7 +20,7 @@ impl<'a> ParseError<'a> {
     pub fn protect<O, M, F>(
         mut message_generator: M,
         mut parser: F,
-    ) -> impl FnMut(Span<'a>) -> IResultUnmarked<O>
+    ) -> impl FnMut(Span<'a>) -> IResult<O>
     where
         M: FnMut(Span<'a>) -> String + Copy,
         F: nom::Parser<Span<'a>, O, ParseError<'a>>,
@@ -43,7 +42,7 @@ impl<'a> ParseError<'a> {
         }
     }
 
-    pub fn fatal<O>(message: String, span: Span<'a>) -> IResultUnmarked<O>
+    pub fn fatal<O>(message: String, span: Span<'a>) -> IResult<O>
     where
         O: Clone,
     {
@@ -95,51 +94,49 @@ impl<'a> nom::error::FromExternalError<LocatedSpan<&'a str>, std::num::ParseIntE
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct Marked<T: Clone> {
-    pub data: T,
-    pub line: u32,
-    pub column: usize,
+pub type IResult<'a, O> = nom::IResult<Span<'a>, O, ParseError<'a>>;
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Location {
+    /// The offset represents the position of the fragment relatively to
+    /// the input of the parser. It starts at offset 0.
+    offset: usize,
+
+    /// The line number of the fragment relatively to the input of the
+    /// parser. It starts at line 1.
+    line: u32,
+
+    column: usize,
 }
 
-impl<T: Clone> Marked<T> {
-    pub fn new(span: &Span, data: T) -> Self {
+impl<'a> From<Span<'a>> for Location {
+    fn from(span: Span) -> Self {
         Self {
-            data,
+            offset: span.location_offset(),
             line: span.location_line(),
-            column: span.get_column(),
-        }
-    }
-
-    pub fn map<U: Clone, F: FnOnce(T) -> U>(self, f: F) -> Marked<U> {
-        let line = self.line;
-        let column = self.column;
-        let data = f(self.data);
-        Marked { data, line, column }
-    }
-}
-
-impl<'a> From<LocatedSpan<&'a str>> for Marked<&'a str> {
-    fn from(val: LocatedSpan<&'a str>) -> Self {
-        Marked {
-            data: val.deref(),
-            line: val.location_line(),
-            column: val.get_column(),
+            column: span.get_utf8_column(),
         }
     }
 }
 
-impl<O: Clone> Marked<O> {
-    pub fn parse<'a, F>(mut parser: F) -> impl FnMut(Span<'a>) -> IResult<O>
-    where
-        F: nom::Parser<Span<'a>, O, ParseError<'a>>,
-    {
-        move |input| nom::combinator::map(|i| parser.parse(i), |v| Marked::new(&input, v))(input)
+impl Location {
+    pub fn new(offset: usize, line: u32, column: usize) -> Self {
+        Self {
+            offset,
+            line,
+            column,
+        }
+    }
+
+    pub fn offset(&self) -> usize {
+        self.offset
+    }
+
+    pub fn line(&self) -> u32 {
+        self.line
+    }
+
+    pub fn column(&self) -> usize {
+        self.column
     }
 }
-
-pub type IResult<'a, O> = nom::IResult<Span<'a>, Marked<O>, ParseError<'a>>;
-
-pub type IResultUnmarked<'a, O> = nom::IResult<Span<'a>, O, ParseError<'a>>;
-
-pub type IResultUnit<'a> = nom::IResult<Span<'a>, (), ParseError<'a>>;

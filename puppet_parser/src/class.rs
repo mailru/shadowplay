@@ -29,13 +29,14 @@ pub fn header_parser(input: Span) -> IResultUnmarked<(Marked<Vec<&str>>, Argumen
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Class {
+pub struct Class<EXTRA> {
     pub identifier: Marked<Vec<String>>,
     pub arguments: Vec<Marked<super::argument::Argument>>,
     pub inherits: Option<Marked<(bool, Vec<String>)>>,
+    pub extra: EXTRA,
 }
 
-impl Class {
+impl<EXTRA> Class<EXTRA> {
     pub fn parse(input: Span) -> IResult<Self> {
         let parser = map(
             preceded(

@@ -259,6 +259,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "puppet-lang"
+version = "0.1.0"
+
+[[package]]
+name = "puppet-parser"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
+ "nom",
+ "nom_locate",
+ "puppet-lang",
+ "regex",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
