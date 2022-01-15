@@ -42,3 +42,27 @@ impl EarlyLintPass for ArgumentLooksSensitive {
         }
     }
 }
+
+pub struct ArgumentTyped;
+
+impl LintPass for ArgumentTyped {
+    fn name(&self) -> &str {
+        "argument_typed"
+    }
+}
+
+impl EarlyLintPass for ArgumentTyped {
+    fn check_argument(
+        &self,
+        arg: &puppet_lang::argument::Argument<puppet_parser::parser::Location>,
+    ) -> Vec<super::lint::LintError> {
+        if arg.type_spec.is_none() {
+            return vec![LintError::new(
+                self.name(),
+                "Argument is not typed",
+                &arg.extra,
+            )];
+        }
+        vec![]
+    }
+}
