@@ -130,6 +130,8 @@ dependencies = [
  "log",
  "nom",
  "nom_locate",
+ "puppet-lang",
+ "puppet-parser",
  "regex",
  "serde",
  "serde_json",

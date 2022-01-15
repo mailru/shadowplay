@@ -12,23 +12,6 @@ pub fn parse(input: Span) -> IResult<Toplevel<Location>> {
     )))(input)
 }
 
-// #[derive(Debug, Clone)]
-// pub struct Ast {
-//     pub input: String,
-//     pub data: Toplevel<Location>,
-// }
-
-// impl Ast {
-//     pub fn parse(input: &str) -> anyhow::Result<Self> {
-//         let input = input.to_string();
-//         match parse(Span::new(&input)) {
-//             Ok((_remaining, data)) => Ok(Self { data, input }),
-//             Err(nom::Err::Failure(err)) => return Err(anyhow::format_err!("{}", err.to_string())),
-//             Err(err) => return Err(anyhow::format_err!("{}", err)),
-//         }
-//     }
-// }
-
 #[test]
 fn test_toplevel() {
     assert!(parse(Span::new(

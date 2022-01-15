@@ -114,11 +114,11 @@ fn test_class() {
             identifier: LowerIdentifier {
                 name: vec!["abc".to_owned(), "def".to_owned()],
                 is_toplevel: false,
-                extra: Location::new(1, 1, 1),
+                extra: Location::new(7, 1, 8),
             },
             arguments: Vec::new(),
             inherits: None,
-            extra: Location::new(1, 1, 1),
+            extra: Location::new(0, 1, 1),
         }
     );
 

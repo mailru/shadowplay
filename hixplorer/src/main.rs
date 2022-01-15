@@ -2,7 +2,6 @@ pub mod check;
 pub mod config;
 pub mod hiera_config;
 pub mod puppet;
-mod puppet_parser;
 pub mod yaml;
 
 use structopt::StructOpt;

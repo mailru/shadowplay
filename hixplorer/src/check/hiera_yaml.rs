@@ -1,12 +1,11 @@
 use anyhow::Result;
 use structopt::StructOpt;
 
-use crate::puppet_parser::{toplevel::Ast, toplevel::Toplevel};
+use puppet_lang::toplevel::Toplevel;
 
 #[derive(Default)]
 pub struct State {
-    pp_ast_cache:
-        std::collections::HashMap<std::path::PathBuf, Option<crate::puppet_parser::toplevel::Ast>>,
+    pp_ast_cache: std::collections::HashMap<std::path::PathBuf, Option<super::PuppetAst>>,
 }
 
 #[derive(Debug, StructOpt)]
@@ -20,7 +19,7 @@ impl Check {
         repo_path: &std::path::Path,
         file_path: &std::path::Path,
         state: &mut State,
-    ) -> Result<Option<Ast>> {
+    ) -> Result<Option<super::PuppetAst>> {
         if let Some(parsed) = state.pp_ast_cache.get(file_path) {
             return Ok((*parsed).clone());
         }
@@ -33,7 +32,7 @@ impl Check {
             }
         };
 
-        let ast = match Ast::parse(&pp_content) {
+        let ast = match super::PuppetAst::parse(&pp_content) {
             Ok(v) => v,
             Err(err) => {
                 let _ = state.pp_ast_cache.insert(file_path.to_path_buf(), None);
@@ -80,7 +79,7 @@ impl Check {
 
         let class = match ast.data {
             Toplevel::Class(class) => {
-                if class.data.identifier.data != puppet_module.identifier() {
+                if class.identifier.name != puppet_module.identifier() {
                     println!(
                     "Hiera static error in {:?} at {}: reference to puppet file {:?} which toplevel class does not match module name",
                     yaml_path, yaml_marker, puppet_module.file_path()
@@ -98,7 +97,7 @@ impl Check {
             }
         };
 
-        let _class_argument = match class.data.get_argument(argument) {
+        let _class_argument = match class.get_argument(argument) {
             None => {
                 if config
                     .checks

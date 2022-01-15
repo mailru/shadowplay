@@ -8,6 +8,12 @@ pub struct Class<EXTRA> {
     pub extra: EXTRA,
 }
 
+impl<EXTRA> Class<EXTRA> {
+    pub fn get_argument(&self, argument_name: &str) -> Option<&crate::argument::Argument<EXTRA>> {
+        self.arguments.iter().find(|a| a.name == argument_name)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Definition<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,

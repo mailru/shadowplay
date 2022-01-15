@@ -1,12 +1,12 @@
-use crate::puppet_parser::parser::Marked;
+use puppet_parser::parser::Location;
 
 pub trait LintPass {
     fn name(&self) -> &str;
 }
 
 pub trait EarlyLintPass: LintPass {
-    fn check_toplevel(&self, _: &crate::puppet_parser::toplevel::Toplevel) {}
-    fn check_class(&self, _: &Marked<crate::puppet_parser::class::Class>) {}
+    fn check_toplevel(&self, _: &puppet_lang::toplevel::Toplevel<Location>) {}
+    fn check_class(&self, _: &puppet_lang::toplevel::Class<Location>) {}
 }
 
 pub struct Storage {
@@ -43,7 +43,7 @@ impl LintPass for Simple {
 }
 
 impl EarlyLintPass for Simple {
-    fn check_class(&self, _: &Marked<crate::puppet_parser::class::Class>) {
+    fn check_class(&self, _: &puppet_lang::toplevel::Class<Location>) {
         todo!()
     }
 }
@@ -51,7 +51,7 @@ impl EarlyLintPass for Simple {
 pub struct AstLinter;
 
 impl AstLinter {
-    pub fn check_class(&self, storage: &Storage, elt: &Marked<crate::puppet_parser::class::Class>) {
+    pub fn check_class(&self, storage: &Storage, elt: &puppet_lang::toplevel::Class<Location>) {
         for lint in storage.early_pass() {
             lint.check_class(elt)
         }
@@ -60,15 +60,15 @@ impl AstLinter {
     pub fn check_toplevel(
         &self,
         storage: &Storage,
-        elt: &crate::puppet_parser::toplevel::Toplevel,
+        elt: &puppet_lang::toplevel::Toplevel<Location>,
     ) {
         for lint in storage.early_pass() {
             lint.check_toplevel(elt)
         }
         match elt {
-            crate::puppet_parser::toplevel::Toplevel::Class(elt) => self.check_class(storage, elt),
-            crate::puppet_parser::toplevel::Toplevel::Definition(_) => todo!(),
-            crate::puppet_parser::toplevel::Toplevel::Plan(_) => todo!(),
+            puppet_lang::toplevel::Toplevel::Class(elt) => self.check_class(storage, elt),
+            puppet_lang::toplevel::Toplevel::Definition(_) => todo!(),
+            puppet_lang::toplevel::Toplevel::Plan(_) => todo!(),
         }
     }
 }

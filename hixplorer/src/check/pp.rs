@@ -17,7 +17,7 @@ impl Check {
 
         let mut errors = 0;
 
-        let ast = match crate::puppet_parser::toplevel::Ast::parse(&pp) {
+        let ast = match super::PuppetAst::parse(&pp) {
             Err(err) => {
                 println!("Parse error in {:?}: {}", file_path, err);
                 return 1;
