@@ -15,8 +15,6 @@ impl Check {
             Ok(v) => v,
         };
 
-        let mut errors = 0;
-
         let ast = match super::PuppetAst::parse(&pp) {
             Err(err) => {
                 println!("Parse error in {:?}: {}", file_path, err);
@@ -25,14 +23,22 @@ impl Check {
             Ok(v) => v,
         };
 
-        // TODO count errors
         let linter_storage = crate::check::pp_static::lint::Storage::new();
         let linter = crate::check::pp_static::lint::AstLinter;
-        linter.check_toplevel(&linter_storage, &ast.data);
+        let errors = linter.check_toplevel(&linter_storage, &ast.data);
 
-        // errors += ast.data.static_check();
+        for error in &errors {
+            println!(
+                "Puppet static error [{}] in {:?} at line {} col {}: {}",
+                error.linter,
+                file_path,
+                error.location.line(),
+                error.location.column(),
+                error.message
+            );
+        }
 
-        errors
+        errors.len()
     }
 
     pub fn check(&self, repo_path: &std::path::Path, _config: &crate::config::Config) {
