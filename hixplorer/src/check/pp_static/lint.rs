@@ -54,6 +54,7 @@ impl Storage {
         };
 
         v.register_early_pass(Box::new(super::lint_toplevel::OptionalArgumentsGoesFirst));
+        v.register_early_pass(Box::new(super::lint_toplevel::UniqueArgumentsNames));
         v.register_early_pass(Box::new(super::lint_argument::ArgumentLooksSensitive));
         // v.register_early_pass(Box::new(super::lint_argument::ArgumentTyped));
 
