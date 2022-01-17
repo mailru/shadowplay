@@ -33,7 +33,7 @@ pub fn parse_unicode(input: Span) -> IResult<char> {
         u32::from_str_radix(*hex, 16)
     });
 
-    map_opt(parse_u32, |v| std::char::from_u32(v))(input)
+    map_opt(parse_u32, std::char::from_u32)(input)
 }
 
 fn parse_escaped_char(input: Span) -> IResult<char> {

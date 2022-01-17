@@ -19,14 +19,12 @@ impl OptionalArgumentsGoesFirst {
         for arg in args {
             if arg.default.is_none() {
                 found_optional = true;
-            } else {
-                if found_optional {
-                    errors.push(LintError::new(
-                        self.name(),
-                        "Required argument goes after optional",
-                        &arg.extra,
-                    ))
-                }
+            } else if found_optional {
+                errors.push(LintError::new(
+                    self.name(),
+                    "Required argument goes after optional",
+                    &arg.extra,
+                ))
             }
         }
 

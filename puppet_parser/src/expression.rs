@@ -216,7 +216,7 @@ pub mod term {
     }
 }
 
-pub(crate) mod expression {
+pub(crate) mod expr {
     use nom::{branch::alt, bytes::complete::tag, combinator::map, sequence::pair};
 
     use crate::parser::{IResult, Location, ParseError, Span};
@@ -302,13 +302,13 @@ pub(crate) mod expression {
 }
 
 pub fn parse_expression(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
-    let (input, left_expr) = super::common::space0_delimimited(expression::parse_l1)(input)?;
-    let mut parser = expression::fold_many0(
+    let (input, left_expr) = super::common::space0_delimimited(expr::parse_l1)(input)?;
+    let mut parser = expr::fold_many0(
         pair(
             alt((tag("+"), tag("-"))),
             super::common::space0_delimimited(ParseError::protect(
                 |_| "Second argument of operator is expected".to_string(),
-                expression::parse_l1,
+                expr::parse_l1,
             )),
         ),
         left_expr,

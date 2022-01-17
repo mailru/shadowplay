@@ -39,6 +39,7 @@ pub trait EarlyLintPass: LintPass {
     }
 }
 
+#[derive(Default)]
 pub struct Storage {
     early_pass: Vec<Box<dyn EarlyLintPass>>,
 }
@@ -49,9 +50,7 @@ impl Storage {
     }
 
     pub fn new() -> Self {
-        let mut v = Self {
-            early_pass: Vec::new(),
-        };
+        let mut v = Self::default();
 
         v.register_early_pass(Box::new(super::lint_toplevel::OptionalArgumentsGoesFirst));
         v.register_early_pass(Box::new(super::lint_toplevel::UniqueArgumentsNames));
