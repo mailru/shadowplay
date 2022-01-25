@@ -351,6 +351,48 @@ fn test_single_quoted() {
 }
 
 #[test]
+fn test_array_of_types() {
+    assert_eq!(
+        term::parse_term(Span::new("[ Class['some_class'] ]"))
+            .unwrap()
+            .1,
+        puppet_lang::expression::Term {
+            value: puppet_lang::expression::TermVariant::Array(vec![
+                puppet_lang::expression::Expression {
+                    value: puppet_lang::expression::ExpressionVariant::Term(
+                        puppet_lang::expression::Term {
+                            value: puppet_lang::expression::TermVariant::TypeSpecitifaction(
+                                puppet_lang::typing::TypeSpecification {
+                                    data:
+                                        puppet_lang::typing::TypeSpecificationVariant::ExternalType(
+                                            puppet_lang::typing::ExternalType {
+                                                name: vec!["Class".to_owned()],
+                                                arguments: vec![puppet_lang::expression::Term {
+                                                    value: puppet_lang::expression::TermVariant::String(puppet_lang::expression::StringExpr {
+                                                        data: "some_class".to_owned(),
+                                                        variant: puppet_lang::expression::StringVariant::SingleQuoted,
+                                                        extra: Location::new(8, 1, 9)
+                                                    }),
+                                                    extra: Location::new(8, 1, 9)
+                                                }],
+                                                extra: Location::new(2, 1, 3)
+                                            }
+                                        ),
+                                    extra: Location::new(2, 1, 3)
+                                }
+                            ),
+                            extra: Location::new(2, 1, 3)
+                        }
+                    ),
+                    extra: Location::new(2, 1, 3)
+                }
+            ]),
+            extra: Location::new(0, 1, 1)
+        }
+    )
+}
+
+#[test]
 fn test_double_quoted() {
     assert_eq!(
         term::parse_term(Span::new("\"aaa\"")).unwrap().1,

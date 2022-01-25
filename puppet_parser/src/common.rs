@@ -131,15 +131,25 @@ where
 
 #[test]
 fn test_round_brackets_comma_separated0() {
-    let input = Span::new("( a,a ,a, a,)");
     assert_eq!(
-        round_brackets_comma_separated0(tag("a"))(input)
+        round_brackets_comma_separated0(tag("a"))(Span::new("( a,a ,a, a,)"))
             .unwrap()
             .1
             .into_iter()
             .map(|v| *v)
             .collect::<Vec<_>>(),
         vec!["a", "a", "a", "a"]
+    );
+    assert_eq!(
+        round_brackets_comma_separated0(round_brackets_comma_separated0(tag("a")))(Span::new(
+            "( (a) , (a) ,(   a   ), ( a ) )"
+        ))
+        .unwrap()
+        .1
+        .into_iter()
+        .map(|v| v.into_iter().map(|v| *v).collect::<Vec<_>>())
+        .collect::<Vec<_>>(),
+        vec![vec!["a"], vec!["a"], vec!["a"], vec!["a"]]
     )
 }
 
