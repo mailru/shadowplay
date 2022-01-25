@@ -9,6 +9,7 @@ use nom::{
     sequence::{pair, preceded, tuple},
     Parser,
 };
+use puppet_lang::typing::ExternalType;
 
 pub fn parse_or_default<'a, O, F>(parser: F) -> impl FnMut(Span<'a>) -> IResult<Option<O>>
 where
@@ -306,6 +307,25 @@ fn parse_tuple(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVar
     map(parser, puppet_lang::typing::TypeSpecificationVariant::Tuple)(input)
 }
 
+fn parse_external_type(
+    input: Span,
+) -> IResult<puppet_lang::typing::TypeSpecificationVariant<Location>> {
+    let parser = pair(
+        crate::identifier::camelcase_identifier_with_ns,
+        opt(crate::common::square_brackets_comma_separated1(
+            crate::expression::term::parse_term,
+        )),
+    );
+
+    map(parser, |(name, arguments)| {
+        puppet_lang::typing::TypeSpecificationVariant::ExternalType(ExternalType {
+            name: name.iter().map(|v| v.to_string()).collect(),
+            arguments: arguments.unwrap_or_default(),
+            extra: Location::from(input),
+        })
+    })(input)
+}
+
 pub fn parse_type_specification(
     input: Span,
 ) -> IResult<puppet_lang::typing::TypeSpecification<Location>> {
@@ -393,15 +413,6 @@ pub fn parse_type_specification(
         tag("Any"),
     );
 
-    let parse_external = map(crate::identifier::camelcase_identifier_with_ns, |data| {
-        puppet_lang::typing::TypeSpecificationVariant::ExternalType(
-            puppet_lang::typing::ExternalType {
-                data: data.iter().map(|v| v.to_string()).collect(),
-                extra: Location::from(input),
-            },
-        )
-    });
-
     let parser = alt((
         parse_integer,
         parse_float,
@@ -420,7 +431,7 @@ pub fn parse_type_specification(
         parse_regexp,
         parse_undef,
         parse_any,
-        parse_external,
+        parse_external_type,
     ));
 
     map(parser, |data| puppet_lang::typing::TypeSpecification {
@@ -698,7 +709,32 @@ fn test_type_specification() {
         puppet_lang::typing::TypeSpecification {
             data: puppet_lang::typing::TypeSpecificationVariant::ExternalType(
                 puppet_lang::typing::ExternalType {
-                    data: vec!["Stdlib".to_owned(), "Unixpath".to_owned()],
+                    name: vec!["Stdlib".to_owned(), "Unixpath".to_owned()],
+                    arguments: Vec::new(),
+                    extra: Location::new(0, 1, 1)
+                }
+            ),
+            extra: Location::new(0, 1, 1)
+        }
+    );
+    assert_eq!(
+        parse_type_specification(Span::new("Class['hello']"))
+            .unwrap()
+            .1,
+        puppet_lang::typing::TypeSpecification {
+            data: puppet_lang::typing::TypeSpecificationVariant::ExternalType(
+                puppet_lang::typing::ExternalType {
+                    name: vec!["Class".to_owned(),],
+                    arguments: vec![puppet_lang::expression::Term {
+                        value: puppet_lang::expression::TermVariant::String(
+                            puppet_lang::expression::StringExpr {
+                                data: "hello".to_owned(),
+                                variant: puppet_lang::expression::StringVariant::SingleQuoted,
+                                extra: Location::new(6, 1, 7),
+                            }
+                        ),
+                        extra: Location::new(6, 1, 7),
+                    }],
                     extra: Location::new(0, 1, 1)
                 }
             ),
