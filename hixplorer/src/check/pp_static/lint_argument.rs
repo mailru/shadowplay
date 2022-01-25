@@ -20,7 +20,7 @@ impl EarlyLintPass for ArgumentLooksSensitive {
             match &arg.type_spec {
                 None => vec![LintError::new(
                     self.name(),
-                    "Assuming argument contains a secret value, it is not typed with 'Sensitive'",
+                    &format!("Assuming argument {:?} contains a secret value, it is not typed with 'Sensitive'", arg.name),
                     &arg.extra,
                 )],
                 Some(t)
@@ -30,10 +30,10 @@ impl EarlyLintPass for ArgumentLooksSensitive {
                     ) =>
                 {
                     vec![LintError::new(
-                    self.name(),
-                    "Assume argument contains a secret value, it is not typed with 'Sensitive' type",
-                    &arg.extra,
-                )]
+                        self.name(),
+                        &format!("Assuming argument {:?} contains a secret value, it is not typed with 'Sensitive' type", arg.name),
+                        &arg.extra,
+                    )]
                 }
                 Some(_) => vec![],
             }
