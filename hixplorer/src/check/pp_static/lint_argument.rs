@@ -66,3 +66,27 @@ impl EarlyLintPass for ArgumentTyped {
         vec![]
     }
 }
+
+pub struct ReadableArgumentsName;
+
+impl LintPass for ReadableArgumentsName {
+    fn name(&self) -> &str {
+        "readable_argument_name"
+    }
+}
+
+impl EarlyLintPass for ReadableArgumentsName {
+    fn check_argument(
+        &self,
+        arg: &puppet_lang::argument::Argument<puppet_parser::parser::Location>,
+    ) -> Vec<super::lint::LintError> {
+        if arg.name.len() < 2 {
+            return vec![LintError::new(
+                self.name(),
+                &format!("Argument '{}' name is too short", arg.name),
+                &arg.extra,
+            )];
+        }
+        vec![]
+    }
+}
