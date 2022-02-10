@@ -4,6 +4,7 @@ use nom::sequence::tuple;
 ///
 use nom::{bytes::complete::tag, sequence::pair};
 
+use crate::common::fold_many0_with_const_init;
 use crate::parser::Location;
 
 use crate::parser::{IResult, Span};
@@ -11,43 +12,6 @@ use crate::parser::{IResult, Span};
 use nom::{branch::alt, combinator::map};
 
 use crate::parser::ParseError;
-
-fn fold_many0<'a, F, G, O, R>(mut f: F, init: R, g: G) -> impl FnMut(Span<'a>) -> IResult<R>
-where
-    F: nom::Parser<Span<'a>, O, ParseError<'a>>,
-    G: Fn(R, O) -> R,
-    R: Clone,
-{
-    let mut res = init;
-    move |i: Span| {
-        let mut input = i;
-
-        loop {
-            let i_ = input;
-            let len = input.len();
-            match f.parse(i_) {
-                Ok((i, o)) => {
-                    // infinite loop check: the parser must always consume
-                    if i.len() == len {
-                        return Err(nom::Err::Error(ParseError::new(
-                            "Parsed empty token in list".to_string(),
-                            input,
-                        )));
-                    }
-
-                    res = g(res.clone(), o);
-                    input = i;
-                }
-                Err(nom::Err::Error(_)) => {
-                    return Ok((input, res.clone()));
-                }
-                Err(e) => {
-                    return Err(e);
-                }
-            }
-        }
-    }
-}
 
 /// https://puppet.com/docs/puppet/6/lang_expressions.html#lang_exp_comparison_operators-comparison-regex-or-data-type-match
 pub(crate) fn parse_match_variant(
@@ -153,7 +117,7 @@ fn parse_l0(input: Span) -> IResult<puppet_lang::expression::Expression<Location
 
 pub(crate) fn parse_l1(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
     let (input, left_expr) = parse_l0(input)?;
-    let mut parser = fold_many0(
+    let mut parser = fold_many0_with_const_init(
         pair(
             alt((tag("*"), tag("/"), tag("%"))),
             crate::common::space0_delimimited(ParseError::protect(
@@ -192,7 +156,7 @@ pub(crate) fn parse_l1(input: Span) -> IResult<puppet_lang::expression::Expressi
 
 fn parse_l2(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
     let (input, left_expr) = crate::common::space0_delimimited(parse_l1)(input)?;
-    let mut parser = fold_many0(
+    let mut parser = fold_many0_with_const_init(
         pair(
             alt((tag("+"), tag("-"))),
             crate::common::space0_delimimited(ParseError::protect(
@@ -224,7 +188,7 @@ fn parse_l2(input: Span) -> IResult<puppet_lang::expression::Expression<Location
 
 fn parse_l3(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
     let (input, left_expr) = crate::common::space0_delimimited(parse_l2)(input)?;
-    let mut parser = fold_many0(
+    let mut parser = fold_many0_with_const_init(
         pair(
             alt((tag("<<"), tag(">>"))),
             crate::common::space0_delimimited(ParseError::protect(
@@ -256,7 +220,7 @@ fn parse_l3(input: Span) -> IResult<puppet_lang::expression::Expression<Location
 
 fn parse_l4(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
     let (input, left_expr) = crate::common::space0_delimimited(parse_l3)(input)?;
-    let mut parser = fold_many0(
+    let mut parser = fold_many0_with_const_init(
         pair(
             alt((
                 tag("=="),
@@ -323,7 +287,7 @@ fn parse_l4(input: Span) -> IResult<puppet_lang::expression::Expression<Location
 
 fn parse_l5(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
     let (input, left_expr) = crate::common::space0_delimimited(parse_l4)(input)?;
-    let mut parser = fold_many0(
+    let mut parser = fold_many0_with_const_init(
         pair(
             alt((tag("and"), tag("or"))),
             crate::common::space0_delimimited(ParseError::protect(
@@ -355,7 +319,7 @@ fn parse_l5(input: Span) -> IResult<puppet_lang::expression::Expression<Location
 
 pub fn parse_expression(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
     let (input, left_expr) = super::common::space0_delimimited(parse_l5)(input)?;
-    let mut parser = fold_many0(
+    let mut parser = fold_many0_with_const_init(
         pair(tag("="), super::common::space0_delimimited(parse_l5)),
         left_expr,
         |prev, (op, cur)| match *op {

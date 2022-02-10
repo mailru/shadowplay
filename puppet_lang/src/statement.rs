@@ -5,8 +5,9 @@ pub enum StatementVariant<EXTRA> {
     Include(LowerIdentifier<EXTRA>),
     Require(LowerIdentifier<EXTRA>),
     Contain(LowerIdentifier<EXTRA>),
-    // TODO parser
     Tag(Vec<crate::expression::StringExpr<EXTRA>>),
+    Expression(crate::expression::Expression<EXTRA>),
+    ResourceRelation(Vec<crate::typing::TypeSpecification<EXTRA>>),
 }
 
 #[derive(Clone, Debug, PartialEq)]

@@ -230,3 +230,44 @@ where
         opt(comma_separator),
     ))
 }
+
+pub fn fold_many0_with_const_init<'a, F, G, O, R>(
+    mut f: F,
+    init: R,
+    g: G,
+) -> impl FnMut(Span<'a>) -> IResult<R>
+where
+    F: nom::Parser<Span<'a>, O, ParseError<'a>>,
+    G: Fn(R, O) -> R,
+    R: Clone,
+{
+    let mut res = init;
+    move |i: Span| {
+        let mut input = i;
+
+        loop {
+            let i_ = input;
+            let len = input.len();
+            match f.parse(i_) {
+                Ok((i, o)) => {
+                    // infinite loop check: the parser must always consume
+                    if i.len() == len {
+                        return Err(nom::Err::Error(ParseError::new(
+                            "Parsed empty token in list".to_string(),
+                            input,
+                        )));
+                    }
+
+                    res = g(res.clone(), o);
+                    input = i;
+                }
+                Err(nom::Err::Error(_)) => {
+                    return Ok((input, res.clone()));
+                }
+                Err(e) => {
+                    return Err(e);
+                }
+            }
+        }
+    }
+}

@@ -4,7 +4,7 @@ use nom::{
 use puppet_lang::statement::{Statement, StatementVariant};
 
 use crate::{
-    common::{comma_separator, round_brackets_delimimited, separator1},
+    common::{comma_separator, fold_many0_with_const_init, round_brackets_delimimited, separator1},
     identifier::identifier_with_toplevel,
     parser::{IResult, Location, ParseError, Span},
     term::parse_string_variant,
@@ -85,8 +85,43 @@ pub fn parse_tag(input: Span) -> IResult<StatementVariant<Location>> {
     map(parser, StatementVariant::Tag)(input)
 }
 
+pub fn parse_expression(input: Span) -> IResult<StatementVariant<Location>> {
+    map(
+        crate::expression::parse_expression,
+        StatementVariant::Expression,
+    )(input)
+}
+
+pub fn parse_resource_relation(input: Span) -> IResult<StatementVariant<Location>> {
+    let (input, left_type) =
+        crate::common::space0_delimimited(crate::typing::parse_type_specification)(input)?;
+    let parser = fold_many0_with_const_init(
+        preceded(
+            tag("->"),
+            crate::common::space0_delimimited(ParseError::protect(
+                |_| "Second argument of relation is expected".to_string(),
+                crate::typing::parse_type_specification,
+            )),
+        ),
+        vec![left_type],
+        |mut acc: Vec<_>, cur| {
+            acc.push(cur);
+            acc
+        },
+    );
+
+    map(parser, StatementVariant::ResourceRelation)(input)
+}
+
 pub fn parse_statement_variant(input: Span) -> IResult<StatementVariant<Location>> {
-    alt((parse_require, parse_include, parse_contain, parse_tag))(input)
+    alt((
+        parse_require,
+        parse_include,
+        parse_contain,
+        parse_tag,
+        parse_resource_relation,
+        parse_expression,
+    ))(input)
 }
 
 pub fn parse_statement(input: Span) -> IResult<Statement<Location>> {
