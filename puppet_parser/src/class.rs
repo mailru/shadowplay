@@ -309,9 +309,11 @@ fn test_body_tag() {
 #[test]
 fn test_body_require() {
     assert_eq!(
-        parse_class(Span::new("class  abc::def () {\n require abc::def }\n"))
-            .unwrap()
-            .1,
+        parse_class(Span::new(
+            "class  abc::def () {\n require abc::def require zzz }\n"
+        ))
+        .unwrap()
+        .1,
         Class {
             identifier: LowerIdentifier {
                 name: vec!["abc".to_owned(), "def".to_owned()],
@@ -319,14 +321,24 @@ fn test_body_require() {
                 extra: Location::new(7, 1, 8),
             },
             arguments: Vec::new(),
-            body: vec![Statement {
-                value: puppet_lang::statement::StatementVariant::Require(LowerIdentifier {
-                    name: vec!["abc".to_owned(), "def".to_owned()],
-                    is_toplevel: false,
-                    extra: Location::new(30, 2, 10),
-                }),
-                extra: Location::new(22, 2, 2),
-            }],
+            body: vec![
+                Statement {
+                    value: puppet_lang::statement::StatementVariant::Require(LowerIdentifier {
+                        name: vec!["abc".to_owned(), "def".to_owned()],
+                        is_toplevel: false,
+                        extra: Location::new(30, 2, 10),
+                    }),
+                    extra: Location::new(22, 2, 2),
+                },
+                Statement {
+                    value: puppet_lang::statement::StatementVariant::Require(LowerIdentifier {
+                        name: vec!["zzz".to_owned()],
+                        is_toplevel: false,
+                        extra: Location::new(47, 2, 27),
+                    }),
+                    extra: Location::new(39, 2, 19),
+                }
+            ],
             inherits: None,
             extra: Location::new(0, 1, 1),
         }
