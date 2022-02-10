@@ -414,97 +414,88 @@ fn test_multiply() {
 
 #[test]
 fn test_operators_precendence() {
+    use puppet_lang::expression::Expression;
+    use puppet_lang::expression::ExpressionVariant;
+    use puppet_lang::expression::Integer;
+    use puppet_lang::expression::Term;
+    use puppet_lang::expression::TermVariant;
     assert_eq!(
-        parse_expression(Span::new("1 +2 * 3* 4 - 10")).unwrap().1,
-        puppet_lang::expression::Expression {
-            value: puppet_lang::expression::ExpressionVariant::Minus((
-                Box::new(puppet_lang::expression::Expression {
-                    value: puppet_lang::expression::ExpressionVariant::Plus((
-                        Box::new(puppet_lang::expression::Expression {
-                            value: puppet_lang::expression::ExpressionVariant::Term(
-                                puppet_lang::expression::Term {
-                                    value: puppet_lang::expression::TermVariant::Integer(
-                                        puppet_lang::expression::Integer {
-                                            extra: Location::new(0, 1, 1),
-                                            value: 1,
-                                        }
-                                    ),
-                                    extra: Location::new(0, 1, 1)
-                                }
-                            ),
+        parse_expression(Span::new("(1 +2) * 3* 4 - 10")).unwrap().1,
+        Expression {
+            value: ExpressionVariant::Minus((
+                Box::new(Expression {
+                    value: ExpressionVariant::Multiply((
+                        Box::new(Expression {
+                            value: ExpressionVariant::Term(Term {
+                                value: TermVariant::Parens(Box::new(Expression {
+                                    value: ExpressionVariant::Plus((
+                                        Box::new(Expression {
+                                            value: ExpressionVariant::Term(Term {
+                                                value: TermVariant::Integer(Integer {
+                                                    value: 1,
+                                                    extra: Location::new(1, 1, 2)
+                                                }),
+                                                extra: Location::new(1, 1, 2)
+                                            }),
+                                            extra: Location::new(1, 1, 2)
+                                        }),
+                                        Box::new(Expression {
+                                            value: ExpressionVariant::Term(Term {
+                                                value: TermVariant::Integer(Integer {
+                                                    value: 2,
+                                                    extra: Location::new(4, 1, 5)
+                                                }),
+                                                extra: Location::new(4, 1, 5)
+                                            }),
+                                            extra: Location::new(4, 1, 5)
+                                        })
+                                    )),
+                                    extra: Location::new(3, 1, 4)
+                                })),
+                                extra: Location::new(0, 1, 1)
+                            }),
                             extra: Location::new(0, 1, 1)
                         }),
-                        Box::new(puppet_lang::expression::Expression {
-                            value: puppet_lang::expression::ExpressionVariant::Multiply((
-                                Box::new(puppet_lang::expression::Expression {
-                                    value: puppet_lang::expression::ExpressionVariant::Term(
-                                        puppet_lang::expression::Term {
-                                            value: puppet_lang::expression::TermVariant::Integer(
-                                                puppet_lang::expression::Integer {
-                                                    extra: Location::new(3, 1, 4),
-                                                    value: 2,
-                                                }
-                                            ),
-                                            extra: Location::new(3, 1, 4)
-                                        }
-                                    ),
-                                    extra: Location::new(3, 1, 4)
-                                }),
-                                Box::new(puppet_lang::expression::Expression {
-                                    value: puppet_lang::expression::ExpressionVariant::Multiply((
-                                        Box::new(puppet_lang::expression::Expression {
-                                            value: puppet_lang::expression::ExpressionVariant::Term(
-                                                puppet_lang::expression::Term {
-                                                    value: puppet_lang::expression::TermVariant::Integer(
-                                                        puppet_lang::expression::Integer {
-                                                            extra: Location::new(7, 1, 8),
-                                                            value: 3,
-                                                        }
-                                                    ),
-                                                    extra: Location::new(7, 1, 8)
-                                                }
-                                            ),
-                                            extra: Location::new(7, 1, 8)
+                        Box::new(Expression {
+                            value: ExpressionVariant::Multiply((
+                                Box::new(Expression {
+                                    value: ExpressionVariant::Term(Term {
+                                        value: TermVariant::Integer(Integer {
+                                            value: 3,
+                                            extra: Location::new(9, 1, 10)
                                         }),
-                                        Box::new(puppet_lang::expression::Expression {
-                                            value: puppet_lang::expression::ExpressionVariant::Term(
-                                                puppet_lang::expression::Term {
-                                                    value: puppet_lang::expression::TermVariant::Integer(
-                                                        puppet_lang::expression::Integer {
-                                                            extra: Location::new(10, 1, 11),
-                                                            value: 4
-                                                        }
-                                                    ),
-                                                    extra: Location::new(10, 1, 11)
-                                                }
-                                            ),
-                                            extra: Location::new(10, 1, 11)
-                                        }),
-                                    )),
-                                    extra: Location::new(8, 1, 9)
+                                        extra: Location::new(9, 1, 10)
+                                    }),
+                                    extra: Location::new(9, 1, 10)
                                 }),
+                                Box::new(Expression {
+                                    value: ExpressionVariant::Term(Term {
+                                        value: TermVariant::Integer(Integer {
+                                            value: 4,
+                                            extra: Location::new(12, 1, 13)
+                                        }),
+                                        extra: Location::new(12, 1, 13)
+                                    }),
+                                    extra: Location::new(12, 1, 13)
+                                })
                             )),
-                            extra: Location::new(5, 1, 6)
-                        }),
+                            extra: Location::new(10, 1, 11)
+                        })
                     )),
-                    extra: Location::new(2, 1, 3)
+                    extra: Location::new(7, 1, 8)
                 }),
-                Box::new(puppet_lang::expression::Expression {
-                    value: puppet_lang::expression::ExpressionVariant::Term(
-                        puppet_lang::expression::Term {
-                            value: puppet_lang::expression::TermVariant::Integer(
-                                puppet_lang::expression::Integer {
-                                    extra: Location::new(14, 1, 15),
-                                    value: 10,
-                                }
-                            ),
-                            extra: Location::new(14, 1, 15)
-                        }
-                    ),
-                    extra: Location::new(14, 1, 15)
-                }),
+                Box::new(Expression {
+                    value: ExpressionVariant::Term(Term {
+                        value: TermVariant::Integer(Integer {
+                            value: 10,
+                            extra: Location::new(16, 1, 17)
+                        }),
+                        extra: Location::new(16, 1, 17)
+                    }),
+                    extra: Location::new(16, 1, 17)
+                })
             )),
-            extra: Location::new(12, 1, 13)
+            extra: Location::new(14, 1, 15)
         }
     );
 }
