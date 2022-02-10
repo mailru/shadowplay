@@ -1,18 +1,20 @@
-use crate::parser::Location;
+use crate::{common::space0_delimimited, parser::Location};
 
 use super::parser::{IResult, ParseError, Span};
 use nom::{
     bytes::complete::tag,
     combinator::{map, opt},
-    sequence::{pair, preceded, tuple},
+    multi::many0,
+    sequence::{pair, preceded, terminated, tuple},
 };
 use puppet_lang::{
     argument::Argument,
     identifier::LowerIdentifier,
+    statement::Statement,
     toplevel::{Class, Definition, Plan},
 };
 
-pub fn header_parser(input: Span) -> IResult<(LowerIdentifier<Location>, Vec<Argument<Location>>)> {
+pub fn parse_header(input: Span) -> IResult<(LowerIdentifier<Location>, Vec<Argument<Location>>)> {
     let arguments_parser = map(
         opt(super::common::round_brackets_comma_separated0(
             crate::argument::parse,
@@ -29,6 +31,19 @@ pub fn header_parser(input: Span) -> IResult<(LowerIdentifier<Location>, Vec<Arg
     ))(input)
 }
 
+pub fn parse_body(input: Span) -> IResult<Vec<Statement<Location>>> {
+    preceded(
+        tag("{"),
+        terminated(
+            many0(space0_delimimited(crate::statement::parse_statement)),
+            ParseError::protect(
+                |_| "Closing '}' of body is expected".to_string(),
+                space0_delimimited(tag("}")),
+            ),
+        ),
+    )(input)
+}
+
 pub fn parse_class(input: Span) -> IResult<Class<Location>> {
     let mut parser = map(
         preceded(
@@ -38,7 +53,7 @@ pub fn parse_class(input: Span) -> IResult<Class<Location>> {
                     super::common::separator1,
                     ParseError::protect(
                         |_| "Failed to parse class header".to_owned(),
-                        header_parser,
+                        parse_header,
                     ),
                 ),
                 ParseError::protect(
@@ -53,15 +68,15 @@ pub fn parse_class(input: Span) -> IResult<Class<Location>> {
                                 ),
                             ),
                         ))),
-                        // TODO body
-                        tag("{"),
+                        parse_body,
                     ),
                 ),
             )),
         ),
-        |((identifier, arguments), (inherits, _body))| Class {
+        |((identifier, arguments), (inherits, body))| Class {
             identifier,
             arguments,
+            body,
             inherits,
             extra: Location::from(input),
         },
@@ -75,14 +90,14 @@ pub fn parse_definition(input: Span) -> IResult<Definition<Location>> {
         preceded(
             tag("define"),
             pair(
-                preceded(super::common::separator0, header_parser),
-                // TODO body
-                preceded(super::common::separator0, tag("{")),
+                preceded(super::common::separator0, parse_header),
+                parse_body,
             ),
         ),
-        |((identifier, arguments), _body)| Definition {
+        |((identifier, arguments), body)| Definition {
             identifier,
             arguments,
+            body,
         },
     )(input)
 }
@@ -92,14 +107,14 @@ pub fn parse_plan(input: Span) -> IResult<Plan<Location>> {
         preceded(
             tag("plan"),
             pair(
-                preceded(super::common::separator0, header_parser),
-                // TODO body
-                preceded(super::common::separator0, tag("{")),
+                preceded(super::common::separator0, parse_header),
+                parse_body,
             ),
         ),
-        |((identifier, arguments), _body)| Plan {
+        |((identifier, arguments), body)| Plan {
             identifier,
             arguments,
+            body,
         },
     )(input)
 }
@@ -107,7 +122,7 @@ pub fn parse_plan(input: Span) -> IResult<Plan<Location>> {
 #[test]
 fn test_class() {
     assert_eq!(
-        parse_class(Span::new("class  abc::def () {\n TODO }\n"))
+        parse_class(Span::new("class  abc::def () {\n  }\n"))
             .unwrap()
             .1,
         Class {
@@ -117,6 +132,7 @@ fn test_class() {
                 extra: Location::new(7, 1, 8),
             },
             arguments: Vec::new(),
+            body: vec![],
             inherits: None,
             extra: Location::new(0, 1, 1),
         }
@@ -162,8 +178,7 @@ fn test_class() {
     Boolean $create_snapshot_use_lock      = true,
     Integer $create_snapshot_delay_maximum = 150 * 60, # use -1 for no-delay
     $clean_logs_time        = '12 6 * * *',
-) {
-TODO}"
+) {  }"
     ))
     .is_ok());
 
@@ -241,9 +256,79 @@ TODO}"
     // );
 
     assert!(parse_class(Span::new(
-        "class  ab__c::de11f ( String[1,10] $a, Stdlib::Unixpath $b  ,  $c) inherits aa::bb {TODO}"
+        "class  ab__c::de11f ( String[1,10] $a, Stdlib::Unixpath $b  ,  $c) inherits aa::bb { }"
     ))
     .is_ok());
 
-    assert!(parse_class(Span::new("class a ( $a = ,) {TODO}")).is_err())
+    assert!(parse_class(Span::new("class a ( $a = ,) {}")).is_err());
+
+    assert!(parse_class(Span::new("class a () { &&&&& UNKNOWN((STATEMENT}")).is_err())
+}
+
+#[test]
+fn test_body_tag() {
+    assert_eq!(
+        parse_class(Span::new(
+            "class  abc::def () {\n tag aaa, 'bbb', \"ccc\" }\n"
+        ))
+        .unwrap()
+        .1,
+        Class {
+            identifier: LowerIdentifier {
+                name: vec!["abc".to_owned(), "def".to_owned()],
+                is_toplevel: false,
+                extra: Location::new(7, 1, 8),
+            },
+            arguments: Vec::new(),
+            body: vec![Statement {
+                value: puppet_lang::statement::StatementVariant::Tag(vec![
+                    puppet_lang::expression::StringExpr {
+                        data: "aaa".to_owned(),
+                        variant: puppet_lang::expression::StringVariant::SingleQuoted,
+                        extra: Location::new(26, 2, 6)
+                    },
+                    puppet_lang::expression::StringExpr {
+                        data: "bbb".to_owned(),
+                        variant: puppet_lang::expression::StringVariant::SingleQuoted,
+                        extra: Location::new(31, 2, 11)
+                    },
+                    puppet_lang::expression::StringExpr {
+                        data: "ccc".to_owned(),
+                        variant: puppet_lang::expression::StringVariant::DoubleQuoted,
+                        extra: Location::new(38, 2, 18)
+                    }
+                ]),
+                extra: Location::new(22, 2, 2),
+            }],
+            inherits: None,
+            extra: Location::new(0, 1, 1),
+        }
+    );
+}
+
+#[test]
+fn test_body_require() {
+    assert_eq!(
+        parse_class(Span::new("class  abc::def () {\n require abc::def }\n"))
+            .unwrap()
+            .1,
+        Class {
+            identifier: LowerIdentifier {
+                name: vec!["abc".to_owned(), "def".to_owned()],
+                is_toplevel: false,
+                extra: Location::new(7, 1, 8),
+            },
+            arguments: Vec::new(),
+            body: vec![Statement {
+                value: puppet_lang::statement::StatementVariant::Require(LowerIdentifier {
+                    name: vec!["abc".to_owned(), "def".to_owned()],
+                    is_toplevel: false,
+                    extra: Location::new(30, 2, 10),
+                }),
+                extra: Location::new(22, 2, 2),
+            }],
+            inherits: None,
+            extra: Location::new(0, 1, 1),
+        }
+    );
 }

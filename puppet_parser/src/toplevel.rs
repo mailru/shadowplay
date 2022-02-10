@@ -22,7 +22,6 @@ fn test_toplevel() {
 # @example
 #   include freeipa::install::client
 class freeipa::install::client {
-    package { 'ipa-client' : ensure => 'present' }
 }"
     ))
     .is_ok())

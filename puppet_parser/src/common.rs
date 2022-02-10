@@ -129,6 +129,20 @@ where
     ))
 }
 
+pub fn round_brackets_comma_separated1<'a, O, F>(
+    parser: F,
+) -> impl FnMut(Span<'a>) -> IResult<Vec<O>>
+where
+    F: Parser<Span<'a>, O, ParseError<'a>>,
+    O: Clone,
+{
+    round_brackets_delimimited(terminated(
+        separated_list1(comma_separator, parser),
+        // В конце не обязательная запятая
+        opt(comma_separator),
+    ))
+}
+
 #[test]
 fn test_round_brackets_comma_separated0() {
     assert_eq!(

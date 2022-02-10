@@ -20,11 +20,7 @@ pub fn parse(input: Span) -> IResult<puppet_lang::argument::Argument<Location>> 
         opt(preceded(
             crate::common::space0_delimimited(tag("=")),
             ParseError::protect(
-                |_| {
-                    // TODO
-                    println!("================= Expected expression after '='");
-                    "Expected expression after '='".to_owned()
-                },
+                |_| "Expected expression after '='".to_owned(),
                 crate::expression::parse_expression,
             ),
         )),

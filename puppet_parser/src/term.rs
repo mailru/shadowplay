@@ -10,6 +10,7 @@ use nom::{
     multi::many0,
     sequence::{delimited, pair, preceded},
 };
+use puppet_lang::expression::StringExpr;
 
 pub fn parse_variable(input: Span) -> IResult<puppet_lang::expression::Variable<Location>> {
     let accessor_parser = many0(square_brackets_delimimited(
@@ -136,6 +137,10 @@ fn parse_map(input: Span) -> IResult<puppet_lang::expression::TermVariant<Locati
     )(input)
 }
 
+pub fn parse_string_variant(input: Span) -> IResult<StringExpr<Location>> {
+    alt((crate::double_quoted::parse, crate::single_quoted::parse))(input)
+}
+
 pub fn parse_term(input: Span) -> IResult<puppet_lang::expression::Term<Location>> {
     let parse_undef = value(
         puppet_lang::expression::TermVariant::Undef(puppet_lang::expression::Undef {
@@ -182,11 +187,7 @@ pub fn parse_term(input: Span) -> IResult<puppet_lang::expression::Term<Location
             puppet_lang::expression::TermVariant::FunctionCall(v)
         }),
         map(
-            crate::double_quoted::parse,
-            puppet_lang::expression::TermVariant::String,
-        ),
-        map(
-            crate::single_quoted::parse,
+            parse_string_variant,
             puppet_lang::expression::TermVariant::String,
         ),
         map(

@@ -5,6 +5,7 @@ pub struct Class<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,
     pub arguments: Vec<crate::argument::Argument<EXTRA>>,
     pub inherits: Option<LowerIdentifier<EXTRA>>,
+    pub body: Vec<crate::statement::Statement<EXTRA>>,
     pub extra: EXTRA,
 }
 
@@ -18,12 +19,14 @@ impl<EXTRA> Class<EXTRA> {
 pub struct Definition<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,
     pub arguments: Vec<crate::argument::Argument<EXTRA>>,
+    pub body: Vec<crate::statement::Statement<EXTRA>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Plan<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,
     pub arguments: Vec<crate::argument::Argument<EXTRA>>,
+    pub body: Vec<crate::statement::Statement<EXTRA>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
