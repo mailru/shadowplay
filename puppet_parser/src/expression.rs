@@ -90,7 +90,7 @@ pub(crate) fn parse_match_variant(
         },
     );
 
-    let r = alt((
+    let mut parser = alt((
         map(parser_match_regex, |value| {
             puppet_lang::expression::Expression {
                 value,
@@ -103,9 +103,9 @@ pub(crate) fn parse_match_variant(
                 extra: Location::from(tag_variant),
             }
         }),
-    ))(input);
+    ));
 
-    r
+    parser(input)
 }
 
 /// https://puppet.com/docs/puppet/6/lang_expressions.html#lang_exp_comparison_operators-comparison-in
