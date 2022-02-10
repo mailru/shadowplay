@@ -181,6 +181,28 @@ where
     ))
 }
 
+#[test]
+fn test_square_brackets_comma_separated0() {
+    assert_eq!(
+        square_brackets_comma_separated0(tag("a"))(Span::new("[a]"))
+            .unwrap()
+            .1
+            .into_iter()
+            .map(|v| *v)
+            .collect::<Vec<_>>(),
+        vec!["a"]
+    );
+    assert_eq!(
+        square_brackets_comma_separated0(tag("a"))(Span::new("[a,]"))
+            .unwrap()
+            .1
+            .into_iter()
+            .map(|v| *v)
+            .collect::<Vec<_>>(),
+        vec!["a"]
+    )
+}
+
 pub fn curly_brackets_comma_separated0<'a, O, F>(
     parser: F,
 ) -> impl FnMut(Span<'a>) -> IResult<Vec<O>>
