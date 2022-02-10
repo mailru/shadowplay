@@ -93,6 +93,7 @@ pub struct Term<EXTRA> {
 pub enum ExpressionVariant<EXTRA> {
     Multiply((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
     Divide((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    Modulo((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
     Plus((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
     Minus((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
     Term(Term<EXTRA>),

@@ -272,7 +272,7 @@ pub(crate) mod expr {
             }))(input)?;
         let mut parser = fold_many0(
             pair(
-                alt((tag("*"), tag("/"))),
+                alt((tag("*"), tag("/"), tag("%"))),
                 crate::common::space0_delimimited(ParseError::protect(
                     |_| "Second argument of operator is expected".to_string(),
                     parse_l1,
@@ -289,6 +289,13 @@ pub(crate) mod expr {
                 },
                 "/" => puppet_lang::expression::Expression {
                     value: puppet_lang::expression::ExpressionVariant::Divide((
+                        Box::new(prev),
+                        Box::new(cur),
+                    )),
+                    extra: Location::from(op),
+                },
+                "%" => puppet_lang::expression::Expression {
+                    value: puppet_lang::expression::ExpressionVariant::Modulo((
                         Box::new(prev),
                         Box::new(cur),
                     )),
