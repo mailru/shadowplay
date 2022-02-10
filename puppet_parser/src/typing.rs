@@ -30,9 +30,9 @@ where
             map(
                 opt(crate::common::space0_delimimited(preceded(
                     crate::common::comma_separator,
-                    parse_or_default(parser),
+                    opt(parse_or_default(parser)),
                 ))),
-                |v| v.flatten(),
+                |v| v.flatten().flatten(),
             ),
         )(input)
     }
