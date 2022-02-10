@@ -1,6 +1,6 @@
 use crate::parser::Location;
 
-use super::parser::{IResult, ParseError, Span};
+use crate::parser::{IResult, ParseError, Span};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -58,7 +58,7 @@ pub fn parse_float(
 ) -> IResult<puppet_lang::typing::TypeSpecificationVariant<Location>> {
     let parser = preceded(
         tag("Float"),
-        parse_min_max_args(crate::expression::term::parse_float_term),
+        parse_min_max_args(crate::term::parse_float_term),
     );
 
     map(parser, |(min, max)| {
@@ -75,7 +75,7 @@ pub fn parse_integer(
 ) -> IResult<puppet_lang::typing::TypeSpecificationVariant<Location>> {
     let parser = preceded(
         tag("Integer"),
-        parse_min_max_args(crate::expression::term::parse_integer_term),
+        parse_min_max_args(crate::term::parse_integer_term),
     );
 
     map(parser, |(min, max)| {
@@ -92,7 +92,7 @@ pub fn parse_string(
 ) -> IResult<puppet_lang::typing::TypeSpecificationVariant<Location>> {
     let parser = preceded(
         tag("String"),
-        parse_min_max_args(crate::expression::term::parse_usize_term),
+        parse_min_max_args(crate::term::parse_usize_term),
     );
 
     map(parser, |(min, max)| {
@@ -109,7 +109,7 @@ fn parse_array(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVar
         parse_type_specification,
         opt(preceded(
             crate::common::comma_separator,
-            parse_min_max(crate::expression::term::parse_usize_term),
+            parse_min_max(crate::term::parse_usize_term),
         )),
     );
 
@@ -125,7 +125,7 @@ fn parse_array(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVar
     let parser = preceded(
         tag("Array"),
         map(
-            opt(super::common::square_brackets_delimimited(parser)),
+            opt(crate::common::square_brackets_delimimited(parser)),
             |v| {
                 v.unwrap_or(puppet_lang::typing::TypeArray {
                     inner: None,
@@ -143,10 +143,10 @@ fn parse_array(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVar
 fn parse_hash(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVariant<Location>> {
     let args_parser = tuple((
         parse_type_specification,
-        preceded(super::common::comma_separator, parse_type_specification),
+        preceded(crate::common::comma_separator, parse_type_specification),
         opt(preceded(
             crate::common::comma_separator,
-            parse_min_max_args(crate::expression::term::parse_usize_term),
+            parse_min_max_args(crate::term::parse_usize_term),
         )),
     ));
     let args_parser = map(args_parser, |(key, value, min_max)| {
@@ -163,7 +163,7 @@ fn parse_hash(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVari
     let parser = preceded(
         tag("Hash"),
         map(
-            opt(super::common::square_brackets_delimimited(args_parser)),
+            opt(crate::common::square_brackets_delimimited(args_parser)),
             |v| {
                 v.unwrap_or(puppet_lang::typing::TypeHash {
                     key: None,
@@ -187,7 +187,7 @@ fn parse_optional(input: Span) -> IResult<puppet_lang::typing::TypeSpecification
                 extra: crate::parser::Location::from(input),
             }
         }),
-        map(crate::expression::term::parse_term, |v| {
+        map(crate::term::parse_term, |v| {
             puppet_lang::typing::TypeOptional {
                 value: puppet_lang::typing::TypeOptionalVariant::Term(Box::new(v)),
                 extra: crate::parser::Location::from(input),
@@ -217,7 +217,7 @@ fn parse_sensitive(
                     extra: crate::parser::Location::from(input),
                 }
             }),
-            map(super::expression::term::parse_term, |v| {
+            map(crate::term::parse_term, |v| {
                 puppet_lang::typing::TypeSensitive {
                     value: puppet_lang::typing::TypeSensitiveVariant::Term(Box::new(v)),
                     extra: crate::parser::Location::from(input),
@@ -233,9 +233,9 @@ fn parse_sensitive(
 }
 
 fn parse_struct_key(input: Span) -> IResult<puppet_lang::typing::TypeStructKey<Location>> {
-    let inner_parse = super::common::square_brackets_delimimited(alt((
-        super::double_quoted::parse,
-        super::single_quoted::parse,
+    let inner_parse = crate::common::square_brackets_delimimited(alt((
+        crate::double_quoted::parse,
+        crate::single_quoted::parse,
     )));
 
     alt((
@@ -244,11 +244,11 @@ fn parse_struct_key(input: Span) -> IResult<puppet_lang::typing::TypeStructKey<L
             map(inner_parse, puppet_lang::typing::TypeStructKey::Optional),
         ),
         map(
-            super::double_quoted::parse,
+            crate::double_quoted::parse,
             puppet_lang::typing::TypeStructKey::String,
         ),
         map(
-            super::single_quoted::parse,
+            crate::single_quoted::parse,
             puppet_lang::typing::TypeStructKey::String,
         ),
     ))(input)
@@ -259,15 +259,15 @@ fn parse_struct(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVa
         crate::common::space0_delimimited(parse_struct_key),
         preceded(
             tag("=>"),
-            super::common::space0_delimimited(parse_type_specification),
+            crate::common::space0_delimimited(parse_type_specification),
         ),
     );
 
     let parser = preceded(
         tag("Struct"),
         map(
-            super::common::square_brackets_delimimited(
-                super::common::curly_brackets_comma_separated0(kv_parser),
+            crate::common::square_brackets_delimimited(
+                crate::common::curly_brackets_comma_separated0(kv_parser),
             ),
             |keys| puppet_lang::typing::TypeStruct {
                 keys,
@@ -285,11 +285,11 @@ fn parse_struct(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVa
 fn parse_tuple(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVariant<Location>> {
     let parser = preceded(
         tag("Tuple"),
-        super::common::square_brackets_delimimited(pair(
-            separated_list0(super::common::comma_separator, parse_type_specification),
+        crate::common::square_brackets_delimimited(pair(
+            separated_list0(crate::common::comma_separator, parse_type_specification),
             opt(preceded(
-                super::common::comma_separator,
-                parse_min_max(crate::expression::term::parse_usize_term),
+                crate::common::comma_separator,
+                parse_min_max(crate::term::parse_usize_term),
             )),
         )),
     );
@@ -313,7 +313,7 @@ fn parse_external_type(
     let parser = pair(
         crate::identifier::camelcase_identifier_with_ns,
         opt(crate::common::square_brackets_comma_separated1(
-            crate::expression::term::parse_term,
+            crate::term::parse_term,
         )),
     );
 
@@ -347,7 +347,7 @@ pub fn parse_type_specification(
     let parse_enum = preceded(
         tag("Enum"),
         map(
-            super::common::square_brackets_comma_separated1(super::expression::term::parse_term),
+            crate::common::square_brackets_comma_separated1(crate::term::parse_term),
             |list| {
                 puppet_lang::typing::TypeSpecificationVariant::Enum(puppet_lang::typing::Enum {
                     list,
@@ -360,7 +360,7 @@ pub fn parse_type_specification(
     let parse_pattern = preceded(
         tag("Pattern"),
         map(
-            super::common::square_brackets_comma_separated1(crate::regex::parse),
+            crate::common::square_brackets_comma_separated1(crate::regex::parse),
             |list| {
                 puppet_lang::typing::TypeSpecificationVariant::Pattern(
                     puppet_lang::typing::Pattern {
@@ -375,7 +375,7 @@ pub fn parse_type_specification(
     let parse_regexp = preceded(
         tag("Regexp"),
         map(
-            super::common::square_brackets_delimimited(crate::regex::parse),
+            crate::common::square_brackets_delimimited(crate::regex::parse),
             |data| {
                 puppet_lang::typing::TypeSpecificationVariant::Regex(puppet_lang::typing::Regex {
                     data,

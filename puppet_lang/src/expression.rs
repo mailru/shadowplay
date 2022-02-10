@@ -75,6 +75,7 @@ pub enum TermVariant<EXTRA> {
     Integer(Integer<EXTRA>),
     Boolean(Boolean<EXTRA>),
     Array(Vec<Expression<EXTRA>>),
+    Parens(Box<Expression<EXTRA>>),
     Map(Vec<(Expression<EXTRA>, Expression<EXTRA>)>),
     Undef(Undef<EXTRA>),
     Variable(Variable<EXTRA>),
@@ -96,6 +97,33 @@ pub enum ExpressionVariant<EXTRA> {
     Modulo((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
     Plus((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
     Minus((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    ShiftLeft((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    ShiftRight((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    Equal((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    NotEqual((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    Gt((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    GtEq((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    Lt((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    LtEq((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    And((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    Or((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    Assign((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    MatchRegex((Box<Expression<EXTRA>>, Regexp<EXTRA>)),
+    NotMatchRegex((Box<Expression<EXTRA>>, Regexp<EXTRA>)),
+    MatchType(
+        (
+            Box<Expression<EXTRA>>,
+            Box<crate::typing::TypeSpecification<EXTRA>>,
+        ),
+    ),
+    NotMatchType(
+        (
+            Box<Expression<EXTRA>>,
+            Box<crate::typing::TypeSpecification<EXTRA>>,
+        ),
+    ),
+    In((Term<EXTRA>, Term<EXTRA>)),
+    Not(Term<EXTRA>),
     Term(Term<EXTRA>),
 }
 
