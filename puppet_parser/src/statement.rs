@@ -92,7 +92,7 @@ pub fn parse_expression(input: Span) -> IResult<StatementVariant<Location>> {
     )(input)
 }
 
-pub fn parse_resource_relation(input: Span) -> IResult<StatementVariant<Location>> {
+pub fn parse_resource_type_relation(input: Span) -> IResult<StatementVariant<Location>> {
     let (input, left_type) =
         crate::common::space0_delimimited(crate::typing::parse_type_specification)(input)?;
     let parser = fold_many0_with_const_init(
@@ -110,7 +110,7 @@ pub fn parse_resource_relation(input: Span) -> IResult<StatementVariant<Location
         },
     );
 
-    map(parser, StatementVariant::ResourceRelation)(input)
+    map(parser, StatementVariant::ResourceTypeRelation)(input)
 }
 
 pub fn parse_statement_variant(input: Span) -> IResult<StatementVariant<Location>> {
@@ -119,7 +119,7 @@ pub fn parse_statement_variant(input: Span) -> IResult<StatementVariant<Location
         parse_include,
         parse_contain,
         parse_tag,
-        parse_resource_relation,
+        parse_resource_type_relation,
         parse_expression,
     ))(input)
 }

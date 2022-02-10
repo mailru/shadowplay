@@ -7,7 +7,7 @@ pub enum StatementVariant<EXTRA> {
     Contain(LowerIdentifier<EXTRA>),
     Tag(Vec<crate::expression::StringExpr<EXTRA>>),
     Expression(crate::expression::Expression<EXTRA>),
-    ResourceRelation(Vec<crate::typing::TypeSpecification<EXTRA>>),
+    ResourceTypeRelation(Vec<crate::typing::TypeSpecification<EXTRA>>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
