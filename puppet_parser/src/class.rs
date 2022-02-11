@@ -1,16 +1,14 @@
-use crate::{common::space0_delimimited, parser::Location};
+use crate::parser::Location;
 
 use super::parser::{IResult, ParseError, Span};
 use nom::{
     bytes::complete::tag,
     combinator::{map, opt},
-    multi::many0,
-    sequence::{pair, preceded, terminated, tuple},
+    sequence::{pair, preceded, tuple},
 };
 use puppet_lang::{
     argument::Argument,
     identifier::LowerIdentifier,
-    statement::Statement,
     toplevel::{Class, Definition, Plan},
 };
 
@@ -29,19 +27,6 @@ pub fn parse_header(input: Span) -> IResult<(LowerIdentifier<Location>, Vec<Argu
         ),
         preceded(super::common::separator0, arguments_parser),
     ))(input)
-}
-
-pub fn parse_body(input: Span) -> IResult<Vec<Statement<Location>>> {
-    preceded(
-        tag("{"),
-        terminated(
-            many0(space0_delimimited(crate::statement::parse_statement)),
-            ParseError::protect(
-                |_| "Closing '}' of body is expected".to_string(),
-                space0_delimimited(tag("}")),
-            ),
-        ),
-    )(input)
 }
 
 pub fn parse_class(input: Span) -> IResult<Class<Location>> {
@@ -68,7 +53,7 @@ pub fn parse_class(input: Span) -> IResult<Class<Location>> {
                                 ),
                             ),
                         ))),
-                        parse_body,
+                        crate::statement::parse_statement_set,
                     ),
                 ),
             )),
@@ -91,7 +76,7 @@ pub fn parse_definition(input: Span) -> IResult<Definition<Location>> {
             tag("define"),
             pair(
                 preceded(super::common::separator0, parse_header),
-                parse_body,
+                crate::statement::parse_statement_set,
             ),
         ),
         |((identifier, arguments), body)| Definition {
@@ -108,7 +93,7 @@ pub fn parse_plan(input: Span) -> IResult<Plan<Location>> {
             tag("plan"),
             pair(
                 preceded(super::common::separator0, parse_header),
-                parse_body,
+                crate::statement::parse_statement_set,
             ),
         ),
         |((identifier, arguments), body)| Plan {
@@ -280,7 +265,7 @@ fn test_body_tag() {
                 extra: Location::new(7, 1, 8),
             },
             arguments: Vec::new(),
-            body: vec![Statement {
+            body: vec![puppet_lang::statement::Statement {
                 value: puppet_lang::statement::StatementVariant::Tag(vec![
                     puppet_lang::expression::StringExpr {
                         data: "aaa".to_owned(),
@@ -322,7 +307,7 @@ fn test_body_require() {
             },
             arguments: Vec::new(),
             body: vec![
-                Statement {
+                puppet_lang::statement::Statement {
                     value: puppet_lang::statement::StatementVariant::Require(LowerIdentifier {
                         name: vec!["abc".to_owned(), "def".to_owned()],
                         is_toplevel: false,
@@ -330,7 +315,7 @@ fn test_body_require() {
                     }),
                     extra: Location::new(22, 2, 2),
                 },
-                Statement {
+                puppet_lang::statement::Statement {
                     value: puppet_lang::statement::StatementVariant::Require(LowerIdentifier {
                         name: vec!["zzz".to_owned()],
                         is_toplevel: false,
