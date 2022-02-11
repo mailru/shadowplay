@@ -235,7 +235,7 @@ fn parse_if_else(input: Span) -> IResult<StatementVariant<Location>> {
         puppet_lang::statement::IfElse {
             if_block,
             elsif_list,
-            else_block: else_block.map(|v| Box::new(v)),
+            else_block: else_block.map(Box::new),
             extra: Location::from(tag),
         }
     });
