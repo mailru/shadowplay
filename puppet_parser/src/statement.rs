@@ -8,10 +8,7 @@ use nom::{
 use puppet_lang::statement::{Statement, StatementVariant};
 
 use crate::{
-    common::{
-        comma_separator, fold_many0_with_const_init, round_brackets_delimimited, separator1,
-        space0_delimimited,
-    },
+    common::{comma_separator, round_brackets_delimimited, separator1, space0_delimimited},
     identifier::identifier_with_toplevel,
     parser::{IResult, Location, ParseError, Span},
     term::parse_string_variant,
@@ -99,26 +96,6 @@ fn parse_expression(input: Span) -> IResult<StatementVariant<Location>> {
     )(input)
 }
 
-fn parse_resource_type_relation(input: Span) -> IResult<StatementVariant<Location>> {
-    let (input, left_type) = space0_delimimited(crate::typing::parse_type_specification)(input)?;
-    let parser = fold_many0_with_const_init(
-        preceded(
-            tag("->"),
-            space0_delimimited(ParseError::protect(
-                |_| "Second argument of relation is expected".to_string(),
-                crate::typing::parse_type_specification,
-            )),
-        ),
-        vec![left_type],
-        |mut acc: Vec<_>, cur| {
-            acc.push(cur);
-            acc
-        },
-    );
-
-    map(parser, StatementVariant::ResourceTypeRelation)(input)
-}
-
 fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Location>> {
     let parse_arguments = separated_list0(
         comma_separator,
@@ -169,24 +146,52 @@ fn parse_resource_set(input: Span) -> IResult<puppet_lang::statement::ResourceSe
     })(input)
 }
 
-fn parse_resource_set_relation(input: Span) -> IResult<StatementVariant<Location>> {
-    let (input, left_set) = parse_resource_set(input)?;
-    let parser = fold_many0_with_const_init(
-        preceded(
-            tag("->"),
+fn parse_relation_type(input: Span) -> IResult<puppet_lang::statement::RelationType<Location>> {
+    alt((
+        map(tag("->"), |tag: Span| {
+            puppet_lang::statement::RelationType {
+                variant: puppet_lang::statement::RelationVariant::ExecOrder,
+                extra: Location::from(tag),
+            }
+        }),
+        map(tag("~>"), |tag: Span| {
+            puppet_lang::statement::RelationType {
+                variant: puppet_lang::statement::RelationVariant::Notify,
+                extra: Location::from(tag),
+            }
+        }),
+    ))(input)
+}
+
+fn parse_relation(input: Span) -> IResult<puppet_lang::statement::RelationList<Location>> {
+    let head_parser = alt((
+        map(
+            parse_resource_set,
+            puppet_lang::statement::RelationElt::ResourceSet,
+        ),
+        map(
+            crate::typing::parse_type_specification,
+            puppet_lang::statement::RelationElt::Type,
+        ),
+    ));
+
+    let tail_parser = opt(map(
+        pair(
+            space0_delimimited(parse_relation_type),
             space0_delimimited(ParseError::protect(
-                |_| "Second resource in relation is expected".to_string(),
-                parse_resource_set,
+                |_| "Second resource or type is expected after relation tag".to_string(),
+                parse_relation,
             )),
         ),
-        vec![left_set],
-        |mut acc: Vec<_>, cur| {
-            acc.push(cur);
-            acc
+        |(relation_type, relation_to)| puppet_lang::statement::Relation {
+            relation_type,
+            relation_to: Box::new(relation_to),
         },
-    );
+    ));
 
-    map(parser, StatementVariant::ResourceSetRelation)(input)
+    map(pair(head_parser, tail_parser), |(head, tail)| {
+        puppet_lang::statement::RelationList { head, tail }
+    })(input)
 }
 
 fn parse_if_else(input: Span) -> IResult<StatementVariant<Location>> {
@@ -250,9 +255,7 @@ fn parse_statement_variant(input: Span) -> IResult<StatementVariant<Location>> {
         parse_include,
         parse_contain,
         parse_tag,
-        parse_resource_type_relation,
-        parse_resource_set_relation,
-        map(parse_resource_set, StatementVariant::ResourceSet),
+        map(parse_relation, StatementVariant::RelationList),
         parse_expression,
     ))(input)
 }
@@ -270,7 +273,7 @@ pub fn parse_statement_set(input: Span) -> IResult<Vec<Statement<Location>>> {
         terminated(
             many0(space0_delimimited(parse_statement)),
             ParseError::protect(
-                |_| "Closing '}' of body is expected".to_string(),
+                |_| "Closing '}' or statement is expected".to_string(),
                 space0_delimimited(tag("}")),
             ),
         ),

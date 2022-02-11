@@ -30,15 +30,43 @@ pub struct IfElse<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub enum RelationVariant {
+    ExecOrder,
+    Notify,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RelationType<EXTRA> {
+    pub variant: RelationVariant,
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum RelationElt<EXTRA> {
+    ResourceSet(ResourceSet<EXTRA>),
+    Type(crate::typing::TypeSpecification<EXTRA>),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Relation<EXTRA> {
+    pub relation_type: RelationType<EXTRA>,
+    pub relation_to: Box<RelationList<EXTRA>>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RelationList<EXTRA> {
+    pub head: RelationElt<EXTRA>,
+    pub tail: Option<Relation<EXTRA>>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum StatementVariant<EXTRA> {
     Include(LowerIdentifier<EXTRA>),
     Require(LowerIdentifier<EXTRA>),
     Contain(LowerIdentifier<EXTRA>),
     Tag(Vec<crate::expression::StringExpr<EXTRA>>),
     Expression(crate::expression::Expression<EXTRA>),
-    ResourceTypeRelation(Vec<crate::typing::TypeSpecification<EXTRA>>),
-    ResourceSet(ResourceSet<EXTRA>),
-    ResourceSetRelation(Vec<ResourceSet<EXTRA>>),
+    RelationList(RelationList<EXTRA>),
     IfElse(IfElse<EXTRA>),
 }
 
