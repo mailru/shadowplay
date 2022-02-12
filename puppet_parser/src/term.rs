@@ -1,7 +1,8 @@
-use crate::common::{round_brackets_delimimited, square_brackets_delimimited};
+use crate::common::{round_brackets_delimimited, space0_delimimited, square_brackets_delimimited};
 use crate::parser::Location;
 use crate::parser::{IResult, ParseError, Span};
 use nom::combinator::value;
+use nom::sequence::tuple;
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -30,16 +31,31 @@ pub fn parse_variable(input: Span) -> IResult<puppet_lang::expression::Variable<
     )(input)
 }
 
-fn parse_funcall(input: Span) -> IResult<puppet_lang::expression::FunctionCall<Location>> {
+fn parse_lambda(input: Span) -> IResult<puppet_lang::expression::Lambda<Location>> {
     map(
         pair(
+            crate::common::pipes_comma_separated0(crate::expression::parse_expression),
+            space0_delimimited(ParseError::protect(
+                |_| "'{' expected".to_string(),
+                crate::statement::parse_statement_set,
+            )),
+        ),
+        |(args, body)| puppet_lang::expression::Lambda { args, body },
+    )(input)
+}
+
+fn parse_funcall(input: Span) -> IResult<puppet_lang::expression::FunctionCall<Location>> {
+    map(
+        tuple((
             crate::identifier::identifier_with_toplevel,
             crate::common::round_brackets_comma_separated0(crate::expression::parse_expression),
-        ),
-        |(identifier, args)| puppet_lang::expression::FunctionCall {
+            opt(crate::common::space0_delimimited(parse_lambda)),
+        )),
+        |(identifier, args, lambda)| puppet_lang::expression::FunctionCall {
             extra: identifier.extra.clone(),
             identifier,
             args,
+            lambda,
         },
     )(input)
 }
@@ -465,6 +481,7 @@ fn test_function_call() {
                         ),
                         extra: Location::new(7, 1, 8)
                     },],
+                    lambda: None,
                     extra: Location::new(0, 1, 1)
                 }
             ),

@@ -11,6 +11,7 @@ pub struct Resource<EXTRA> {
 pub struct ResourceSet<EXTRA> {
     pub name: LowerIdentifier<EXTRA>,
     pub list: Vec<Resource<EXTRA>>,
+    pub is_virtual: bool,
     pub extra: EXTRA,
 }
 
@@ -64,6 +65,7 @@ pub enum StatementVariant<EXTRA> {
     Include(LowerIdentifier<EXTRA>),
     Require(LowerIdentifier<EXTRA>),
     Contain(LowerIdentifier<EXTRA>),
+    Realize(Vec<crate::typing::TypeSpecification<EXTRA>>),
     Tag(Vec<crate::expression::StringExpr<EXTRA>>),
     Expression(crate::expression::Expression<EXTRA>),
     RelationList(RelationList<EXTRA>),

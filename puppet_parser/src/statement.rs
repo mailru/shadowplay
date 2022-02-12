@@ -89,6 +89,27 @@ fn parse_tag(input: Span) -> IResult<StatementVariant<Location>> {
     map(parser, StatementVariant::Tag)(input)
 }
 
+fn parse_realize(input: Span) -> IResult<StatementVariant<Location>> {
+    let parser = preceded(
+        tag("realize"),
+        preceded(
+            separator1,
+            ParseError::protect(
+                |_| "Arguments for 'realize' are expected".to_string(),
+                alt((
+                    round_brackets_delimimited(separated_list1(
+                        comma_separator,
+                        crate::typing::parse_type_specification,
+                    )),
+                    separated_list1(comma_separator, crate::typing::parse_type_specification),
+                )),
+            ),
+        ),
+    );
+
+    map(parser, StatementVariant::Realize)(input)
+}
+
 fn parse_expression(input: Span) -> IResult<StatementVariant<Location>> {
     map(
         crate::expression::parse_expression,
@@ -130,19 +151,22 @@ fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Locat
 
 fn parse_resource_set(input: Span) -> IResult<puppet_lang::statement::ResourceSet<Location>> {
     let parser = pair(
-        space0_delimimited(crate::identifier::identifier_with_toplevel),
-        ParseError::protect(
-            |_| "Resource set arguments list in '{ ... }' is expected".to_string(),
-            space0_delimimited(crate::common::curly_brackets_comma_separated0(
-                parse_resource,
-            )),
-        ),
+        space0_delimimited(pair(
+            opt(tag("@")),
+            crate::identifier::identifier_with_toplevel,
+        )),
+        space0_delimimited(crate::common::curly_brackets_comma_separated0(
+            parse_resource,
+        )),
     );
 
-    map(parser, |(name, list)| puppet_lang::statement::ResourceSet {
-        extra: name.extra.clone(),
-        name,
-        list,
+    map(parser, |((is_virutal, name), list)| {
+        puppet_lang::statement::ResourceSet {
+            is_virtual: is_virutal.is_some(),
+            extra: name.extra.clone(),
+            name,
+            list,
+        }
     })(input)
 }
 
@@ -255,6 +279,7 @@ fn parse_statement_variant(input: Span) -> IResult<StatementVariant<Location>> {
         parse_include,
         parse_contain,
         parse_tag,
+        parse_realize,
         map(parse_relation, StatementVariant::RelationList),
         parse_expression,
     ))(input)

@@ -115,6 +115,24 @@ where
     )
 }
 
+pub fn pipes_delimimited<'a, O, F>(parser: F) -> impl FnMut(Span<'a>) -> IResult<O>
+where
+    F: Parser<Span<'a>, O, ParseError<'a>>,
+    O: Clone,
+{
+    preceded(
+        opt(separator1),
+        delimited(
+            pair(tag("|"), separator0),
+            parser,
+            ParseError::protect(
+                |_| "Closing '|' expected".to_string(),
+                pair(separator0, tag("|")),
+            ),
+        ),
+    )
+}
+
 pub fn round_brackets_comma_separated0<'a, O, F>(
     parser: F,
 ) -> impl FnMut(Span<'a>) -> IResult<Vec<O>>
@@ -225,6 +243,18 @@ where
     O: Clone,
 {
     curly_brackets_delimimited(terminated(
+        separated_list0(comma_separator, parser),
+        // В конце не обязательная запятая
+        opt(comma_separator),
+    ))
+}
+
+pub fn pipes_comma_separated0<'a, O, F>(parser: F) -> impl FnMut(Span<'a>) -> IResult<Vec<O>>
+where
+    F: Parser<Span<'a>, O, ParseError<'a>>,
+    O: Clone,
+{
+    pipes_delimimited(terminated(
         separated_list0(comma_separator, parser),
         // В конце не обязательная запятая
         opt(comma_separator),

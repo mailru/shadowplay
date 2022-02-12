@@ -1,6 +1,7 @@
 use crate::parser::Location;
 
-use super::parser::{IResult, ParseError, Span};
+use crate::common::space0_delimimited;
+use crate::parser::{IResult, ParseError, Span};
 use nom::{
     bytes::complete::tag,
     combinator::{map, opt},
@@ -44,13 +45,11 @@ pub fn parse_class(input: Span) -> IResult<Class<Location>> {
                 ParseError::protect(
                     |_| "'{' or 'inherits' expected".to_string(),
                     pair(
-                        super::common::space0_delimimited(opt(preceded(
+                        space0_delimimited(opt(preceded(
                             tag("inherits"),
                             ParseError::protect(
                                 |_| "Failed to parse what class inherits".to_owned(),
-                                super::common::space0_delimimited(
-                                    crate::identifier::identifier_with_toplevel,
-                                ),
+                                space0_delimimited(crate::identifier::identifier_with_toplevel),
                             ),
                         ))),
                         crate::statement::parse_statement_set,
@@ -76,7 +75,10 @@ pub fn parse_definition(input: Span) -> IResult<Definition<Location>> {
             tag("define"),
             pair(
                 preceded(super::common::separator0, parse_header),
-                crate::statement::parse_statement_set,
+                space0_delimimited(ParseError::protect(
+                    |_| "'{' expected".to_string(),
+                    crate::statement::parse_statement_set,
+                )),
             ),
         ),
         |((identifier, arguments), body)| Definition {

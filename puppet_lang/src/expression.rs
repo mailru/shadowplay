@@ -8,9 +8,16 @@ pub struct Variable<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct Lambda<EXTRA> {
+    pub args: Vec<Expression<EXTRA>>,
+    pub body: Vec<crate::statement::Statement<EXTRA>>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct FunctionCall<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,
     pub args: Vec<Expression<EXTRA>>,
+    pub lambda: Option<Lambda<EXTRA>>,
     pub extra: EXTRA,
 }
 
