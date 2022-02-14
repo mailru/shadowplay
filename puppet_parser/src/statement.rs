@@ -262,7 +262,7 @@ fn parse_if_else(input: Span) -> IResult<StatementVariant<Location>> {
             .collect();
 
         puppet_lang::statement::IfElse {
-            if_block,
+            condition: if_block,
             elsif_list,
             else_block: else_block.map(Box::new),
             extra: Location::from(tag),

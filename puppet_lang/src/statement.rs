@@ -24,7 +24,7 @@ pub struct ConditionAndStatement<EXTRA> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct IfElse<EXTRA> {
-    pub if_block: ConditionAndStatement<EXTRA>,
+    pub condition: ConditionAndStatement<EXTRA>,
     pub elsif_list: Vec<ConditionAndStatement<EXTRA>>,
     pub else_block: Option<Box<Vec<Statement<EXTRA>>>>,
     pub extra: EXTRA,
