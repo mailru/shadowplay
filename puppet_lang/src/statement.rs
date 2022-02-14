@@ -61,6 +61,20 @@ pub struct RelationList<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct CaseElement<EXTRA> {
+    pub matches: Vec<crate::expression::Term<EXTRA>>,
+    pub body: Box<Vec<Statement<EXTRA>>>,
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Case<EXTRA> {
+    pub condition: Expression<EXTRA>,
+    pub elements: Vec<CaseElement<EXTRA>>,
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum StatementVariant<EXTRA> {
     Include(LowerIdentifier<EXTRA>),
     Require(LowerIdentifier<EXTRA>),
@@ -70,6 +84,7 @@ pub enum StatementVariant<EXTRA> {
     Expression(crate::expression::Expression<EXTRA>),
     RelationList(RelationList<EXTRA>),
     IfElse(IfElse<EXTRA>),
+    Case(Case<EXTRA>),
 }
 
 #[derive(Clone, Debug, PartialEq)]

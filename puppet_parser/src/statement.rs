@@ -8,7 +8,10 @@ use nom::{
 use puppet_lang::statement::{Statement, StatementVariant};
 
 use crate::{
-    common::{comma_separator, round_brackets_delimimited, separator1, space0_delimimited},
+    common::{
+        comma_separator, curly_brackets_delimimited, round_brackets_delimimited, separator1,
+        space0_delimimited,
+    },
     identifier::identifier_with_toplevel,
     parser::{IResult, Location, ParseError, Span},
     term::parse_string_variant,
@@ -272,9 +275,48 @@ fn parse_if_else(input: Span) -> IResult<StatementVariant<Location>> {
     map(parser, StatementVariant::IfElse)(input)
 }
 
+fn parse_case(input: Span) -> IResult<StatementVariant<Location>> {
+    let parser_header = pair(
+        space0_delimimited(tag("case")),
+        space0_delimimited(ParseError::protect(
+            |_| "Condition is expected after 'case'".to_string(),
+            crate::expression::parse_expression,
+        )),
+    );
+
+    let parser_element = map(
+        tuple((
+            separated_list1(comma_separator, space0_delimimited(crate::term::parse_term)),
+            tag(":"),
+            space0_delimimited(parse_statement_set),
+        )),
+        |(matches, tag, body)| puppet_lang::statement::CaseElement {
+            matches,
+            body: Box::new(body),
+            extra: Location::from(tag),
+        },
+    );
+
+    let parser = pair(
+        parser_header,
+        curly_brackets_delimimited(many0(parser_element)),
+    );
+
+    let parser = map(parser, |((case_tag, condition), elements)| {
+        puppet_lang::statement::Case {
+            condition,
+            elements,
+            extra: Location::from(case_tag),
+        }
+    });
+
+    map(parser, StatementVariant::Case)(input)
+}
+
 fn parse_statement_variant(input: Span) -> IResult<StatementVariant<Location>> {
     alt((
         parse_if_else,
+        parse_case,
         parse_require,
         parse_include,
         parse_contain,
