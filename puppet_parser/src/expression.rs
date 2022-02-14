@@ -19,7 +19,7 @@ pub(crate) fn parse_match_variant(
 ) -> IResult<puppet_lang::expression::Expression<Location>> {
     let (input, (left_term, tag_variant)) = pair(
         space0_delimimited(crate::term::parse_term),
-        alt((tag("=~"), tag("!~"))),
+        space0_delimimited(alt((tag("=~"), tag("!~")))),
     )(input)?;
 
     let left_expr = puppet_lang::expression::Expression {
