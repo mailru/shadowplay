@@ -4,7 +4,7 @@ use nom::sequence::tuple;
 ///
 use nom::{bytes::complete::tag, sequence::pair};
 
-use crate::common::fold_many0_with_const_init;
+use crate::common::{fold_many0_with_const_init, space0_delimimited};
 use crate::parser::Location;
 
 use crate::parser::{IResult, Span};
@@ -18,7 +18,7 @@ pub(crate) fn parse_match_variant(
     input: Span,
 ) -> IResult<puppet_lang::expression::Expression<Location>> {
     let (input, (left_term, tag_variant)) = pair(
-        crate::common::space0_delimimited(crate::term::parse_term),
+        space0_delimimited(crate::term::parse_term),
         alt((tag("=~"), tag("!~"))),
     )(input)?;
 
@@ -76,7 +76,7 @@ pub(crate) fn parse_match_variant(
 fn parse_in_expr(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
     let parser = tuple((
         crate::term::parse_term,
-        crate::common::space0_delimimited(tag("in")),
+        space0_delimimited(tag("in")),
         crate::term::parse_term,
     ));
 
@@ -90,10 +90,7 @@ fn parse_in_expr(input: Span) -> IResult<puppet_lang::expression::Expression<Loc
 
 /// https://puppet.com/docs/puppet/6/lang_expressions.html#lang_exp_boolean-boolean-not
 fn parse_not(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
-    let parser = pair(
-        crate::common::space0_delimimited(tag("!")),
-        crate::term::parse_term,
-    );
+    let parser = pair(space0_delimimited(tag("!")), crate::term::parse_term);
 
     map(parser, |(op, term)| puppet_lang::expression::Expression {
         extra: Location::from(op),
@@ -102,7 +99,7 @@ fn parse_not(input: Span) -> IResult<puppet_lang::expression::Expression<Locatio
 }
 
 fn parse_l0(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
-    crate::common::space0_delimimited(alt((
+    space0_delimimited(alt((
         parse_not,
         parse_in_expr,
         parse_match_variant,
@@ -120,7 +117,7 @@ pub(crate) fn parse_l1(input: Span) -> IResult<puppet_lang::expression::Expressi
     let mut parser = fold_many0_with_const_init(
         pair(
             alt((tag("*"), tag("/"), tag("%"))),
-            crate::common::space0_delimimited(ParseError::protect(
+            space0_delimimited(ParseError::protect(
                 |_| "Second argument of operator is expected".to_string(),
                 parse_l1,
             )),
@@ -155,11 +152,11 @@ pub(crate) fn parse_l1(input: Span) -> IResult<puppet_lang::expression::Expressi
 }
 
 fn parse_l2(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
-    let (input, left_expr) = crate::common::space0_delimimited(parse_l1)(input)?;
+    let (input, left_expr) = space0_delimimited(parse_l1)(input)?;
     let mut parser = fold_many0_with_const_init(
         pair(
             alt((tag("+"), tag("-"))),
-            crate::common::space0_delimimited(ParseError::protect(
+            space0_delimimited(ParseError::protect(
                 |_| "Second argument of operator is expected".to_string(),
                 parse_l1,
             )),
@@ -187,11 +184,11 @@ fn parse_l2(input: Span) -> IResult<puppet_lang::expression::Expression<Location
 }
 
 fn parse_l3(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
-    let (input, left_expr) = crate::common::space0_delimimited(parse_l2)(input)?;
+    let (input, left_expr) = space0_delimimited(parse_l2)(input)?;
     let mut parser = fold_many0_with_const_init(
         pair(
             alt((tag("<<"), tag(">>"))),
-            crate::common::space0_delimimited(ParseError::protect(
+            space0_delimimited(ParseError::protect(
                 |_| "Second argument of operator is expected".to_string(),
                 parse_l2,
             )),
@@ -219,7 +216,7 @@ fn parse_l3(input: Span) -> IResult<puppet_lang::expression::Expression<Location
 }
 
 fn parse_l4(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
-    let (input, left_expr) = crate::common::space0_delimimited(parse_l3)(input)?;
+    let (input, left_expr) = space0_delimimited(parse_l3)(input)?;
     let mut parser = fold_many0_with_const_init(
         pair(
             alt((
@@ -230,7 +227,7 @@ fn parse_l4(input: Span) -> IResult<puppet_lang::expression::Expression<Location
                 tag(">="),
                 tag("<="),
             )),
-            crate::common::space0_delimimited(ParseError::protect(
+            space0_delimimited(ParseError::protect(
                 |_| "Second argument of operator is expected".to_string(),
                 parse_l3,
             )),
@@ -286,11 +283,11 @@ fn parse_l4(input: Span) -> IResult<puppet_lang::expression::Expression<Location
 }
 
 fn parse_l5(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
-    let (input, left_expr) = crate::common::space0_delimimited(parse_l4)(input)?;
+    let (input, left_expr) = space0_delimimited(parse_l4)(input)?;
     let mut parser = fold_many0_with_const_init(
         pair(
             alt((tag("and"), tag("or"))),
-            crate::common::space0_delimimited(ParseError::protect(
+            space0_delimimited(ParseError::protect(
                 |_| "Second argument of operator is expected".to_string(),
                 parse_l4,
             )),
@@ -318,9 +315,9 @@ fn parse_l5(input: Span) -> IResult<puppet_lang::expression::Expression<Location
 }
 
 pub fn parse_expression(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
-    let (input, left_expr) = super::common::space0_delimimited(parse_l5)(input)?;
+    let (input, left_expr) = space0_delimimited(parse_l5)(input)?;
     let mut parser = fold_many0_with_const_init(
-        pair(tag("="), super::common::space0_delimimited(parse_l5)),
+        pair(tag("="), space0_delimimited(parse_l5)),
         left_expr,
         |prev, (op, cur)| match *op {
             "=" => puppet_lang::expression::Expression {
