@@ -11,7 +11,7 @@ use puppet_lang::identifier::LowerIdentifier;
 use crate::parser::{IResult, Location, Span};
 
 pub fn char_lower(input: Span) -> IResult<char> {
-    verify(anychar, |c| c.is_ascii_lowercase())(input)
+    verify(anychar, |c| c.is_ascii_lowercase() || *c == '_')(input)
 }
 
 pub fn char_upper(input: Span) -> IResult<char> {
