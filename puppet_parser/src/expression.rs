@@ -1,3 +1,4 @@
+use nom::combinator::opt;
 use nom::multi::separated_list1;
 use nom::sequence::tuple;
 ///
@@ -5,7 +6,9 @@ use nom::sequence::tuple;
 ///
 use nom::{bytes::complete::tag, sequence::pair};
 
-use crate::common::{comma_separator, fold_many0_with_const_init, space0_delimimited};
+use crate::common::{
+    comma_separator, fold_many0_with_const_init, space0_delimimited, space1_delimimited,
+};
 use crate::parser::Location;
 
 use crate::parser::{IResult, Span};
@@ -78,7 +81,7 @@ pub(crate) fn parse_match_variant(
 fn parse_in_expr(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
     let parser = tuple((
         crate::term::parse_term,
-        space0_delimimited(tag("in")),
+        space1_delimimited(tag("in")),
         crate::term::parse_term,
     ));
 
@@ -102,7 +105,14 @@ fn parse_not(input: Span) -> IResult<puppet_lang::expression::Expression<Locatio
 
 /// https://puppet.com/docs/puppet/7/lang_conditional.html#lang_condition_selector
 fn parse_selector_case(input: Span) -> IResult<puppet_lang::expression::SelectorCase<Location>> {
-    let parser = tuple((parse_term, space0_delimimited(tag("=>")), parse_expression));
+    let parser = tuple((
+        parse_term,
+        space0_delimimited(tag("=>")),
+        ParseError::protect(
+            |_| "A value for selector case is expected".to_string(),
+            parse_expression,
+        ),
+    ));
 
     map(parser, |(case, tag, body)| {
         puppet_lang::expression::SelectorCase {
@@ -116,14 +126,24 @@ fn parse_selector_case(input: Span) -> IResult<puppet_lang::expression::Selector
 /// https://puppet.com/docs/puppet/7/lang_conditional.html#lang_condition_selector
 fn parse_selector(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
     let parser = tuple((
-        space0_delimimited(parse_term),
-        tag("?"),
-        space0_delimimited(tag("{")),
-        separated_list1(comma_separator, space0_delimimited(parse_selector_case)),
-        space0_delimimited(tag("}")),
+        parse_term,
+        space0_delimimited(tag("?")),
+        ParseError::protect(
+            |_| "Opening '{' of selector is expected".to_string(),
+            tag("{"),
+        ),
+        space0_delimimited(separated_list1(
+            space0_delimimited(comma_separator),
+            space0_delimimited(parse_selector_case),
+        )),
+        space0_delimimited(opt(comma_separator)),
+        ParseError::protect(
+            |_| "Closing '}' of selector is expected".to_string(),
+            tag("}"),
+        ),
     ));
 
-    map(parser, |(condition, op, _, cases, _)| {
+    map(parser, |(condition, op, _, cases, _, _)| {
         puppet_lang::expression::Expression {
             extra: Location::from(op),
             value: puppet_lang::expression::ExpressionVariant::Selector(

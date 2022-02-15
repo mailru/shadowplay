@@ -51,6 +51,14 @@ where
     delimited(separator0, parser, separator0)
 }
 
+pub fn space1_delimimited<'a, O, F>(parser: F) -> impl FnMut(Span<'a>) -> IResult<O>
+where
+    F: Parser<Span<'a>, O, ParseError<'a>>,
+    O: Clone,
+{
+    delimited(separator1, parser, separator1)
+}
+
 pub fn spaced0_separator<'a>(
     separator_tag: &'static str,
 ) -> impl FnMut(Span<'a>) -> IResult<'a, ()> {

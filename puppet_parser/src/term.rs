@@ -122,14 +122,14 @@ pub fn parse_sensitive(input: Span) -> IResult<puppet_lang::expression::TermVari
             ParseError::protect(
                 |_| "Expected round brackets after Sensitive value".to_string(),
                 round_brackets_delimimited(ParseError::protect(
-                    |_| "Expected single quoted string".to_string(),
-                    crate::single_quoted::parse,
+                    |_| "Expected term".to_string(),
+                    parse_term,
                 )),
             ),
             |value| {
                 puppet_lang::expression::TermVariant::Sensitive(
                     puppet_lang::expression::Sensitive {
-                        value,
+                        value: Box::new(value),
                         extra: Location::from(input),
                     },
                 )

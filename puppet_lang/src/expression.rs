@@ -41,7 +41,7 @@ pub struct Usize<EXTRA> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Sensitive<EXTRA> {
-    pub value: StringExpr<EXTRA>,
+    pub value: Box<Term<EXTRA>>,
     pub extra: EXTRA,
 }
 

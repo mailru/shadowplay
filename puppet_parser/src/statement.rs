@@ -9,8 +9,8 @@ use puppet_lang::statement::{Statement, StatementVariant};
 
 use crate::{
     common::{
-        comma_separator, curly_brackets_delimimited, round_brackets_delimimited, separator1,
-        space0_delimimited,
+        comma_separator, curly_brackets_delimimited, round_brackets_delimimited, separator0,
+        separator1, space0_delimimited,
     },
     identifier::identifier_with_toplevel,
     parser::{IResult, Location, ParseError, Span},
@@ -38,15 +38,15 @@ fn parse_require(input: Span) -> IResult<StatementVariant<Location>> {
 fn parse_include(input: Span) -> IResult<StatementVariant<Location>> {
     let parser = preceded(
         tag("include"),
-        preceded(
-            separator1,
-            ParseError::protect(
-                |_| "Argument for 'include' is expected".to_string(),
-                alt((
+        ParseError::protect(
+            |_| "Argument for 'include' is expected".to_string(),
+            alt((
+                preceded(
+                    separator0,
                     round_brackets_delimimited(identifier_with_toplevel),
-                    identifier_with_toplevel,
-                )),
-            ),
+                ),
+                preceded(separator1, identifier_with_toplevel),
+            )),
         ),
     );
 
@@ -365,4 +365,9 @@ pub fn parse_statement_set(input: Span) -> IResult<Vec<Statement<Location>>> {
             ),
         ),
     )(input)
+}
+
+#[test]
+fn test_selector() {
+    assert!(parse_statement_set(Span::new("{ if $z { $a ? { default => 0, } } }")).is_ok())
 }
