@@ -45,7 +45,7 @@ pub struct RelationType<EXTRA> {
 #[derive(Clone, Debug, PartialEq)]
 pub enum RelationElt<EXTRA> {
     ResourceSet(ResourceSet<EXTRA>),
-    Type(crate::typing::TypeSpecification<EXTRA>),
+    ResourceCollection(crate::resource_collection::ResourceCollection<EXTRA>),
 }
 
 #[derive(Clone, Debug, PartialEq)]

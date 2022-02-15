@@ -197,8 +197,8 @@ fn parse_relation(input: Span) -> IResult<puppet_lang::statement::RelationList<L
             puppet_lang::statement::RelationElt::ResourceSet,
         ),
         map(
-            crate::typing::parse_type_specification,
-            puppet_lang::statement::RelationElt::Type,
+            space0_delimimited(crate::resource_collection::parse_resource_collection),
+            puppet_lang::statement::RelationElt::ResourceCollection,
         ),
     ));
 

@@ -6,6 +6,7 @@ pub mod expression;
 pub mod identifier;
 pub mod parser;
 pub mod regex;
+pub mod resource_collection;
 pub mod single_quoted;
 pub mod statement;
 pub mod term;
