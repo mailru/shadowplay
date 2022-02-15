@@ -90,11 +90,11 @@ fn parse_in_expr(input: Span) -> IResult<puppet_lang::expression::Expression<Loc
 
 /// https://puppet.com/docs/puppet/6/lang_expressions.html#lang_exp_boolean-boolean-not
 fn parse_not(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
-    let parser = pair(space0_delimimited(tag("!")), crate::term::parse_term);
+    let parser = pair(space0_delimimited(tag("!")), parse_expression);
 
-    map(parser, |(op, term)| puppet_lang::expression::Expression {
+    map(parser, |(op, expr)| puppet_lang::expression::Expression {
         extra: Location::from(op),
-        value: puppet_lang::expression::ExpressionVariant::Not(term),
+        value: puppet_lang::expression::ExpressionVariant::Not(Box::new(expr)),
     })(input)
 }
 

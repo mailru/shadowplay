@@ -130,7 +130,7 @@ pub enum ExpressionVariant<EXTRA> {
         ),
     ),
     In((Term<EXTRA>, Term<EXTRA>)),
-    Not(Term<EXTRA>),
+    Not(Box<Expression<EXTRA>>),
     Term(Term<EXTRA>),
 }
 
