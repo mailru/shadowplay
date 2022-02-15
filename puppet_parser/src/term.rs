@@ -31,7 +31,7 @@ pub fn parse_variable(input: Span) -> IResult<puppet_lang::expression::Variable<
     )(input)
 }
 
-fn parse_lambda(input: Span) -> IResult<puppet_lang::expression::Lambda<Location>> {
+pub fn parse_lambda(input: Span) -> IResult<puppet_lang::expression::Lambda<Location>> {
     map(
         pair(
             crate::common::pipes_comma_separated0(crate::expression::parse_expression),
@@ -48,8 +48,10 @@ fn parse_funcall(input: Span) -> IResult<puppet_lang::expression::FunctionCall<L
     map(
         tuple((
             crate::identifier::identifier_with_toplevel,
-            crate::common::round_brackets_comma_separated0(crate::expression::parse_expression),
-            opt(crate::common::space0_delimimited(parse_lambda)),
+            space0_delimimited(crate::common::round_brackets_comma_separated0(
+                crate::expression::parse_expression,
+            )),
+            opt(space0_delimimited(parse_lambda)),
         )),
         |(identifier, args, lambda)| puppet_lang::expression::FunctionCall {
             extra: identifier.extra.clone(),
@@ -140,10 +142,10 @@ pub fn parse_sensitive(input: Span) -> IResult<puppet_lang::expression::TermVari
 
 fn parse_map(input: Span) -> IResult<puppet_lang::expression::TermVariant<Location>> {
     let kv_parser = pair(
-        crate::common::space0_delimimited(crate::expression::parse_expression),
+        space0_delimimited(crate::expression::parse_expression),
         preceded(
             tag("=>"),
-            crate::common::space0_delimimited(crate::expression::parse_expression),
+            space0_delimimited(crate::expression::parse_expression),
         ),
     );
 

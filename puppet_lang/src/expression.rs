@@ -112,6 +112,13 @@ pub struct Selector<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct ChainCall<EXTRA> {
+    pub left: Box<Term<EXTRA>>,
+    pub right: Box<FunctionCall<EXTRA>>,
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum ExpressionVariant<EXTRA> {
     Multiply((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
     Divide((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
@@ -146,6 +153,7 @@ pub enum ExpressionVariant<EXTRA> {
     In((Term<EXTRA>, Term<EXTRA>)),
     Not(Box<Expression<EXTRA>>),
     Selector(Selector<EXTRA>),
+    ChainCall(ChainCall<EXTRA>),
     Term(Term<EXTRA>),
 }
 

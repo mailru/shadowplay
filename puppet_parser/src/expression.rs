@@ -157,8 +157,60 @@ fn parse_selector(input: Span) -> IResult<puppet_lang::expression::Expression<Lo
     })(input)
 }
 
+fn parse_chain_call_right(input: Span) -> IResult<puppet_lang::expression::FunctionCall<Location>> {
+    let parse_just_identifier = map(crate::identifier::lowercase_identifier, |identifier| {
+        puppet_lang::identifier::LowerIdentifier {
+            extra: Location::from(identifier),
+            name: vec![identifier.to_string()],
+            is_toplevel: false,
+        }
+    });
+
+    map(
+        tuple((
+            parse_just_identifier,
+            opt(space0_delimimited(
+                crate::common::round_brackets_comma_separated0(crate::expression::parse_expression),
+            )),
+            opt(space0_delimimited(crate::term::parse_lambda)),
+        )),
+        |(identifier, args, lambda)| puppet_lang::expression::FunctionCall {
+            extra: identifier.extra.clone(),
+            identifier,
+            args: args.unwrap_or_default(),
+            lambda,
+        },
+    )(input)
+}
+
+/// https://puppet.com/docs/puppet/7/lang_functions.html#chained-function-calls
+fn parse_chain_call(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
+    let parser = tuple((
+        parse_term,
+        space0_delimimited(tag(".")),
+        ParseError::protect(
+            |_| "Right part of chaining call is expected".to_string(),
+            parse_chain_call_right,
+        ),
+    ));
+
+    map(parser, |(left, op, right)| {
+        puppet_lang::expression::Expression {
+            extra: Location::from(op),
+            value: puppet_lang::expression::ExpressionVariant::ChainCall(
+                puppet_lang::expression::ChainCall {
+                    left: Box::new(left),
+                    right: Box::new(right),
+                    extra: Location::from(op),
+                },
+            ),
+        }
+    })(input)
+}
+
 fn parse_l0(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
     space0_delimimited(alt((
+        parse_chain_call,
         parse_not,
         parse_in_expr,
         parse_selector,

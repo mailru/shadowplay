@@ -25,7 +25,12 @@ pub fn identifier(input: Span) -> IResult<Span> {
 pub fn lowercase_identifier(input: Span) -> IResult<Span> {
     recognize(tuple((
         char_lower,
-        many0(alt((recognize(char_lower), digit1, tag("_")))),
+        many0(alt((
+            recognize(char_lower),
+            recognize(char_upper),
+            digit1,
+            tag("_"),
+        ))),
     )))(input)
 }
 
