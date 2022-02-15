@@ -20,15 +20,15 @@ use crate::{
 fn parse_require(input: Span) -> IResult<StatementVariant<Location>> {
     let parser = preceded(
         tag("require"),
-        preceded(
-            separator1,
-            ParseError::protect(
-                |_| "Argument for 'require' is expected".to_string(),
-                alt((
+        ParseError::protect(
+            |_| "Argument for 'require' is expected".to_string(),
+            alt((
+                preceded(
+                    separator0,
                     round_brackets_delimimited(identifier_with_toplevel),
-                    identifier_with_toplevel,
-                )),
-            ),
+                ),
+                preceded(separator1, identifier_with_toplevel),
+            )),
         ),
     );
 
@@ -56,15 +56,15 @@ fn parse_include(input: Span) -> IResult<StatementVariant<Location>> {
 fn parse_contain(input: Span) -> IResult<StatementVariant<Location>> {
     let parser = preceded(
         tag("contain"),
-        preceded(
-            separator1,
-            ParseError::protect(
-                |_| "Argument for 'contain' is expected".to_string(),
-                alt((
+        ParseError::protect(
+            |_| "Argument for 'contain' is expected".to_string(),
+            alt((
+                preceded(
+                    separator0,
                     round_brackets_delimimited(identifier_with_toplevel),
-                    identifier_with_toplevel,
-                )),
-            ),
+                ),
+                preceded(separator1, identifier_with_toplevel),
+            )),
         ),
     );
 
@@ -90,6 +90,38 @@ fn parse_tag(input: Span) -> IResult<StatementVariant<Location>> {
     );
 
     map(parser, StatementVariant::Tag)(input)
+}
+
+fn parse_create_resources(input: Span) -> IResult<StatementVariant<Location>> {
+    let parser_args = || {
+        tuple((
+            space0_delimimited(crate::identifier::identifier_with_toplevel),
+            space0_delimimited(comma_separator),
+            separated_list1(
+                space0_delimimited(comma_separator),
+                crate::expression::parse_expression,
+            ),
+        ))
+    };
+
+    let parser = pair(
+        tag("create_resources"),
+        ParseError::protect(
+            |_| "Argument for 'create_resources' is expected".to_string(),
+            alt((
+                preceded(separator0, round_brackets_delimimited(parser_args())),
+                preceded(separator1, parser_args()),
+            )),
+        ),
+    );
+
+    map(parser, |(tag, (resource, _, args))| {
+        StatementVariant::CreateResources(puppet_lang::statement::CreateResources {
+            resource,
+            args,
+            extra: Location::from(tag),
+        })
+    })(input)
 }
 
 fn parse_realize(input: Span) -> IResult<StatementVariant<Location>> {
@@ -341,6 +373,7 @@ fn parse_statement_variant(input: Span) -> IResult<StatementVariant<Location>> {
         parse_include,
         parse_contain,
         parse_tag,
+        parse_create_resources,
         parse_realize,
         map(parse_relation, StatementVariant::RelationList),
         parse_expression,

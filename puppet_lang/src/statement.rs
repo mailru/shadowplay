@@ -75,11 +75,19 @@ pub struct Case<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct CreateResources<EXTRA> {
+    pub resource: LowerIdentifier<EXTRA>,
+    pub args: Vec<Expression<EXTRA>>,
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum StatementVariant<EXTRA> {
     Include(LowerIdentifier<EXTRA>),
     Require(LowerIdentifier<EXTRA>),
     Contain(LowerIdentifier<EXTRA>),
     Realize(Vec<crate::typing::TypeSpecification<EXTRA>>),
+    CreateResources(CreateResources<EXTRA>),
     Tag(Vec<crate::expression::StringExpr<EXTRA>>),
     Expression(crate::expression::Expression<EXTRA>),
     RelationList(RelationList<EXTRA>),
