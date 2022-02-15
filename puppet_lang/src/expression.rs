@@ -89,6 +89,7 @@ pub enum TermVariant<EXTRA> {
     FunctionCall(FunctionCall<EXTRA>),
     Sensitive(Sensitive<EXTRA>),
     TypeSpecitifaction(crate::typing::TypeSpecification<EXTRA>),
+    Regexp(Regexp<EXTRA>),
 }
 
 #[derive(Clone, Debug, PartialEq)]

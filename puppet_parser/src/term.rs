@@ -221,6 +221,10 @@ pub fn parse_term(input: Span) -> IResult<puppet_lang::expression::Term<Location
             parse_variable,
             puppet_lang::expression::TermVariant::Variable,
         ),
+        map(
+            crate::regex::parse,
+            puppet_lang::expression::TermVariant::Regexp,
+        ),
     ));
 
     map(parser, |value| puppet_lang::expression::Term {
