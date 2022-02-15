@@ -9,7 +9,7 @@ pub struct Variable<EXTRA> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Lambda<EXTRA> {
-    pub args: Vec<Expression<EXTRA>>,
+    pub args: Vec<crate::argument::Argument<EXTRA>>,
     pub body: Vec<crate::statement::Statement<EXTRA>>,
 }
 

@@ -34,7 +34,7 @@ pub fn parse_variable(input: Span) -> IResult<puppet_lang::expression::Variable<
 pub fn parse_lambda(input: Span) -> IResult<puppet_lang::expression::Lambda<Location>> {
     map(
         pair(
-            crate::common::pipes_comma_separated0(crate::expression::parse_expression),
+            crate::common::pipes_comma_separated0(crate::argument::parse),
             space0_delimimited(ParseError::protect(
                 |_| "'{' expected".to_string(),
                 crate::statement::parse_statement_set,
