@@ -98,6 +98,20 @@ pub struct Term<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct SelectorCase<EXTRA> {
+    pub case: Term<EXTRA>,
+    pub body: Box<Expression<EXTRA>>,
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Selector<EXTRA> {
+    pub condition: Term<EXTRA>,
+    pub cases: Vec<SelectorCase<EXTRA>>,
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum ExpressionVariant<EXTRA> {
     Multiply((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
     Divide((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
@@ -131,6 +145,7 @@ pub enum ExpressionVariant<EXTRA> {
     ),
     In((Term<EXTRA>, Term<EXTRA>)),
     Not(Box<Expression<EXTRA>>),
+    Selector(Selector<EXTRA>),
     Term(Term<EXTRA>),
 }
 

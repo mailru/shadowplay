@@ -1,13 +1,15 @@
+use nom::multi::separated_list1;
 use nom::sequence::tuple;
 ///
 /// https://puppet.com/docs/puppet/6/lang_expressions.html#lang_expressions-order-of-operations
 ///
 use nom::{bytes::complete::tag, sequence::pair};
 
-use crate::common::{fold_many0_with_const_init, space0_delimimited};
+use crate::common::{comma_separator, fold_many0_with_const_init, space0_delimimited};
 use crate::parser::Location;
 
 use crate::parser::{IResult, Span};
+use crate::term::parse_term;
 
 use nom::{branch::alt, combinator::map};
 
@@ -98,10 +100,48 @@ fn parse_not(input: Span) -> IResult<puppet_lang::expression::Expression<Locatio
     })(input)
 }
 
+/// https://puppet.com/docs/puppet/7/lang_conditional.html#lang_condition_selector
+fn parse_selector_case(input: Span) -> IResult<puppet_lang::expression::SelectorCase<Location>> {
+    let parser = tuple((parse_term, space0_delimimited(tag("=>")), parse_expression));
+
+    map(parser, |(case, tag, body)| {
+        puppet_lang::expression::SelectorCase {
+            case,
+            body: Box::new(body),
+            extra: Location::from(tag),
+        }
+    })(input)
+}
+
+/// https://puppet.com/docs/puppet/7/lang_conditional.html#lang_condition_selector
+fn parse_selector(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
+    let parser = tuple((
+        space0_delimimited(parse_term),
+        tag("?"),
+        space0_delimimited(tag("{")),
+        separated_list1(comma_separator, space0_delimimited(parse_selector_case)),
+        space0_delimimited(tag("}")),
+    ));
+
+    map(parser, |(condition, op, _, cases, _)| {
+        puppet_lang::expression::Expression {
+            extra: Location::from(op),
+            value: puppet_lang::expression::ExpressionVariant::Selector(
+                puppet_lang::expression::Selector {
+                    condition,
+                    cases,
+                    extra: Location::from(op),
+                },
+            ),
+        }
+    })(input)
+}
+
 fn parse_l0(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
     space0_delimimited(alt((
         parse_not,
         parse_in_expr,
+        parse_selector,
         parse_match_variant,
         map(crate::term::parse_term, |term| {
             puppet_lang::expression::Expression {
