@@ -262,10 +262,10 @@ fn parse_l4(input: Span) -> IResult<puppet_lang::expression::Expression<Location
             alt((
                 tag("=="),
                 tag("!="),
-                tag(">"),
-                tag("<"),
                 tag(">="),
                 tag("<="),
+                tag(">"),
+                tag("<"),
             )),
             space0_delimimited(ParseError::protect(
                 |_| "Second argument of operator is expected".to_string(),
