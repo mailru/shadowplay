@@ -84,6 +84,7 @@ pub enum StatementVariant<EXTRA> {
     Expression(crate::expression::Expression<EXTRA>),
     RelationList(RelationList<EXTRA>),
     IfElse(IfElse<EXTRA>),
+    Unless(ConditionAndStatement<EXTRA>),
     Case(Case<EXTRA>),
 }
 

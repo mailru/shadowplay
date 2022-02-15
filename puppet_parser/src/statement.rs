@@ -275,6 +275,25 @@ fn parse_if_else(input: Span) -> IResult<StatementVariant<Location>> {
     map(parser, StatementVariant::IfElse)(input)
 }
 
+fn parse_unless(input: Span) -> IResult<StatementVariant<Location>> {
+    let parser = tuple((
+        space0_delimimited(tag("unless")),
+        space0_delimimited(ParseError::protect(
+            |_| "Condition is expected after 'unless'".to_string(),
+            crate::expression::parse_expression,
+        )),
+        parse_statement_set,
+    ));
+
+    map(parser, |(op, condition, body)| {
+        StatementVariant::Unless(puppet_lang::statement::ConditionAndStatement {
+            condition,
+            body: Box::new(body),
+            extra: Location::from(op),
+        })
+    })(input)
+}
+
 fn parse_case(input: Span) -> IResult<StatementVariant<Location>> {
     let parser_header = pair(
         space0_delimimited(tag("case")),
@@ -316,6 +335,7 @@ fn parse_case(input: Span) -> IResult<StatementVariant<Location>> {
 fn parse_statement_variant(input: Span) -> IResult<StatementVariant<Location>> {
     alt((
         parse_if_else,
+        parse_unless,
         parse_case,
         parse_require,
         parse_include,
