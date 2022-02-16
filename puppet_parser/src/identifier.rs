@@ -19,12 +19,15 @@ pub fn char_upper(input: Span) -> IResult<char> {
 }
 
 pub fn identifier(input: Span) -> IResult<Span> {
-    recognize(tuple((alpha1, many0(alt((alphanumeric1, tag("_")))))))(input)
+    recognize(tuple((
+        alt((alpha1, tag("_"))),
+        many0(alt((alphanumeric1, tag("_")))),
+    )))(input)
 }
 
 pub fn lowercase_identifier(input: Span) -> IResult<Span> {
     recognize(tuple((
-        char_lower,
+        alt((recognize(char_lower), tag("_"))),
         many0(alt((
             recognize(char_lower),
             recognize(char_upper),
