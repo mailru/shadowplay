@@ -1,18 +1,21 @@
 use nom::{
-    bytes::complete::{is_not, tag},
+    branch::alt,
+    bytes::complete::{is_not, tag, take_until},
     character::complete::{char, multispace1, newline},
-    combinator::{opt, recognize, value},
+    combinator::{opt, value},
     multi::{many0, many1, separated_list0, separated_list1},
-    sequence::{delimited, pair, preceded, terminated},
+    sequence::{delimited, pair, preceded, terminated, tuple},
     Parser,
 };
 
 use super::parser::{IResult, ParseError, Span};
 
 pub fn comment(input: Span) -> IResult<()> {
-    let comment_extractor = preceded(char('#'), recognize(many0(is_not("\n\r"))));
+    let shell_comment_extractor =
+        value((), tuple((preceded(char('#'), is_not("\n")), opt(newline))));
+    let c_comment_extractor = value((), tuple((tag("/*"), take_until("*/"), tag("*/"))));
 
-    value((), terminated(comment_extractor, opt(newline)))(input)
+    alt((shell_comment_extractor, c_comment_extractor))(input)
 }
 
 #[test]
