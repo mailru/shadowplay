@@ -124,6 +124,9 @@ impl Storage {
         v.register_early_pass(Box::new(super::lint_resource_set::UpperCaseName));
         v.register_early_pass(Box::new(super::lint_resource_set::UniqueAttributeName));
         v.register_early_pass(Box::new(
+            super::lint_resource_set::FileModeAttributeIsString,
+        ));
+        v.register_early_pass(Box::new(
             super::lint_resource_set::EnsureAttributeIsNotTheFirst,
         ));
         v.register_early_pass(Box::new(super::lint_case_statement::EmptyCasesList));

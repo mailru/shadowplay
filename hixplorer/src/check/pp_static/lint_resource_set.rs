@@ -98,3 +98,63 @@ impl EarlyLintPass for EnsureAttributeIsNotTheFirst {
         errors
     }
 }
+
+pub struct FileModeAttributeIsString;
+
+impl LintPass for FileModeAttributeIsString {
+    fn name(&self) -> &str {
+        "file_mode_attribute_is_string"
+    }
+}
+
+impl EarlyLintPass for FileModeAttributeIsString {
+    fn check_resource_set(
+        &self,
+        elt: &puppet_lang::statement::ResourceSet<Location>,
+    ) -> Vec<LintError> {
+        if elt.name.name.len() != 1 || elt.name.name[0] != "file" {
+            return vec![];
+        }
+
+        for resource in &elt.list {
+            for attribute in &resource.attributes {
+                if let puppet_lang::statement::ResourceAttribute::Name(attribute) = attribute {
+                    if attribute.0.data == "mode" {
+                        if let puppet_lang::expression::ExpressionVariant::Term(term) =
+                            &attribute.1.value
+                        {
+                            match &term.value {
+                                puppet_lang::expression::TermVariant::String(v) => {
+                                    if !v.data.chars().all(|v| v.is_digit(10)) {
+                                        return vec![LintError::new(
+                self.name(),
+                "Mode attribute is a string which is not all of digits. See https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-file-modes",
+                &attribute.1.extra,
+            )];
+                                    }
+                                    if v.data.len() != 4 {
+                                        return vec![LintError::new(
+                self.name(),
+                "Mode attribute is a string which length != 4. See https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-file-modes",
+                &attribute.1.extra,
+            )];
+                                    }
+                                }
+                                puppet_lang::expression::TermVariant::Integer(_) => {
+                                    return vec![LintError::new(
+                self.name(),
+                "Integer value of mode attribute. Use string. See https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-file-modes",
+                &attribute.1.extra,
+            )];
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        vec![]
+    }
+}
