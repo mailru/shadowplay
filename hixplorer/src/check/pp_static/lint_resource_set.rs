@@ -158,3 +158,48 @@ impl EarlyLintPass for FileModeAttributeIsString {
         vec![]
     }
 }
+
+pub struct MultipleResourcesWithoutDefault;
+
+impl LintPass for MultipleResourcesWithoutDefault {
+    fn name(&self) -> &str {
+        "multiple_resources_without_default"
+    }
+}
+
+impl EarlyLintPass for MultipleResourcesWithoutDefault {
+    fn check_resource_set(
+        &self,
+        elt: &puppet_lang::statement::ResourceSet<Location>,
+    ) -> Vec<LintError> {
+        let mut has_default = false;
+        for resource in &elt.list {
+            if let puppet_lang::expression::ExpressionVariant::Term(term) = &resource.title.value {
+                if let puppet_lang::expression::TermVariant::String(v) = &term.value {
+                    if v.data == "default" {
+                        has_default = true
+                    }
+                }
+            }
+        }
+
+        if elt.list.len() > 1 {
+            if !has_default {
+                return vec![LintError::new(
+                self.name(),
+                "Multiples resources without default set. See https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-multiple-resources",
+                &elt.extra,
+            )];
+            }
+            if elt.list.len() == 2 {
+                return vec![LintError::new(
+                    self.name(),
+                    "Multiples resources with default set and only two sets in total. Defaults set can be merged with the only resource.",
+                    &elt.extra,
+                )];
+            }
+        }
+
+        vec![]
+    }
+}
