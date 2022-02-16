@@ -3,7 +3,7 @@ use crate::identifier::LowerIdentifier;
 #[derive(Clone, Debug, PartialEq)]
 pub struct Variable<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,
-    pub accessor: Vec<Expression<EXTRA>>,
+    pub accessor: Vec<Vec<Expression<EXTRA>>>,
     pub extra: EXTRA,
 }
 

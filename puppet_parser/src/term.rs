@@ -1,4 +1,6 @@
-use crate::common::{round_brackets_delimimited, space0_delimimited, square_brackets_delimimited};
+use crate::common::{
+    round_brackets_delimimited, space0_delimimited, square_brackets_comma_separated1,
+};
 use crate::parser::Location;
 use crate::parser::{IResult, ParseError, Span};
 use nom::combinator::{map_res, value};
@@ -14,7 +16,7 @@ use nom::{
 use puppet_lang::expression::StringExpr;
 
 pub fn parse_variable(input: Span) -> IResult<puppet_lang::expression::Variable<Location>> {
-    let accessor_parser = many0(square_brackets_delimimited(
+    let accessor_parser = many0(square_brackets_comma_separated1(
         crate::expression::parse_expression,
     ));
 
