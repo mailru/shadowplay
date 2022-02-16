@@ -173,7 +173,7 @@ fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Locat
                 )),
             ),
         ),
-        |kv| puppet_lang::statement::ResourceAttribute::Name(kv),
+        puppet_lang::statement::ResourceAttribute::Name,
     );
 
     let parse_attribute_group = map(
