@@ -58,6 +58,40 @@ pub trait EarlyLintPass: LintPass {
     fn check_term(&self, _: &puppet_lang::expression::Term<Location>) -> Vec<LintError> {
         Vec::new()
     }
+    fn check_relation_list(
+        &self,
+        _: &puppet_lang::statement::RelationList<Location>,
+    ) -> Vec<LintError> {
+        Vec::new()
+    }
+    fn check_relation(
+        &self,
+        _: &puppet_lang::statement::RelationElt<Location>,
+        _: &puppet_lang::statement::Relation<Location>,
+    ) -> Vec<LintError> {
+        Vec::new()
+    }
+    fn check_relation_elt(
+        &self,
+        _: &puppet_lang::statement::RelationElt<Location>,
+    ) -> Vec<LintError> {
+        Vec::new()
+    }
+    fn check_resource_set(
+        &self,
+        _: &puppet_lang::statement::ResourceSet<Location>,
+    ) -> Vec<LintError> {
+        Vec::new()
+    }
+    fn check_resource_collection(
+        &self,
+        _: &puppet_lang::resource_collection::ResourceCollection<Location>,
+    ) -> Vec<LintError> {
+        Vec::new()
+    }
+    fn check_case_statement(&self, _: &puppet_lang::statement::Case<Location>) -> Vec<LintError> {
+        Vec::new()
+    }
 }
 
 #[derive(Default)]
@@ -76,10 +110,14 @@ impl Storage {
         v.register_early_pass(Box::new(super::lint_toplevel::OptionalArgumentsGoesFirst));
         v.register_early_pass(Box::new(super::lint_toplevel::UniqueArgumentsNames));
         v.register_early_pass(Box::new(super::lint_argument::ArgumentLooksSensitive));
-        // v.register_early_pass(Box::new(super::lint_argument::ArgumentTyped));
+        v.register_early_pass(Box::new(super::lint_argument::ArgumentTyped));
         v.register_early_pass(Box::new(super::lint_argument::ReadableArgumentsName));
         v.register_early_pass(Box::new(super::lint_unless::DoNotUseUnless));
         v.register_early_pass(Box::new(super::lint_term::UselessParens));
+        v.register_early_pass(Box::new(super::lint_resource_set::UpperCaseName));
+        v.register_early_pass(Box::new(super::lint_case_statement::EmptyCasesList));
+        v.register_early_pass(Box::new(super::lint_case_statement::DefaultCaseIsNotLast));
+        v.register_early_pass(Box::new(super::lint_case_statement::MultipleDefaultCase));
         v
     }
 
@@ -245,6 +283,110 @@ impl AstLinter {
         errors
     }
 
+    pub fn check_resource_set(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::statement::ResourceSet<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_resource_set(elt));
+        }
+
+        errors
+    }
+
+    pub fn check_resource_collection(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::resource_collection::ResourceCollection<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_resource_collection(elt));
+        }
+
+        errors
+    }
+
+    pub fn check_relation_elt(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::statement::RelationElt<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_relation_elt(elt));
+        }
+
+        match elt {
+            puppet_lang::statement::RelationElt::ResourceSet(elt) => {
+                errors.append(&mut self.check_resource_set(storage, elt))
+            }
+            puppet_lang::statement::RelationElt::ResourceCollection(elt) => {
+                errors.append(&mut self.check_resource_collection(storage, elt))
+            }
+        }
+
+        errors
+    }
+
+    pub fn check_relation(
+        &self,
+        storage: &Storage,
+        prev: &puppet_lang::statement::RelationElt<Location>,
+        elt: &puppet_lang::statement::Relation<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_relation(prev, elt));
+        }
+
+        errors.append(&mut self.check_relation_list(storage, elt.relation_to.as_ref()));
+
+        errors
+    }
+
+    pub fn check_relation_list(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::statement::RelationList<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_relation_list(elt));
+        }
+
+        errors.append(&mut self.check_relation_elt(storage, &elt.head));
+
+        if let Some(tail) = &elt.tail {
+            errors.append(&mut self.check_relation(storage, &elt.head, tail));
+        }
+
+        errors
+    }
+
+    pub fn check_case(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::statement::Case<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_case_statement(elt));
+        }
+
+        errors.append(&mut self.check_expression(storage, &elt.condition));
+
+        for case in &elt.elements {
+            for statement in case.body.as_ref() {
+                errors.append(&mut self.check_statement(storage, statement));
+            }
+        }
+
+        errors
+    }
+
     pub fn check_statement(
         &self,
         storage: &Storage,
@@ -261,14 +403,14 @@ impl AstLinter {
             StatementVariant::Toplevel(elt) => self.check_toplevel(storage, elt),
             StatementVariant::Expression(elt) => self.check_expression(storage, elt),
             StatementVariant::IfElse(elt) => self.check_if_else(storage, elt),
+            StatementVariant::RelationList(elt) => self.check_relation_list(storage, elt),
+            StatementVariant::Case(elt) => self.check_case(storage, elt),
             StatementVariant::Include(_)
             | StatementVariant::Require(_)
             | StatementVariant::Contain(_)
             | StatementVariant::Realize(_)
             | StatementVariant::CreateResources(_)
-            | StatementVariant::Tag(_)
-            | StatementVariant::RelationList(_)
-            | StatementVariant::Case(_) => {
+            | StatementVariant::Tag(_) => {
                 // TODO
                 vec![]
             }
