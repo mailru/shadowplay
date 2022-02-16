@@ -122,6 +122,10 @@ impl Storage {
         v.register_early_pass(Box::new(super::lint_term::UselessParens));
         v.register_early_pass(Box::new(super::lint_term::UselessDoubleQuotes));
         v.register_early_pass(Box::new(super::lint_resource_set::UpperCaseName));
+        v.register_early_pass(Box::new(super::lint_resource_set::UniqueAttributeName));
+        v.register_early_pass(Box::new(
+            super::lint_resource_set::EnsureAttributeIsNotTheFirst,
+        ));
         v.register_early_pass(Box::new(super::lint_case_statement::EmptyCasesList));
         v.register_early_pass(Box::new(super::lint_case_statement::DefaultCaseIsNotLast));
         v.register_early_pass(Box::new(super::lint_case_statement::MultipleDefaultCase));
