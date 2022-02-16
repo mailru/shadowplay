@@ -86,3 +86,34 @@ impl EarlyLintPass for UselessDoubleQuotes {
         vec![]
     }
 }
+
+pub struct LowerCaseVariable;
+
+impl LintPass for LowerCaseVariable {
+    fn name(&self) -> &str {
+        "lower_case_variable"
+    }
+}
+
+impl EarlyLintPass for LowerCaseVariable {
+    fn check_term(
+        &self,
+        elt: &puppet_lang::expression::Term<Location>,
+    ) -> Vec<super::lint::LintError> {
+        if let puppet_lang::expression::TermVariant::Variable(var) = &elt.value {
+            if var
+                .identifier
+                .name
+                .iter()
+                .any(|elt| elt.chars().any(|c| c.is_uppercase()))
+            {
+                return vec![LintError::new(
+                        self.name(),
+                        "Variable name with upper case letters. See https://puppet.com/docs/puppet/7/style_guide.html#style_guide_variables-variable-format",
+                        &elt.extra,
+                    )];
+            }
+        }
+        vec![]
+    }
+}

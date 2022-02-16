@@ -90,3 +90,27 @@ impl EarlyLintPass for ReadableArgumentsName {
         vec![]
     }
 }
+
+pub struct LowerCaseArgumentName;
+
+impl LintPass for LowerCaseArgumentName {
+    fn name(&self) -> &str {
+        "lower_case_argument_name"
+    }
+}
+
+impl EarlyLintPass for LowerCaseArgumentName {
+    fn check_argument(
+        &self,
+        arg: &puppet_lang::argument::Argument<puppet_parser::parser::Location>,
+    ) -> Vec<super::lint::LintError> {
+        if arg.name.chars().any(|c| c.is_uppercase()) {
+            return vec![LintError::new(
+                self.name(),
+                "Argument name with upper case letters. See https://puppet.com/docs/puppet/7/style_guide.html#style_guide_variables-variable-format",
+                &arg.extra,
+            )];
+        }
+        vec![]
+    }
+}
