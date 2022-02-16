@@ -8,6 +8,12 @@ pub struct Variable<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct RegexpGroupID<EXTRA> {
+    pub identifier: u64,
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Lambda<EXTRA> {
     pub args: Vec<crate::argument::Argument<EXTRA>>,
     pub body: Vec<crate::statement::Statement<EXTRA>>,
@@ -86,6 +92,7 @@ pub enum TermVariant<EXTRA> {
     Map(Vec<(Expression<EXTRA>, Expression<EXTRA>)>),
     Undef(Undef<EXTRA>),
     Variable(Variable<EXTRA>),
+    RegexpGroupID(RegexpGroupID<EXTRA>),
     FunctionCall(FunctionCall<EXTRA>),
     Sensitive(Sensitive<EXTRA>),
     TypeSpecitifaction(crate::typing::TypeSpecification<EXTRA>),

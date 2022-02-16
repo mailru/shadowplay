@@ -1,7 +1,7 @@
 use crate::common::{round_brackets_delimimited, space0_delimimited, square_brackets_delimimited};
 use crate::parser::Location;
 use crate::parser::{IResult, ParseError, Span};
-use nom::combinator::value;
+use nom::combinator::{map_res, value};
 use nom::sequence::tuple;
 use nom::{
     branch::alt,
@@ -31,6 +31,18 @@ pub fn parse_variable(input: Span) -> IResult<puppet_lang::expression::Variable<
     )(input)
 }
 
+pub fn parse_regexp_group_id(
+    input: Span,
+) -> IResult<puppet_lang::expression::RegexpGroupID<Location>> {
+    map(
+        preceded(tag("$"), map_res(digit1, |s: Span| s.parse::<u64>())),
+        |identifier| puppet_lang::expression::RegexpGroupID {
+            extra: Location::from(input),
+            identifier,
+        },
+    )(input)
+}
+
 pub fn parse_lambda(input: Span) -> IResult<puppet_lang::expression::Lambda<Location>> {
     map(
         pair(
@@ -47,7 +59,7 @@ pub fn parse_lambda(input: Span) -> IResult<puppet_lang::expression::Lambda<Loca
 fn parse_funcall(input: Span) -> IResult<puppet_lang::expression::FunctionCall<Location>> {
     map(
         tuple((
-            crate::identifier::identifier_with_toplevel,
+            crate::identifier::anycase_identifier_with_ns,
             space0_delimimited(crate::common::round_brackets_comma_separated0(
                 crate::expression::parse_expression,
             )),
@@ -192,7 +204,6 @@ pub fn parse_term(input: Span) -> IResult<puppet_lang::expression::Term<Location
         parse_true,
         parse_false,
         parse_sensitive,
-        parse_type_specification,
         map(
             parse_float_term,
             puppet_lang::expression::TermVariant::Float,
@@ -204,6 +215,7 @@ pub fn parse_term(input: Span) -> IResult<puppet_lang::expression::Term<Location
         map(parse_funcall, |v| {
             puppet_lang::expression::TermVariant::FunctionCall(v)
         }),
+        parse_type_specification,
         map(
             parse_string_variant,
             puppet_lang::expression::TermVariant::String,
@@ -220,6 +232,10 @@ pub fn parse_term(input: Span) -> IResult<puppet_lang::expression::Term<Location
         map(
             parse_variable,
             puppet_lang::expression::TermVariant::Variable,
+        ),
+        map(
+            parse_regexp_group_id,
+            puppet_lang::expression::TermVariant::RegexpGroupID,
         ),
         map(
             crate::regex::parse,

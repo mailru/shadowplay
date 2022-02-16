@@ -95,11 +95,20 @@ fn parse_tag(input: Span) -> IResult<StatementVariant<Location>> {
 fn parse_create_resources(input: Span) -> IResult<StatementVariant<Location>> {
     let parser_args = || {
         tuple((
-            space0_delimimited(crate::identifier::identifier_with_toplevel),
+            ParseError::protect(
+                |_| {
+                    "Class name as the first argument for 'create_resources' is expected"
+                        .to_string()
+                },
+                space0_delimimited(crate::identifier::identifier_with_toplevel),
+            ),
             space0_delimimited(comma_separator),
-            separated_list1(
-                space0_delimimited(comma_separator),
-                crate::expression::parse_expression,
+            ParseError::protect(
+                |_| "List of resources for 'create_resources' is expected".to_string(),
+                separated_list1(
+                    space0_delimimited(comma_separator),
+                    crate::expression::parse_expression,
+                ),
             ),
         ))
     };
@@ -107,7 +116,7 @@ fn parse_create_resources(input: Span) -> IResult<StatementVariant<Location>> {
     let parser = pair(
         tag("create_resources"),
         ParseError::protect(
-            |_| "Argument for 'create_resources' is expected".to_string(),
+            |_| "Arguments for 'create_resources' is expected".to_string(),
             alt((
                 preceded(separator0, round_brackets_delimimited(parser_args())),
                 preceded(separator1, parser_args()),
@@ -188,7 +197,7 @@ fn parse_resource_set(input: Span) -> IResult<puppet_lang::statement::ResourceSe
     let parser = pair(
         space0_delimimited(pair(
             opt(tag("@")),
-            crate::identifier::identifier_with_toplevel,
+            crate::identifier::anycase_identifier_with_ns,
         )),
         space0_delimimited(crate::common::curly_brackets_comma_separated0(
             parse_resource,
