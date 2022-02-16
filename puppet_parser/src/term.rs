@@ -549,7 +549,7 @@ fn test_variable() {
                 extra: Location::new(1, 1, 2)
             },
             accessor: vec![
-                puppet_lang::expression::Expression {
+                vec![puppet_lang::expression::Expression {
                     value: puppet_lang::expression::ExpressionVariant::Term(
                         puppet_lang::expression::Term {
                             value: puppet_lang::expression::TermVariant::Integer(
@@ -562,8 +562,8 @@ fn test_variable() {
                         }
                     ),
                     extra: Location::new(4, 1, 5)
-                },
-                puppet_lang::expression::Expression {
+                }],
+                vec![puppet_lang::expression::Expression {
                     value: puppet_lang::expression::ExpressionVariant::Term(
                         puppet_lang::expression::Term {
                             value: puppet_lang::expression::TermVariant::String(
@@ -577,7 +577,7 @@ fn test_variable() {
                         }
                     ),
                     extra: Location::new(8, 1, 9)
-                }
+                }]
             ],
             extra: Location::new(1, 1, 2)
         }
