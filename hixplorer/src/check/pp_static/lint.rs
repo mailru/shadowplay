@@ -68,6 +68,21 @@ impl Storage {
 pub struct AstLinter;
 
 impl AstLinter {
+    pub fn check_toplevel_variant(
+        &self,
+        storage: &Storage,
+        arguments: &[puppet_lang::argument::Argument<Location>],
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for lint in storage.early_pass() {
+            for arg in arguments {
+                errors.append(&mut lint.check_argument(arg));
+            }
+        }
+
+        errors
+    }
+
     pub fn check_class(
         &self,
         storage: &Storage,
@@ -76,10 +91,8 @@ impl AstLinter {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
             errors.append(&mut lint.check_class(elt));
-            for arg in &elt.arguments {
-                errors.append(&mut lint.check_argument(arg));
-            }
         }
+        errors.append(&mut self.check_toplevel_variant(storage, &elt.arguments));
 
         errors
     }
@@ -92,10 +105,9 @@ impl AstLinter {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
             errors.append(&mut lint.check_definition(elt));
-            for arg in &elt.arguments {
-                errors.append(&mut lint.check_argument(arg));
-            }
         }
+
+        errors.append(&mut self.check_toplevel_variant(storage, &elt.arguments));
 
         errors
     }
@@ -108,10 +120,9 @@ impl AstLinter {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
             errors.append(&mut lint.check_plan(elt));
-            for arg in &elt.arguments {
-                errors.append(&mut lint.check_argument(arg));
-            }
         }
+
+        errors.append(&mut self.check_toplevel_variant(storage, &elt.arguments));
 
         errors
     }
