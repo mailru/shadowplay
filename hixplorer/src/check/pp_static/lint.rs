@@ -58,6 +58,12 @@ pub trait EarlyLintPass: LintPass {
     fn check_term(&self, _: &puppet_lang::expression::Term<Location>) -> Vec<LintError> {
         Vec::new()
     }
+    fn check_string_expression(
+        &self,
+        _: &puppet_lang::expression::StringExpr<Location>,
+    ) -> Vec<LintError> {
+        Vec::new()
+    }
     fn check_relation_list(
         &self,
         _: &puppet_lang::statement::RelationList<Location>,
@@ -114,6 +120,7 @@ impl Storage {
         v.register_early_pass(Box::new(super::lint_argument::ReadableArgumentsName));
         v.register_early_pass(Box::new(super::lint_unless::DoNotUseUnless));
         v.register_early_pass(Box::new(super::lint_term::UselessParens));
+        v.register_early_pass(Box::new(super::lint_term::UselessDoubleQuotes));
         v.register_early_pass(Box::new(super::lint_resource_set::UpperCaseName));
         v.register_early_pass(Box::new(super::lint_case_statement::EmptyCasesList));
         v.register_early_pass(Box::new(super::lint_case_statement::DefaultCaseIsNotLast));
@@ -129,6 +136,19 @@ impl Storage {
 pub struct AstLinter;
 
 impl AstLinter {
+    pub fn check_string_expression(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::expression::StringExpr<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_string_expression(elt));
+        }
+
+        errors
+    }
+
     pub fn check_term(
         &self,
         storage: &Storage,
@@ -137,6 +157,27 @@ impl AstLinter {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
             errors.append(&mut lint.check_term(elt));
+        }
+
+        match &elt.value {
+            puppet_lang::expression::TermVariant::String(elt) => {
+                errors.append(&mut self.check_string_expression(storage, &elt))
+            }
+            puppet_lang::expression::TermVariant::Float(_)
+            | puppet_lang::expression::TermVariant::Integer(_)
+            | puppet_lang::expression::TermVariant::Boolean(_)
+            | puppet_lang::expression::TermVariant::Array(_)
+            | puppet_lang::expression::TermVariant::Parens(_)
+            | puppet_lang::expression::TermVariant::Map(_)
+            | puppet_lang::expression::TermVariant::Undef(_)
+            | puppet_lang::expression::TermVariant::Variable(_)
+            | puppet_lang::expression::TermVariant::RegexpGroupID(_)
+            | puppet_lang::expression::TermVariant::FunctionCall(_)
+            | puppet_lang::expression::TermVariant::Sensitive(_)
+            | puppet_lang::expression::TermVariant::TypeSpecitifaction(_)
+            | puppet_lang::expression::TermVariant::Regexp(_) => {
+                // TODO
+            }
         }
 
         errors

@@ -58,3 +58,31 @@ impl EarlyLintPass for UselessParens {
         vec![]
     }
 }
+
+pub struct UselessDoubleQuotes;
+
+impl LintPass for UselessDoubleQuotes {
+    fn name(&self) -> &str {
+        "useless_double_quotes"
+    }
+}
+
+impl EarlyLintPass for UselessDoubleQuotes {
+    fn check_string_expression(
+        &self,
+        elt: &puppet_lang::expression::StringExpr<Location>,
+    ) -> Vec<super::lint::LintError> {
+        if elt.variant == puppet_lang::expression::StringVariant::DoubleQuoted
+            && !elt.data.contains("$")
+            && !elt.data.contains("'")
+            && !elt.data.contains("\\")
+        {
+            return vec![LintError::new(
+                self.name(),
+                "Double quotes of string with no interpolated values and no escaped chars [EXPERIMENTAL]",
+                &elt.extra,
+            )];
+        }
+        vec![]
+    }
+}
