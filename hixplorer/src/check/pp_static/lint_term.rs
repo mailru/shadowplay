@@ -73,9 +73,9 @@ impl EarlyLintPass for UselessDoubleQuotes {
         elt: &puppet_lang::expression::StringExpr<Location>,
     ) -> Vec<super::lint::LintError> {
         if elt.variant == puppet_lang::expression::StringVariant::DoubleQuoted
-            && !elt.data.contains("$")
-            && !elt.data.contains("'")
-            && !elt.data.contains("\\")
+            && !elt.data.contains('$')
+            && !elt.data.contains('\'')
+            && !elt.data.contains('\\')
         {
             return vec![LintError::new(
                 self.name(),

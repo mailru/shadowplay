@@ -161,7 +161,7 @@ impl AstLinter {
 
         match &elt.value {
             puppet_lang::expression::TermVariant::String(elt) => {
-                errors.append(&mut self.check_string_expression(storage, &elt))
+                errors.append(&mut self.check_string_expression(storage, elt))
             }
             puppet_lang::expression::TermVariant::Float(_)
             | puppet_lang::expression::TermVariant::Integer(_)
