@@ -114,7 +114,7 @@ pub struct Selector<EXTRA> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ChainCall<EXTRA> {
-    pub left: Box<Term<EXTRA>>,
+    pub left: Box<Expression<EXTRA>>,
     pub right: Box<FunctionCall<EXTRA>>,
     pub extra: EXTRA,
 }

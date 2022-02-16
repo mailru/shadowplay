@@ -157,6 +157,25 @@ fn parse_selector(input: Span) -> IResult<puppet_lang::expression::Expression<Lo
     })(input)
 }
 
+fn parse_term_expr(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
+    map(crate::term::parse_term, |term| {
+        puppet_lang::expression::Expression {
+            extra: term.extra.clone(),
+            value: puppet_lang::expression::ExpressionVariant::Term(term),
+        }
+    })(input)
+}
+
+fn parse_l0(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
+    space0_delimimited(alt((
+        parse_not,
+        parse_in_expr,
+        parse_selector,
+        parse_match_variant,
+        parse_term_expr,
+    )))(input)
+}
+
 fn parse_chain_call_right(input: Span) -> IResult<puppet_lang::expression::FunctionCall<Location>> {
     let parse_just_identifier = map(crate::identifier::lowercase_identifier, |identifier| {
         puppet_lang::identifier::LowerIdentifier {
@@ -185,18 +204,17 @@ fn parse_chain_call_right(input: Span) -> IResult<puppet_lang::expression::Funct
 
 /// https://puppet.com/docs/puppet/7/lang_functions.html#chained-function-calls
 fn parse_chain_call(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
-    let parser = tuple((
-        parse_term,
-        space0_delimimited(tag(".")),
-        ParseError::protect(
-            |_| "Right part of chaining call is expected".to_string(),
-            parse_chain_call_right,
+    let (input, left_expr) = parse_l0(input)?;
+    let mut parser = fold_many0_with_const_init(
+        pair(
+            space0_delimimited(tag(".")),
+            ParseError::protect(
+                |_| "Second argument of chain operator is expected".to_string(),
+                parse_chain_call_right,
+            ),
         ),
-    ));
-
-    map(parser, |(left, op, right)| {
-        puppet_lang::expression::Expression {
-            extra: Location::from(op),
+        left_expr,
+        |left, (op, right)| puppet_lang::expression::Expression {
             value: puppet_lang::expression::ExpressionVariant::ChainCall(
                 puppet_lang::expression::ChainCall {
                     left: Box::new(left),
@@ -204,28 +222,14 @@ fn parse_chain_call(input: Span) -> IResult<puppet_lang::expression::Expression<
                     extra: Location::from(op),
                 },
             ),
-        }
-    })(input)
-}
-
-fn parse_l0(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
-    space0_delimimited(alt((
-        parse_chain_call,
-        parse_not,
-        parse_in_expr,
-        parse_selector,
-        parse_match_variant,
-        map(crate::term::parse_term, |term| {
-            puppet_lang::expression::Expression {
-                extra: term.extra.clone(),
-                value: puppet_lang::expression::ExpressionVariant::Term(term),
-            }
-        }),
-    )))(input)
+            extra: Location::from(op),
+        },
+    );
+    parser(input)
 }
 
 pub(crate) fn parse_l1(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
-    let (input, left_expr) = parse_l0(input)?;
+    let (input, left_expr) = parse_chain_call(input)?;
     let mut parser = fold_many0_with_const_init(
         pair(
             alt((tag("*"), tag("/"), tag("%"))),
