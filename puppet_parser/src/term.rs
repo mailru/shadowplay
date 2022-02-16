@@ -159,7 +159,10 @@ fn parse_map(input: Span) -> IResult<puppet_lang::expression::TermVariant<Locati
         space0_delimimited(crate::expression::parse_expression),
         preceded(
             tag("=>"),
-            space0_delimimited(crate::expression::parse_expression),
+            space0_delimimited(ParseError::protect(
+                |_| "Expression expected after '=>'".to_string(),
+                crate::expression::parse_expression,
+            )),
         ),
     );
 
