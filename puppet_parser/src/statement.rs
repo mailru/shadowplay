@@ -403,6 +403,7 @@ fn parse_statement_variant(input: Span) -> IResult<StatementVariant<Location>> {
         parse_tag,
         parse_create_resources,
         parse_realize,
+        map(crate::toplevel::parse, StatementVariant::Toplevel),
         map(parse_relation, StatementVariant::RelationList),
         parse_expression,
     ))(input)
@@ -419,7 +420,10 @@ pub fn parse_statement_set(input: Span) -> IResult<Vec<Statement<Location>>> {
     preceded(
         tag("{"),
         terminated(
-            many0(space0_delimimited(parse_statement)),
+            many0(terminated(
+                space0_delimimited(parse_statement),
+                opt(space0_delimimited(tag(";"))),
+            )),
             ParseError::protect(
                 |_| "Closing '}' or statement is expected".to_string(),
                 space0_delimimited(tag("}")),

@@ -100,6 +100,7 @@ pub enum StatementVariant<EXTRA> {
     IfElse(IfElse<EXTRA>),
     Unless(ConditionAndStatement<EXTRA>),
     Case(Case<EXTRA>),
+    Toplevel(crate::toplevel::Toplevel<EXTRA>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
