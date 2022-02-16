@@ -213,3 +213,40 @@ impl EarlyLintPass for MultipleResourcesWithoutDefault {
         vec![]
     }
 }
+
+#[derive(Clone)]
+pub struct SelectorInAttributeValue;
+
+impl LintPass for SelectorInAttributeValue {
+    fn name(&self) -> &str {
+        "selector_in_attribute_value"
+    }
+}
+
+impl EarlyLintPass for SelectorInAttributeValue {
+    fn check_resource_set(
+        &self,
+        elt: &puppet_lang::statement::ResourceSet<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for resource in &elt.list {
+            for attribute in &resource.attributes {
+                if let puppet_lang::statement::ResourceAttribute::Name(attribute) = attribute {
+                    if matches!(
+                        attribute.1.value,
+                        puppet_lang::expression::ExpressionVariant::Selector(_)
+                    ) {
+                        errors.push(LintError::new_with_url(
+                            Box::new(self.clone()),
+                            "Selector is used in attribute value",
+                            "https://puppet.com/docs/puppet/7/style_guide.html#style_guide_conditionals-simple-resource-declarations",
+                            &attribute.1.extra,
+                        ));
+                    }
+                }
+            }
+        }
+
+        errors
+    }
+}
