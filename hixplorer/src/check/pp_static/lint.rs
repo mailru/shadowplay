@@ -37,6 +37,21 @@ pub trait EarlyLintPass: LintPass {
     fn check_argument(&self, _: &puppet_lang::argument::Argument<Location>) -> Vec<LintError> {
         Vec::new()
     }
+    fn check_statement(&self, _: &puppet_lang::statement::Statement<Location>) -> Vec<LintError> {
+        Vec::new()
+    }
+    fn check_unless(
+        &self,
+        _: &puppet_lang::statement::ConditionAndStatement<Location>,
+    ) -> Vec<LintError> {
+        Vec::new()
+    }
+    fn check_expression(
+        &self,
+        _: &puppet_lang::expression::Expression<Location>,
+    ) -> Vec<LintError> {
+        Vec::new()
+    }
 }
 
 #[derive(Default)]
@@ -68,16 +83,83 @@ impl Storage {
 pub struct AstLinter;
 
 impl AstLinter {
+    pub fn check_expression(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::expression::Expression<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_expression(elt));
+        }
+
+        errors
+    }
+
+    pub fn check_unless(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::statement::ConditionAndStatement<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_unless(elt));
+        }
+
+        errors.append(&mut self.check_expression(storage, &elt.condition));
+
+        errors
+    }
+
+    pub fn check_statement(
+        &self,
+        storage: &Storage,
+        statement: &puppet_lang::statement::Statement<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_statement(statement));
+        }
+
+        use puppet_lang::statement::StatementVariant;
+        let mut variant_errors = match &statement.value {
+            StatementVariant::Unless(elt) => self.check_unless(storage, elt),
+            StatementVariant::Toplevel(elt) => self.check_toplevel(storage, elt),
+            StatementVariant::Expression(elt) => self.check_expression(storage, elt),
+            StatementVariant::Include(_)
+            | StatementVariant::Require(_)
+            | StatementVariant::Contain(_)
+            | StatementVariant::Realize(_)
+            | StatementVariant::CreateResources(_)
+            | StatementVariant::Tag(_)
+            | StatementVariant::RelationList(_)
+            | StatementVariant::IfElse(_)
+            | StatementVariant::Case(_) => {
+                // TODO
+                vec![]
+            }
+        };
+
+        errors.append(&mut variant_errors);
+
+        errors
+    }
+
     pub fn check_toplevel_variant(
         &self,
         storage: &Storage,
         arguments: &[puppet_lang::argument::Argument<Location>],
+        body: &[puppet_lang::statement::Statement<Location>],
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
             for arg in arguments {
                 errors.append(&mut lint.check_argument(arg));
             }
+        }
+
+        for statement in body {
+            errors.append(&mut self.check_statement(storage, statement));
         }
 
         errors
@@ -92,7 +174,7 @@ impl AstLinter {
         for lint in storage.early_pass() {
             errors.append(&mut lint.check_class(elt));
         }
-        errors.append(&mut self.check_toplevel_variant(storage, &elt.arguments));
+        errors.append(&mut self.check_toplevel_variant(storage, &elt.arguments, &elt.body));
 
         errors
     }
@@ -107,7 +189,7 @@ impl AstLinter {
             errors.append(&mut lint.check_definition(elt));
         }
 
-        errors.append(&mut self.check_toplevel_variant(storage, &elt.arguments));
+        errors.append(&mut self.check_toplevel_variant(storage, &elt.arguments, &elt.body));
 
         errors
     }
@@ -122,7 +204,7 @@ impl AstLinter {
             errors.append(&mut lint.check_plan(elt));
         }
 
-        errors.append(&mut self.check_toplevel_variant(storage, &elt.arguments));
+        errors.append(&mut self.check_toplevel_variant(storage, &elt.arguments, &elt.body));
 
         errors
     }
