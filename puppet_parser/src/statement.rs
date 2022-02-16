@@ -21,7 +21,7 @@ fn parse_require(input: Span) -> IResult<StatementVariant<Location>> {
     let parser = preceded(
         tag("require"),
         ParseError::protect(
-            |_| "Argument for 'require' is expected".to_string(),
+            |_| "Class names as an arguments for 'require' is expected".to_string(),
             alt((
                 preceded(
                     separator0,
@@ -39,7 +39,7 @@ fn parse_include(input: Span) -> IResult<StatementVariant<Location>> {
     let parser = preceded(
         tag("include"),
         ParseError::protect(
-            |_| "Argument for 'include' is expected".to_string(),
+            |_| "Class names as an arguments for 'include' is expected".to_string(),
             alt((
                 preceded(
                     separator0,
@@ -57,7 +57,7 @@ fn parse_contain(input: Span) -> IResult<StatementVariant<Location>> {
     let parser = preceded(
         tag("contain"),
         ParseError::protect(
-            |_| "Argument for 'contain' is expected".to_string(),
+            |_| "Class names as an arguments for 'contain' is expected".to_string(),
             alt((
                 preceded(
                     separator0,
