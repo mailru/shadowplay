@@ -18,7 +18,7 @@ impl OptionalArgumentsGoesFirst {
         let mut errors = Vec::new();
         let mut found_optional = false;
         for arg in args {
-            if arg.default.is_none() {
+            if arg.default.is_some() {
                 found_optional = true;
             } else if found_optional {
                 errors.push(LintError::new(
