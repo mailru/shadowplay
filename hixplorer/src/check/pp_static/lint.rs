@@ -46,6 +46,9 @@ pub trait EarlyLintPass: LintPass {
     ) -> Vec<LintError> {
         Vec::new()
     }
+    fn check_if_else(&self, _: &puppet_lang::statement::IfElse<Location>) -> Vec<LintError> {
+        Vec::new()
+    }
     fn check_expression(
         &self,
         _: &puppet_lang::expression::Expression<Location>,
@@ -204,6 +207,40 @@ impl AstLinter {
         }
 
         errors.append(&mut self.check_expression(storage, &elt.condition));
+        for statement in elt.body.as_ref() {
+            errors.append(&mut self.check_statement(storage, statement));
+        }
+
+        errors
+    }
+
+    pub fn check_if_else(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::statement::IfElse<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_if_else(elt));
+        }
+
+        errors.append(&mut self.check_expression(storage, &elt.condition.condition));
+        for statement in elt.condition.body.as_ref() {
+            errors.append(&mut self.check_statement(storage, statement));
+        }
+
+        for elsif_block in &elt.elsif_list {
+            errors.append(&mut self.check_expression(storage, &elsif_block.condition));
+            for statement in elsif_block.body.as_ref() {
+                errors.append(&mut self.check_statement(storage, statement));
+            }
+        }
+
+        if let Some(else_block) = &elt.else_block {
+            for statement in else_block.as_ref() {
+                errors.append(&mut self.check_statement(storage, statement));
+            }
+        }
 
         errors
     }
@@ -223,6 +260,7 @@ impl AstLinter {
             StatementVariant::Unless(elt) => self.check_unless(storage, elt),
             StatementVariant::Toplevel(elt) => self.check_toplevel(storage, elt),
             StatementVariant::Expression(elt) => self.check_expression(storage, elt),
+            StatementVariant::IfElse(elt) => self.check_if_else(storage, elt),
             StatementVariant::Include(_)
             | StatementVariant::Require(_)
             | StatementVariant::Contain(_)
@@ -230,7 +268,6 @@ impl AstLinter {
             | StatementVariant::CreateResources(_)
             | StatementVariant::Tag(_)
             | StatementVariant::RelationList(_)
-            | StatementVariant::IfElse(_)
             | StatementVariant::Case(_) => {
                 // TODO
                 vec![]
