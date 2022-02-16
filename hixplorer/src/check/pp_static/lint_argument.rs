@@ -43,6 +43,36 @@ impl EarlyLintPass for ArgumentLooksSensitive {
     }
 }
 
+pub struct SensitiveArgumentWithDefault;
+
+impl LintPass for SensitiveArgumentWithDefault {
+    fn name(&self) -> &str {
+        "sensitive_argument_with_default"
+    }
+}
+
+impl EarlyLintPass for SensitiveArgumentWithDefault {
+    fn check_argument(
+        &self,
+        arg: &puppet_lang::argument::Argument<puppet_parser::parser::Location>,
+    ) -> Vec<super::lint::LintError> {
+        if let Some(t) = &arg.type_spec {
+            if matches!(
+                t.data,
+                puppet_lang::typing::TypeSpecificationVariant::Sensitive(_)
+            ) && arg.default.is_some()
+            {
+                return vec![LintError::new(
+                    self.name(),
+                    "Sensitive argument with default value",
+                    &arg.extra,
+                )];
+            }
+        }
+        vec![]
+    }
+}
+
 pub struct ArgumentTyped;
 
 impl LintPass for ArgumentTyped {
