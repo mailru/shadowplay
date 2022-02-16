@@ -47,17 +47,15 @@ impl EarlyLintPass for DefaultCaseIsNotLast {
                 }
             }) {
                 default = Some(case)
-            } else {
-                if let Some(default) = default {
-                    errors.push(LintError::new(
-                        self.name(),
-                        &format!(
-                            "Match case after default match which is defined earlier at line {}",
-                            default.extra.line()
-                        ),
-                        &elt.extra,
-                    ))
-                }
+            } else if let Some(default) = default {
+                errors.push(LintError::new(
+                    self.name(),
+                    &format!(
+                        "Match case after default match which is defined earlier at line {}",
+                        default.extra.line()
+                    ),
+                    &elt.extra,
+                ))
             }
         }
 
