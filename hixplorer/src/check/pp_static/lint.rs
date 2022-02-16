@@ -72,6 +72,7 @@ impl Storage {
         v.register_early_pass(Box::new(super::lint_argument::ArgumentLooksSensitive));
         // v.register_early_pass(Box::new(super::lint_argument::ArgumentTyped));
         v.register_early_pass(Box::new(super::lint_argument::ReadableArgumentsName));
+        v.register_early_pass(Box::new(super::lint_unless::DoNotUseUnless));
         v
     }
 
