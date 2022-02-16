@@ -4,6 +4,7 @@ use crate::check::pp_static::lint::LintError;
 
 use super::lint::{EarlyLintPass, LintPass};
 
+#[derive(Clone)]
 pub struct DoNotUseUnless;
 
 impl LintPass for DoNotUseUnless {
@@ -18,7 +19,7 @@ impl EarlyLintPass for DoNotUseUnless {
         elt: &puppet_lang::statement::ConditionAndStatement<Location>,
     ) -> Vec<super::lint::LintError> {
         vec![LintError::new(
-            self.name(),
+            Box::new(self.clone()),
             "Use 'if !EXPR { ... }' instead of 'unless EXPR { ... }'",
             &elt.extra,
         )]

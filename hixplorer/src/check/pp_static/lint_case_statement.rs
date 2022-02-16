@@ -4,6 +4,7 @@ use crate::check::pp_static::lint::LintError;
 
 use super::lint::{EarlyLintPass, LintPass};
 
+#[derive(Clone)]
 pub struct EmptyCasesList;
 
 impl LintPass for EmptyCasesList {
@@ -16,7 +17,7 @@ impl EarlyLintPass for EmptyCasesList {
     fn check_case_statement(&self, elt: &puppet_lang::statement::Case<Location>) -> Vec<LintError> {
         if elt.elements.is_empty() {
             return vec![LintError::new(
-                self.name(),
+                Box::new(self.clone()),
                 "Cases list is empty",
                 &elt.extra,
             )];
@@ -26,6 +27,7 @@ impl EarlyLintPass for EmptyCasesList {
     }
 }
 
+#[derive(Clone)]
 pub struct DefaultCaseIsNotLast;
 
 impl LintPass for DefaultCaseIsNotLast {
@@ -49,7 +51,7 @@ impl EarlyLintPass for DefaultCaseIsNotLast {
                 default = Some(case)
             } else if let Some(default) = default {
                 errors.push(LintError::new(
-                    self.name(),
+                    Box::new(self.clone()),
                     &format!(
                         "Match case after default match which is defined earlier at line {}",
                         default.extra.line()
@@ -63,6 +65,7 @@ impl EarlyLintPass for DefaultCaseIsNotLast {
     }
 }
 
+#[derive(Clone)]
 pub struct MultipleDefaultCase;
 
 impl LintPass for MultipleDefaultCase {
@@ -87,7 +90,7 @@ impl EarlyLintPass for MultipleDefaultCase {
             }) {
                 if let Some(default) = default {
                     errors.push(LintError::new(
-                        self.name(),
+                        Box::new(self.clone()),
                         &format!(
                             "Default match case is aready defined at line {}",
                             default.extra.line()

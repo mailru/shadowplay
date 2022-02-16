@@ -1,24 +1,39 @@
 use puppet_parser::parser::Location;
 
-#[derive(Clone)]
+pub trait LintPass {
+    fn name(&self) -> &str;
+}
+
+// #[derive(Clone)]
 pub struct LintError {
-    pub linter: String,
+    pub linter: Box<dyn LintPass>,
     pub message: String,
+    pub url: Option<String>,
     pub location: Location,
 }
 
 impl LintError {
-    pub fn new(linter: &str, message: &str, location: &Location) -> Self {
+    pub fn new(linter: Box<dyn LintPass>, message: &str, location: &Location) -> Self {
         Self {
-            linter: linter.to_owned(),
+            linter,
             message: message.to_owned(),
+            url: None,
             location: location.clone(),
         }
     }
-}
-
-pub trait LintPass {
-    fn name(&self) -> &str;
+    pub fn new_with_url(
+        linter: Box<dyn LintPass>,
+        message: &str,
+        url: &str,
+        location: &Location,
+    ) -> Self {
+        Self {
+            linter,
+            message: message.to_owned(),
+            url: Some(url.to_owned()),
+            location: location.clone(),
+        }
+    }
 }
 
 pub trait EarlyLintPass: LintPass {

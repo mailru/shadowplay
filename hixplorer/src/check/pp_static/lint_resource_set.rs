@@ -4,6 +4,7 @@ use crate::check::pp_static::lint::LintError;
 
 use super::lint::{EarlyLintPass, LintPass};
 
+#[derive(Clone)]
 pub struct UpperCaseName;
 
 impl LintPass for UpperCaseName {
@@ -24,7 +25,7 @@ impl EarlyLintPass for UpperCaseName {
             .any(|v| v.chars().any(|v| v.is_uppercase()))
         {
             return vec![LintError::new(
-                self.name(),
+                Box::new(self.clone()),
                 "Name of resource set contains upper case characters",
                 &elt.extra,
             )];
@@ -33,6 +34,7 @@ impl EarlyLintPass for UpperCaseName {
     }
 }
 
+#[derive(Clone)]
 pub struct UniqueAttributeName;
 
 impl LintPass for UniqueAttributeName {
@@ -53,7 +55,7 @@ impl EarlyLintPass for UniqueAttributeName {
                 if let puppet_lang::statement::ResourceAttribute::Name(name) = attribute {
                     if names.contains(&name.0.data) {
                         errors.push(LintError::new(
-                            self.name(),
+                            Box::new(self.clone()),
                             &format!("Attribute {:?} is not unique", name.0.data),
                             &elt.extra,
                         ));
@@ -67,6 +69,7 @@ impl EarlyLintPass for UniqueAttributeName {
     }
 }
 
+#[derive(Clone)]
 pub struct EnsureAttributeIsNotTheFirst;
 
 impl LintPass for EnsureAttributeIsNotTheFirst {
@@ -85,11 +88,12 @@ impl EarlyLintPass for EnsureAttributeIsNotTheFirst {
             for (pos, attribute) in resource.attributes.iter().enumerate() {
                 if let puppet_lang::statement::ResourceAttribute::Name(name) = attribute {
                     if name.0.data == "ensure" && pos > 0 {
-                        errors.push(LintError::new(
-                self.name(),
-                "Attribute 'ensure' is not the first. See https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-attribute-ordering",
-                &elt.extra,
-            ));
+                        errors.push(LintError::new_with_url(
+                            Box::new(self.clone()),
+                            "Attribute 'ensure' is not the first.",
+                            "https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-attribute-ordering",
+                            &elt.extra,
+                        ));
                     }
                 }
             }
@@ -99,6 +103,7 @@ impl EarlyLintPass for EnsureAttributeIsNotTheFirst {
     }
 }
 
+#[derive(Clone)]
 pub struct FileModeAttributeIsString;
 
 impl LintPass for FileModeAttributeIsString {
@@ -126,26 +131,29 @@ impl EarlyLintPass for FileModeAttributeIsString {
                             match &term.value {
                                 puppet_lang::expression::TermVariant::String(v) => {
                                     if !v.data.chars().all(|v| v.is_digit(10)) {
-                                        return vec![LintError::new(
-                self.name(),
-                "Mode attribute is a string which is not all of digits. See https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-file-modes",
-                &attribute.1.extra,
-            )];
+                                        return vec![LintError::new_with_url(
+                                            Box::new(self.clone()),
+                                            "Mode attribute is a string which is not all of digits.",
+                                            "https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-file-modes",
+                                            &attribute.1.extra,
+                                        )];
                                     }
                                     if v.data.len() != 4 {
-                                        return vec![LintError::new(
-                self.name(),
-                "Mode attribute is a string which length != 4. See https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-file-modes",
-                &attribute.1.extra,
-            )];
+                                        return vec![LintError::new_with_url(
+                                            Box::new(self.clone()),
+                                            "Mode attribute is a string which length != 4.",
+                                            "https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-file-modes",
+                                            &attribute.1.extra,
+                                        )];
                                     }
                                 }
                                 puppet_lang::expression::TermVariant::Integer(_) => {
-                                    return vec![LintError::new(
-                self.name(),
-                "Integer value of mode attribute. Use string. See https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-file-modes",
-                &attribute.1.extra,
-            )];
+                                    return vec![LintError::new_with_url(
+                                    Box::new(self.clone()),
+                                        "Integer value of mode attribute. Use string.",
+                                        "https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-file-modes",
+                                        &attribute.1.extra,
+                                    )];
                                 }
                                 _ => {}
                             }
@@ -159,6 +167,7 @@ impl EarlyLintPass for FileModeAttributeIsString {
     }
 }
 
+#[derive(Clone)]
 pub struct MultipleResourcesWithoutDefault;
 
 impl LintPass for MultipleResourcesWithoutDefault {
@@ -185,15 +194,16 @@ impl EarlyLintPass for MultipleResourcesWithoutDefault {
 
         if elt.list.len() > 1 {
             if !has_default {
-                return vec![LintError::new(
-                self.name(),
-                "Multiples resources without default set. See https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-multiple-resources",
-                &elt.extra,
-            )];
+                return vec![LintError::new_with_url(
+                    Box::new(self.clone()),
+                    "Multiples resources without default set.",
+                    "https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-multiple-resources",
+                    &elt.extra,
+                )];
             }
             if elt.list.len() == 2 {
                 return vec![LintError::new(
-                    self.name(),
+                                        Box::new(self.clone()),
                     "Multiples resources with default set and only two sets in total. Defaults set can be merged with the only resource.",
                     &elt.extra,
                 )];

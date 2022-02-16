@@ -28,13 +28,18 @@ impl Check {
         let errors = linter.check_toplevel(&linter_storage, &ast.data);
 
         for error in &errors {
+            let url_message = match &error.url {
+                None => "".to_owned(),
+                Some(url) => format!(" // See {}", url),
+            };
             println!(
-                "Puppet static error [{}] in {:?} at line {} col {}: {}",
-                error.linter,
+                "Puppet static error [{}] in {:?} at line {} col {}: {}{}",
+                error.linter.name(),
                 file_path,
                 error.location.line(),
                 error.location.column(),
-                error.message
+                error.message,
+                url_message
             );
         }
 

@@ -4,6 +4,7 @@ use puppet_parser::parser::Location;
 
 use super::lint::{EarlyLintPass, LintError, LintPass};
 
+#[derive(Clone)]
 pub struct OptionalArgumentsGoesFirst;
 
 impl LintPass for OptionalArgumentsGoesFirst {
@@ -21,7 +22,7 @@ impl OptionalArgumentsGoesFirst {
                 found_optional = true;
             } else if found_optional {
                 errors.push(LintError::new(
-                    self.name(),
+                    Box::new(self.clone()),
                     "Required argument goes after optional",
                     &arg.extra,
                 ))
@@ -49,6 +50,7 @@ impl EarlyLintPass for OptionalArgumentsGoesFirst {
     }
 }
 
+#[derive(Clone)]
 pub struct UniqueArgumentsNames;
 
 impl LintPass for UniqueArgumentsNames {
@@ -64,7 +66,7 @@ impl UniqueArgumentsNames {
         for arg in args {
             match names.get(&arg.name) {
                 Some(prev) => errors.push(LintError::new(
-                    self.name(),
+                    Box::new(self.clone()),
                     &format!(
                         "Argument '{}' was already defined earlier at line {}",
                         arg.name,

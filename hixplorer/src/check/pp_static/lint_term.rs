@@ -4,6 +4,7 @@ use crate::check::pp_static::lint::LintError;
 
 use super::lint::{EarlyLintPass, LintPass};
 
+#[derive(Clone)]
 pub struct UselessParens;
 
 impl LintPass for UselessParens {
@@ -23,7 +24,7 @@ impl EarlyLintPass for UselessParens {
                 | puppet_lang::expression::ExpressionVariant::ChainCall(_)
                 | puppet_lang::expression::ExpressionVariant::Term(_) => {
                     return vec![LintError::new(
-                        self.name(),
+                        Box::new(self.clone()),
                         "Useless parens around term, chain call or negation",
                         &elt.extra,
                     )]
@@ -59,6 +60,7 @@ impl EarlyLintPass for UselessParens {
     }
 }
 
+#[derive(Clone)]
 pub struct UselessDoubleQuotes;
 
 impl LintPass for UselessDoubleQuotes {
@@ -78,7 +80,7 @@ impl EarlyLintPass for UselessDoubleQuotes {
             && !elt.data.contains('\\')
         {
             return vec![LintError::new(
-                self.name(),
+                Box::new(self.clone()),
                 "Double quotes of string with no interpolated values and no escaped chars [EXPERIMENTAL]",
                 &elt.extra,
             )];
@@ -87,6 +89,7 @@ impl EarlyLintPass for UselessDoubleQuotes {
     }
 }
 
+#[derive(Clone)]
 pub struct LowerCaseVariable;
 
 impl LintPass for LowerCaseVariable {
@@ -107,11 +110,12 @@ impl EarlyLintPass for LowerCaseVariable {
                 .iter()
                 .any(|elt| elt.chars().any(|c| c.is_uppercase()))
             {
-                return vec![LintError::new(
-                        self.name(),
-                        "Variable name with upper case letters. See https://puppet.com/docs/puppet/7/style_guide.html#style_guide_variables-variable-format",
-                        &elt.extra,
-                    )];
+                return vec![LintError::new_with_url(
+                    Box::new(self.clone()),
+                    "Variable name with upper case letters.",
+                    "https://puppet.com/docs/puppet/7/style_guide.html#style_guide_variables-variable-format",
+                    &elt.extra,
+                )];
             }
         }
         vec![]
