@@ -11,8 +11,10 @@ use nom::{
 use super::parser::{IResult, ParseError, Span};
 
 pub fn comment(input: Span) -> IResult<()> {
-    let shell_comment_extractor =
-        value((), tuple((preceded(char('#'), is_not("\n")), opt(newline))));
+    let shell_comment_extractor = value(
+        (),
+        tuple((preceded(char('#'), opt(is_not("\n"))), opt(newline))),
+    );
     let c_comment_extractor = value((), tuple((tag("/*"), take_until("*/"), tag("*/"))));
 
     alt((shell_comment_extractor, c_comment_extractor))(input)
