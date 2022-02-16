@@ -1,4 +1,88 @@
 * Changelog
+** [2022-02-16] v0.7.0
+
+*** New features
+
+ - Added lint NoDefaultCase (b35d7b9)
+ - Added lint SensitiveArgumentWithDefault (964b3c8)
+ - Added lints for lowercase naming (0af0115)
+ - Added lint MultipleResourcesWithoutDefault (35c3085)
+ - Added lint for file mode (c169d14)
+ - Added new lints (51f4b13)
+ - Added lint UselessDoubleQuotes (af6d49a)
+ - Added new lints (a9fe3c5)
+ - Improved linters infrastructure (976e84e)
+ - New linters (4a1fd47)
+ - Added linter DoNotUseUnless (a503d48)
+ - Better error reporting (23b87ee)
+ - C-style comments (48f2315)
+ - Nested toplevels (0181ba5)
+ - Resource attribute groups are supported (5aa9da3)
+ - Added term variant Regexp (11bf1d0)
+ - Added chain operator parser (65d1dda)
+ - Added parser for create_resources() (a4ce9b8)
+ - Added support for 'unless' statement (1e97ecb)
+ - Added parser for selectors (ba2a47b)
+ - Added parser for resource collectors (a793726)
+ - Added parser for 'case' statement (0047e6c)
+ - New statement parsers (f9b6b83)
+ - Added new statement parsers (96b7845)
+ - Added resource relation statement (916220d)
+ - Improved test for multi-statement bodies (c3b76fa)
+ - Initial support for parsing statements (88d588a)
+ - Added test for parens in expression (317dfde)
+ - Implemented all kinds of expressions (2501e23)
+ - Implemented modulo operator (7a709c2)
+ - Added test for comma separated list in brackets (646667e)
+ - Added lint readable_argument_name (0cdeb61)
+ - Improved error message (b7c601f)
+ - Added more unit tests (62c3860)
+ - linter check unique_arguments_names (ddbaae6)
+ - linter check argument_typed (170fb72)
+ - Linters: argument_looks_sensitive, optional_arguments_goes_first (31bdb37)
+ - [WIP] pp linters infrastructure (61e32b2)
+
+*** Bugfixes
+
+ - Logic error in OptionalArgumentsGoesFirst (ea07161)
+ - Isuues reported by linter (d272dbc)
+ - Issue reported by linter (b7b713d)
+ - Test (f752e6f)
+ - Issue reported by linter (b61a1f3)
+ - Accessor can be constructed from multiple indexes (d5c8abc)
+ - Parsing order (c8ac65c)
+ - Empty shell-style comments (392d680)
+ - Optional terminating semicolon in resource set (6d2c053)
+ - Improved error messages (c78d85a)
+ - Parser improvements (a32c27e)
+ - Veriable/argument name can start with underscore (3326391)
+ - Fixed chain call parser (105f8ad)
+ - Use correct parser for lambda args (68c50da)
+ - Multiple parsing fixes (52ab7fe)
+ - Fixed parsing order of comparsion operators (a72db24)
+ - "Not" expression contains sub-expression (87bf19b)
+ - Identifiers can start with underscore (a9ad143)
+ - Ignore spaces (8767ded)
+ - Issue reported by linter (5b3722d)
+ - Issue reported by linter (db59885)
+ - Second element of min_max pair is optional (8ad4841)
+ - Support for external types with arguments (c0ee675)
+ - Issues reported by linter (2fb2840)
+
+*** Other changes
+
+ - LintError now contains lint itself with optional URL (e811d0d)
+ - Extended linters infrastructure (ed3fd19)
+ - Added check_toplevel_variant() (7822815)
+ - Renamed field (952463c)
+ - Import frequently used terms (4997057)
+ - New implementation for relation chains (37e99de)
+ - ResourceRelation -> ResourceTypeRelation (b4bffb0)
+ - Major refactoring (7e06cb1)
+ - [WIP] Major refactoring (c17e664)
+ - [WIP] Major project refactoring (576a5dd)
+
+
 ** [2021-11-29] v0.6.1
 
 *** Bugfixes
