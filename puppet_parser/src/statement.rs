@@ -10,7 +10,7 @@ use puppet_lang::statement::{Statement, StatementVariant};
 use crate::{
     common::{
         comma_separator, curly_brackets_delimimited, round_brackets_delimimited, separator0,
-        separator1, space0_delimimited,
+        separator1, space0_delimimited, spaced0_separator,
     },
     identifier::identifier_with_toplevel,
     parser::{IResult, Location, ParseError, Span},
@@ -195,33 +195,36 @@ fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Locat
         alt((parse_attribute, parse_attribute_group)),
     );
 
-    let parser = tuple((
-        space0_delimimited(crate::expression::parse_expression),
-        preceded(
-            ParseError::protect(|_| "':' is expected".to_string(), tag(":")),
-            terminated(space0_delimimited(parse_arguments), opt(tag(";"))),
-        ),
-    ));
-
-    map(parser, |(title, arguments)| {
-        puppet_lang::statement::Resource {
+    let mut parser = map(
+        tuple((
+            space0_delimimited(crate::expression::parse_expression),
+            preceded(
+                ParseError::protect(|_| "':' is expected".to_string(), tag(":")),
+                space0_delimimited(parse_arguments),
+            ),
+            opt(tag(",")),
+        )),
+        |(title, arguments, _)| puppet_lang::statement::Resource {
             attributes: arguments,
             extra: title.extra.clone(),
             title,
-        }
-    })(input)
+        },
+    );
+
+    parser(input)
 }
 
 fn parse_resource_set(input: Span) -> IResult<puppet_lang::statement::ResourceSet<Location>> {
-    let parser = pair(
+    let parser = tuple((
         space0_delimimited(pair(
             opt(tag("@")),
             crate::identifier::anycase_identifier_with_ns,
         )),
-        space0_delimimited(crate::common::curly_brackets_comma_separated0(
-            parse_resource,
-        )),
-    );
+        space0_delimimited(crate::common::curly_brackets_delimimited(terminated(
+            separated_list0(spaced0_separator(";"), parse_resource),
+            opt(spaced0_separator(";")),
+        ))),
+    ));
 
     map(parser, |((is_virutal, name), list)| {
         puppet_lang::statement::ResourceSet {
