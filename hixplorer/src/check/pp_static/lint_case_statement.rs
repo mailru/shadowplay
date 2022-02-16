@@ -92,7 +92,7 @@ impl EarlyLintPass for MultipleDefaultCase {
                     errors.push(LintError::new(
                         Box::new(self.clone()),
                         &format!(
-                            "Default match case is aready defined at line {}",
+                            "Default match case is already defined at line {}",
                             default.extra.line()
                         ),
                         &elt.extra,
@@ -103,5 +103,40 @@ impl EarlyLintPass for MultipleDefaultCase {
         }
 
         errors
+    }
+}
+
+#[derive(Clone)]
+pub struct NoDefaultCase;
+
+impl LintPass for NoDefaultCase {
+    fn name(&self) -> &str {
+        "no_default_case"
+    }
+}
+
+impl EarlyLintPass for NoDefaultCase {
+    fn check_case_statement(&self, elt: &puppet_lang::statement::Case<Location>) -> Vec<LintError> {
+        let mut has_default = false;
+        for case in &elt.elements {
+            for case_elt in &case.matches {
+                if let puppet_lang::expression::TermVariant::String(v) = &case_elt.value {
+                    if v.data == "default" {
+                        has_default = true
+                    }
+                }
+            }
+        }
+
+        if !has_default {
+            return vec![LintError::new_with_url(
+                Box::new(self.clone()),
+                "Case with no default",
+                "https://puppet.com/docs/puppet/7/style_guide.html#style_guide_conditionals-case-selector-defaults",
+                &elt.extra,
+            )];
+        }
+
+        vec![]
     }
 }

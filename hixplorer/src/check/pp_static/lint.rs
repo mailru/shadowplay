@@ -153,6 +153,7 @@ impl Storage {
         v.register_early_pass(Box::new(super::lint_case_statement::EmptyCasesList));
         v.register_early_pass(Box::new(super::lint_case_statement::DefaultCaseIsNotLast));
         v.register_early_pass(Box::new(super::lint_case_statement::MultipleDefaultCase));
+        v.register_early_pass(Box::new(super::lint_case_statement::NoDefaultCase));
         v
     }
 
