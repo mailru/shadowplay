@@ -1,9 +1,15 @@
 use crate::{expression::Expression, identifier::LowerIdentifier};
 
 #[derive(Clone, Debug, PartialEq)]
+pub enum ResourceAttribute<EXTRA> {
+    Name((crate::expression::StringExpr<EXTRA>, Expression<EXTRA>)),
+    Group(crate::expression::Term<EXTRA>),
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Resource<EXTRA> {
     pub title: Expression<EXTRA>,
-    pub arguments: Vec<(crate::expression::StringExpr<EXTRA>, Expression<EXTRA>)>,
+    pub attributes: Vec<ResourceAttribute<EXTRA>>,
     pub extra: EXTRA,
 }
 

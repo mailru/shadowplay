@@ -162,8 +162,7 @@ fn parse_expression(input: Span) -> IResult<StatementVariant<Location>> {
 }
 
 fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Location>> {
-    let parse_arguments = separated_list0(
-        comma_separator,
+    let parse_attribute = map(
         pair(
             space0_delimimited(parse_string_variant),
             preceded(
@@ -174,6 +173,26 @@ fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Locat
                 )),
             ),
         ),
+        |kv| puppet_lang::statement::ResourceAttribute::Name(kv),
+    );
+
+    let parse_attribute_group = map(
+        pair(
+            space0_delimimited(tag("*")),
+            preceded(
+                ParseError::protect(|_| "'=>' is expected".to_string(), tag("=>")),
+                space0_delimimited(ParseError::protect(
+                    |_| "Argument group value is expected".to_string(),
+                    crate::term::parse_term,
+                )),
+            ),
+        ),
+        |(_, term)| puppet_lang::statement::ResourceAttribute::Group(term),
+    );
+
+    let parse_arguments = separated_list0(
+        comma_separator,
+        alt((parse_attribute, parse_attribute_group)),
     );
 
     let parser = tuple((
@@ -186,7 +205,7 @@ fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Locat
 
     map(parser, |(title, arguments)| {
         puppet_lang::statement::Resource {
-            arguments,
+            attributes: arguments,
             extra: title.extra.clone(),
             title,
         }
