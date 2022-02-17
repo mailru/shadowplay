@@ -2,6 +2,7 @@ package.name = "pimprle"
 package.version = "0.1.0"
 package.edition = "2021"
 package.authors = ["Evgenii Lepikhin <e.lepikhin@corp.mail.ru>"]
+package.readme = "../README.md"
 
 [[bin]]
 name = "pimprle"
