@@ -1,0 +1,8 @@
+package.name = "puppet-pp-lint"
+package.version = "0.1.0"
+package.edition = "2018"
+package.authors = ["Evgenii Lepikhin <e.lepikhin@corp.mail.ru>"]
+
+[dependencies]
+puppet-lang = { path = "../puppet_lang" }
+puppet-parser = { path = "../puppet_parser" }

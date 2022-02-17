@@ -1,6 +1,4 @@
-use crate::check::pp_static::lint::LintError;
-
-use super::lint::{EarlyLintPass, LintPass};
+use crate::lint::{EarlyLintPass, LintError, LintPass};
 
 #[derive(Clone)]
 pub struct ArgumentLooksSensitive;

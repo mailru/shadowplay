@@ -23,8 +23,8 @@ impl Check {
             Ok(v) => v,
         };
 
-        let linter_storage = crate::check::pp_static::lint::Storage::new();
-        let linter = crate::check::pp_static::lint::AstLinter;
+        let linter_storage = puppet_pp_lint::lint::Storage::new();
+        let linter = puppet_pp_lint::lint::AstLinter;
         let errors = linter.check_toplevel(&linter_storage, &ast.data);
 
         for error in &errors {

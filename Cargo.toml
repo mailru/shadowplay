@@ -1,6 +1,6 @@
 
 [profile.release]
-# Оптимизация бинарника релиза по размеру
+
 # https://github.com/johnthagen/min-sized-rust
 lto = true
 
@@ -9,5 +9,6 @@ lto = true
 members = [
         "puppet_lang"
         , "puppet_parser"
+        , "puppet_pp_lint"
         , "hixplorer"
 ]
