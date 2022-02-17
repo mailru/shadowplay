@@ -25,7 +25,11 @@ impl Check {
 
         let linter_storage = puppet_pp_lint::lint::Storage::new();
         let linter = puppet_pp_lint::lint::AstLinter;
-        let errors = linter.check_toplevel(&linter_storage, &ast.data);
+
+        let mut errors = Vec::new();
+        for statement in &ast.data {
+            errors.append(&mut linter.check_statement(&linter_storage, statement));
+        }
 
         for error in &errors {
             let url_message = match &error.url {

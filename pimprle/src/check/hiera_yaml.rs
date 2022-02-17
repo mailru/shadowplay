@@ -77,25 +77,32 @@ impl Check {
             Ok(Some(v)) => v,
         };
 
-        let class = match ast.data {
-            Toplevel::Class(class) => {
-                if class.identifier.name != puppet_module.identifier() {
+        let mut class = None;
+
+        for elt in ast.data {
+            match elt.value {
+                puppet_lang::statement::StatementVariant::Toplevel(Toplevel::Class(v)) => {
+                    if v.identifier.name != puppet_module.identifier() {
+                        println!(
+                        "Hiera static error in {:?} at {}: reference to puppet file {:?} which toplevel class does not match module name",
+                        yaml_path, yaml_marker, puppet_module.file_path()
+                    );
+                        return 1;
+                    }
+                    class = Some(v);
+                    break;
+                }
+                _ => {
                     println!(
-                    "Hiera static error in {:?} at {}: reference to puppet file {:?} which toplevel class does not match module name",
+                    "Hiera static error in {:?} at {}: reference to puppet file {:?} which toplevel expression is not a class",
                     yaml_path, yaml_marker, puppet_module.file_path()
                 );
                     return 1;
                 }
-                class
             }
-            _ => {
-                println!(
-                    "Hiera static error in {:?} at {}: reference to puppet file {:?} which toplevel expression is not a class",
-                    yaml_path, yaml_marker, puppet_module.file_path()
-                );
-                return 1;
-            }
-        };
+        }
+
+        let class = class.unwrap();
 
         let _class_argument = match class.get_argument(argument) {
             None => {
