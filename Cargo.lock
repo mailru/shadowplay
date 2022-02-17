@@ -120,29 +120,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hixplorer"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "env_logger",
- "lazy_static",
- "linked-hash-map",
- "located_yaml",
- "log",
- "nom",
- "nom_locate",
- "puppet-lang",
- "puppet-parser",
- "puppet-pp-lint",
- "regex",
- "serde",
- "serde_json",
- "serde_yaml",
- "structopt",
- "yaml-rust",
-]
-
-[[package]]
 name = "humantime"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -238,6 +215,29 @@ dependencies = [
  "bytecount",
  "memchr",
  "nom",
+]
+
+[[package]]
+name = "pimprle"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "env_logger",
+ "lazy_static",
+ "linked-hash-map",
+ "located_yaml",
+ "log",
+ "nom",
+ "nom_locate",
+ "puppet-lang",
+ "puppet-parser",
+ "puppet-pp-lint",
+ "regex",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "structopt",
+ "yaml-rust",
 ]
 
 [[package]]

@@ -1,10 +1,10 @@
-package.name = "hixplorer"
+package.name = "pimprle"
 package.version = "0.1.0"
-package.edition = "2018"
+package.edition = "2021"
 package.authors = ["Evgenii Lepikhin <e.lepikhin@corp.mail.ru>"]
 
 [[bin]]
-name = "hixplorer"
+name = "pimprle"
 path = "src/main.rs"
 
 [dependencies]

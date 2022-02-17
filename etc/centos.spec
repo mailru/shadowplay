@@ -1,5 +1,5 @@
-Summary: Hiera explorer
-Name: hixplorer
+Summary: Puppet checker, linter and explorer
+Name: pimprle
 Version: %(cat VERSION)
 Release: 1%{dist}
 License: MailRu Private
@@ -39,13 +39,13 @@ cargo build --release
 rm -rf %{buildroot}
 %{__mkdir} -p %{buildroot}%{_bindir}
 
-%{__install} -pD -m 755 target/release/hixplorer %{buildroot}%{_bindir}/hixplorer
-%{__install} -pD -m 644 etc/config.yaml.example %{buildroot}%{_sysconfdir}/hixplorer.yaml.example
+%{__install} -pD -m 755 target/release/pimprle %{buildroot}%{_bindir}/pimprle
+%{__install} -pD -m 644 etc/config.yaml.example %{buildroot}%{_sysconfdir}/pimprle.yaml.example
 
 %clean
 rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-%{_bindir}/hixplorer
-%{_sysconfdir}/hixplorer.yaml.example
+%{_bindir}/pimprle
+%{_sysconfdir}/pimprle.yaml.example

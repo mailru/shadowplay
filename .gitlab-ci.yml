@@ -11,14 +11,14 @@ build_hammer_el7:
     build:
       builder:
         Rpm:
-          spec_path: etc/hixplorer.spec
+          spec_path: etc/centos.spec
     environment_variables:
       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
       PATH: "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin:/sbin"
-    description: hixplorer, c7
+    description: pimprle, c7
     timeout: 2h
     user_tags:
-      - hixplorer
+      - pimprle
     notifications:
       on_build_error:
         - __author__
@@ -57,9 +57,9 @@ build_hammer_macos:
     environment_variables:
       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
       PATH: "/opt/darwin-cc/bin:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin:/sbin"
-    description: "hixplorer, MacOS"
+    description: pimprle, MacOS"
     user_tags:
-      - hixplorer
+      - pimprle
     notifications:
       on_build_error:
         - __author__
@@ -93,9 +93,9 @@ clippy_check:
     environment_variables:
       PATH: "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin:/sbin"
       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
-    description: hammer clippy check
+    description: clippy check
     user_tags:
-      - hixplorer
+      - pimprle
       - clippy
   tags:
     - hammer-dev

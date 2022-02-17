@@ -8,7 +8,7 @@ use structopt::StructOpt;
 #[macro_use]
 extern crate lazy_static;
 
-const APP_CONFIG: &str = "/etc/hixplorer.yaml";
+const APP_CONFIG: &str = "/etc/pimprle.yaml";
 
 #[derive(Debug, StructOpt)]
 pub enum ValuePrintFormat {
@@ -78,7 +78,7 @@ pub enum Query {
 }
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "hixplorer", about = "Hiera explorer.")]
+#[structopt(name = "pimprle", about = "Puppet checker, linter and explorer.")]
 struct Opt {
     #[structopt(default_value = "./", long)]
     pub repo_path: std::path::PathBuf,
