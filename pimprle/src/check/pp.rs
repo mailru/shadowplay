@@ -25,11 +25,15 @@ impl Check {
 
         let ast = match super::PuppetAst::parse(&pp) {
             Err(err) => {
-                return vec![error::Error::of_file(
-                    file_path,
-                    error::Type::ManifestSyntax,
-                    &format!("Cannot parse: {}", err),
-                )];
+                let err = match err {
+                    nom::Err::Incomplete(_) => {
+                        // nom::complete doesn't generate this state
+                        unreachable!()
+                    }
+                    nom::Err::Error(v) => v,
+                    nom::Err::Failure(v) => v,
+                };
+                return vec![error::Error::from((file_path, &err))];
             }
             Ok(v) => v,
         };

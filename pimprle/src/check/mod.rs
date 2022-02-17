@@ -10,14 +10,10 @@ pub struct PuppetAst {
 }
 
 impl PuppetAst {
-    pub fn parse(input: &str) -> anyhow::Result<Self> {
-        let input = input.to_string();
-        match puppet_parser::statement::parse_statement_list(puppet_parser::parser::Span::new(
-            &input,
-        )) {
-            Ok((_remaining, data)) => Ok(Self { data, input }),
-            Err(nom::Err::Failure(err)) => return Err(anyhow::format_err!("{}", err.to_string())),
-            Err(err) => return Err(anyhow::format_err!("{}", err)),
-        }
+    pub fn parse(i: &str) -> Result<Self, nom::Err<puppet_parser::parser::ParseError>> {
+        let input = i.to_string();
+        let (_remaining, data) =
+            puppet_parser::statement::parse_statement_list(puppet_parser::parser::Span::new(i))?;
+        Ok(Self { data, input })
     }
 }
