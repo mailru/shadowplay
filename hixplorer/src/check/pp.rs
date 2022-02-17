@@ -33,7 +33,7 @@ impl Check {
                 Some(url) => format!(" // See {}", url),
             };
             println!(
-                "Puppet static error [{}] in {:?} at line {} col {}: {}{}",
+                "Puppet static error [{}] in {:?} at line {} column {}: {}{}",
                 error.linter.name(),
                 file_path,
                 error.location.line(),
