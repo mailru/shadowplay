@@ -217,7 +217,7 @@ impl Error {
     pub fn one_line(&self) -> String {
         let url = match &self.url {
             None => "".to_owned(),
-            Some(v) => format!("// See {}", v),
+            Some(v) => format!(" // See {}", v),
         };
         let message = match &self.message {
             Some(message) => message,
