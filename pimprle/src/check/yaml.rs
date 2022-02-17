@@ -95,7 +95,7 @@ impl Check {
         repo_path: &std::path::Path,
         _config: &crate::config::Config,
         format: &error::OutputFormat,
-    ) {
+    ) -> crate::check::Summary {
         let mut errors = 0;
         for file_path in &self.paths {
             let file_errors = self.check_file(repo_path, file_path);
@@ -105,8 +105,9 @@ impl Check {
             errors += file_errors.len();
         }
 
-        if errors > 0 {
-            std::process::exit(1)
+        crate::check::Summary {
+            errors_count: errors,
+            files_checked: self.paths.len(),
         }
     }
 }

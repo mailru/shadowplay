@@ -280,7 +280,7 @@ impl Check {
         repo_path: &std::path::Path,
         config: &crate::config::Config,
         format: &error::OutputFormat,
-    ) {
+    ) -> crate::check::Summary {
         let mut state = State::default();
         let mut errors = 0;
         for file_path in &self.paths {
@@ -291,8 +291,9 @@ impl Check {
             errors += file_errors.len();
         }
 
-        if errors > 0 {
-            std::process::exit(1)
+        crate::check::Summary {
+            errors_count: errors,
+            files_checked: self.paths.len(),
         }
     }
 }

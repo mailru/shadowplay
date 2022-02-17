@@ -375,10 +375,19 @@ impl Get {
 
 impl Check {
     pub fn check(&self, repo_path: &std::path::Path, config: crate::config::Config) {
-        match &self.variant {
+        let summary = match &self.variant {
             CheckVariant::Yaml(v) => v.check(repo_path, &config, &self.format),
             CheckVariant::Hiera(v) => v.check(repo_path, &config, &self.format),
             CheckVariant::Pp(v) => v.check(repo_path, &config, &self.format),
+        };
+        if self.format.is_human() {
+            println!(
+                "Checked {} files, detected {} issues",
+                summary.files_checked, summary.errors_count
+            )
+        }
+        if summary.errors_count > 0 {
+            std::process::exit(1)
         }
     }
 }

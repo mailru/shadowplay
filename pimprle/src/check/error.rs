@@ -9,6 +9,15 @@ pub enum OutputFormat {
     Json,
 }
 
+impl OutputFormat {
+    pub fn is_human(&self) -> bool {
+        match self {
+            OutputFormat::OneLine => true,
+            OutputFormat::Json => false,
+        }
+    }
+}
+
 impl Default for OutputFormat {
     fn default() -> Self {
         Self::OneLine

@@ -17,3 +17,8 @@ impl PuppetAst {
         Ok(Self { data, input })
     }
 }
+
+pub struct Summary {
+    pub errors_count: usize,
+    pub files_checked: usize,
+}
