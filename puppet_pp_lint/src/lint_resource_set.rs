@@ -194,7 +194,7 @@ impl EarlyLintPass for MultipleResourcesWithoutDefault {
             if !has_default {
                 return vec![LintError::new_with_url(
                     Box::new(self.clone()),
-                    "Multiples resources without default set.",
+                    "Multiple esources without default set.",
                     "https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-multiple-resources",
                     &elt.extra,
                 )];
@@ -202,7 +202,7 @@ impl EarlyLintPass for MultipleResourcesWithoutDefault {
             if elt.list.len() == 2 {
                 return vec![LintError::new(
                                         Box::new(self.clone()),
-                    "Multiples resources with default set and only two sets in total. Defaults set can be merged with the only resource.",
+                    "Multiple resources with default set and only two sets in total. Defaults set can be merged with the only resource.",
                     &elt.extra,
                 )];
             }
