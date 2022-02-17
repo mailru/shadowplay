@@ -79,7 +79,7 @@ impl Check {
 
         let mut class = None;
 
-        for elt in ast.data {
+        if let Some(elt) = ast.data.into_iter().next() {
             match elt.value {
                 puppet_lang::statement::StatementVariant::Toplevel(Toplevel::Class(v)) => {
                     if v.identifier.name != puppet_module.identifier() {
@@ -89,15 +89,13 @@ impl Check {
                     );
                         return 1;
                     }
-                    class = Some(v);
-                    break;
+                    class = Some(v)
                 }
                 _ => {
                     println!(
-                    "Hiera static error in {:?} at {}: reference to puppet file {:?} which toplevel expression is not a class",
-                    yaml_path, yaml_marker, puppet_module.file_path()
-                );
-                    return 1;
+                        "Hiera static error in {:?} at {}: reference to puppet file {:?} which toplevel expression is not a class",
+                        yaml_path, yaml_marker, puppet_module.file_path()
+                    );
                 }
             }
         }
