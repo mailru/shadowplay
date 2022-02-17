@@ -89,6 +89,7 @@ pub struct CreateResources<EXTRA> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum StatementVariant<EXTRA> {
+    Fail(crate::expression::Expression<EXTRA>),
     Include(LowerIdentifier<EXTRA>),
     Require(LowerIdentifier<EXTRA>),
     Contain(LowerIdentifier<EXTRA>),

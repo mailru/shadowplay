@@ -17,7 +17,7 @@ impl EarlyLintPass for UselessParens {
         elt: &puppet_lang::expression::Term<Location>,
     ) -> Vec<super::lint::LintError> {
         if let puppet_lang::expression::TermVariant::Parens(inner) = &elt.value {
-            match inner.value {
+            match inner.value.value {
                 puppet_lang::expression::ExpressionVariant::Not(_)
                 | puppet_lang::expression::ExpressionVariant::ChainCall(_)
                 | puppet_lang::expression::ExpressionVariant::Term(_) => {
@@ -48,6 +48,7 @@ impl EarlyLintPass for UselessParens {
                 | puppet_lang::expression::ExpressionVariant::MatchType(_)
                 | puppet_lang::expression::ExpressionVariant::NotMatchType(_)
                 | puppet_lang::expression::ExpressionVariant::In(_)
+                | puppet_lang::expression::ExpressionVariant::FunctionCall(_)
                 | puppet_lang::expression::ExpressionVariant::Selector(_) => {
                     // TODO
                 }

@@ -13,7 +13,7 @@ use crate::common::{
 use crate::parser::Location;
 
 use crate::parser::{IResult, Span};
-use crate::term::parse_term;
+use crate::term::{parse_accessor, parse_term};
 
 use nom::{branch::alt, combinator::map};
 
@@ -188,12 +188,51 @@ fn parse_term_expr(input: Span) -> IResult<puppet_lang::expression::Expression<L
     })(input)
 }
 
+pub fn parse_lambda(input: Span) -> IResult<puppet_lang::expression::Lambda<Location>> {
+    map(
+        pair(
+            crate::common::pipes_comma_separated0(crate::argument::parse),
+            space0_delimimited(ParseError::protect(
+                |_| "'{' expected".to_string(),
+                crate::statement::parse_statement_block,
+            )),
+        ),
+        |(args, body)| puppet_lang::expression::Lambda { args, body },
+    )(input)
+}
+
+fn parse_funcall(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
+    map(
+        tuple((
+            crate::identifier::anycase_identifier_with_ns,
+            space0_delimimited(crate::common::round_brackets_comma_separated0(
+                crate::expression::parse_expression,
+            )),
+            opt(space0_delimimited(parse_lambda)),
+            parse_accessor,
+        )),
+        |(identifier, args, lambda, accessor)| puppet_lang::expression::Expression {
+            extra: identifier.extra.clone(),
+            value: puppet_lang::expression::ExpressionVariant::FunctionCall(
+                puppet_lang::expression::FunctionCall {
+                    extra: identifier.extra.clone(),
+                    identifier,
+                    args,
+                    lambda,
+                    accessor,
+                },
+            ),
+        },
+    )(input)
+}
+
 fn parse_l0(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
     space0_delimimited(alt((
         parse_not,
         parse_in_expr,
         parse_selector,
         parse_match_variant,
+        parse_funcall,
         parse_term_expr,
     )))(input)
 }
@@ -213,13 +252,15 @@ fn parse_chain_call_right(input: Span) -> IResult<puppet_lang::expression::Funct
             opt(space0_delimimited(
                 crate::common::round_brackets_comma_separated0(crate::expression::parse_expression),
             )),
-            opt(space0_delimimited(crate::term::parse_lambda)),
+            opt(space0_delimimited(parse_lambda)),
+            parse_accessor,
         )),
-        |(identifier, args, lambda)| puppet_lang::expression::FunctionCall {
+        |(identifier, args, lambda, accessor)| puppet_lang::expression::FunctionCall {
             extra: identifier.extra.clone(),
             identifier,
             args: args.unwrap_or_default(),
             lambda,
+            accessor,
         },
     )(input)
 }
@@ -526,31 +567,35 @@ fn test_operators_precendence() {
                     value: ExpressionVariant::Multiply((
                         Box::new(Expression {
                             value: ExpressionVariant::Term(Term {
-                                value: TermVariant::Parens(Box::new(Expression {
-                                    value: ExpressionVariant::Plus((
-                                        Box::new(Expression {
-                                            value: ExpressionVariant::Term(Term {
-                                                value: TermVariant::Integer(Integer {
-                                                    value: 1,
+                                value: TermVariant::Parens(puppet_lang::expression::Parens {
+                                    value: Box::new(Expression {
+                                        value: ExpressionVariant::Plus((
+                                            Box::new(Expression {
+                                                value: ExpressionVariant::Term(Term {
+                                                    value: TermVariant::Integer(Integer {
+                                                        value: 1,
+                                                        extra: Location::new(1, 1, 2)
+                                                    }),
                                                     extra: Location::new(1, 1, 2)
                                                 }),
                                                 extra: Location::new(1, 1, 2)
                                             }),
-                                            extra: Location::new(1, 1, 2)
-                                        }),
-                                        Box::new(Expression {
-                                            value: ExpressionVariant::Term(Term {
-                                                value: TermVariant::Integer(Integer {
-                                                    value: 2,
+                                            Box::new(Expression {
+                                                value: ExpressionVariant::Term(Term {
+                                                    value: TermVariant::Integer(Integer {
+                                                        value: 2,
+                                                        extra: Location::new(4, 1, 5)
+                                                    }),
                                                     extra: Location::new(4, 1, 5)
                                                 }),
                                                 extra: Location::new(4, 1, 5)
-                                            }),
-                                            extra: Location::new(4, 1, 5)
-                                        })
-                                    )),
-                                    extra: Location::new(3, 1, 4)
-                                })),
+                                            })
+                                        )),
+                                        extra: Location::new(3, 1, 4)
+                                    }),
+                                    accessor: Vec::new(),
+                                    extra: Location::new(0, 1, 1)
+                                }),
                                 extra: Location::new(0, 1, 1)
                             }),
                             extra: Location::new(0, 1, 1)
@@ -595,6 +640,47 @@ fn test_operators_precendence() {
                 })
             )),
             extra: Location::new(14, 1, 15)
+        }
+    );
+}
+
+#[test]
+fn test_function_call() {
+    assert_eq!(
+        parse_funcall(Span::new("lookup('ask8s::docker::gpu_nvidia')"))
+            .unwrap()
+            .1,
+        puppet_lang::expression::Expression {
+            value: puppet_lang::expression::ExpressionVariant::FunctionCall(
+                puppet_lang::expression::FunctionCall {
+                    identifier: puppet_lang::identifier::LowerIdentifier {
+                        name: vec!["lookup".to_owned()],
+                        is_toplevel: false,
+                        extra: Location::new(0, 1, 1)
+                    },
+                    args: vec![puppet_lang::expression::Expression {
+                        value: puppet_lang::expression::ExpressionVariant::Term(
+                            puppet_lang::expression::Term {
+                                value: puppet_lang::expression::TermVariant::String(
+                                    puppet_lang::expression::StringExpr {
+                                        extra: Location::new(7, 1, 8),
+                                        data: "ask8s::docker::gpu_nvidia".to_owned(),
+                                        variant:
+                                            puppet_lang::expression::StringVariant::SingleQuoted,
+                                        accessor: Vec::new()
+                                    }
+                                ),
+                                extra: Location::new(7, 1, 8)
+                            }
+                        ),
+                        extra: Location::new(7, 1, 8)
+                    },],
+                    lambda: None,
+                    extra: Location::new(0, 1, 1),
+                    accessor: Vec::new()
+                }
+            ),
+            extra: Location::new(0, 1, 1)
         }
     );
 }

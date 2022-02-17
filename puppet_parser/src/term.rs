@@ -1,9 +1,11 @@
 use crate::common::{
-    round_brackets_delimimited, space0_delimimited, square_brackets_comma_separated1,
+    comma_separator, round_brackets_delimimited, space0_delimimited,
+    square_brackets_comma_separated1,
 };
 use crate::parser::Location;
 use crate::parser::{IResult, ParseError, Span};
 use nom::combinator::{map_res, value};
+use nom::multi::separated_list0;
 use nom::sequence::tuple;
 use nom::{
     branch::alt,
@@ -15,20 +17,25 @@ use nom::{
 };
 use puppet_lang::expression::StringExpr;
 
-pub fn parse_variable(input: Span) -> IResult<puppet_lang::expression::Variable<Location>> {
-    let accessor_parser = many0(square_brackets_comma_separated1(
+pub fn parse_accessor(
+    input: Span,
+) -> IResult<Vec<Vec<Box<puppet_lang::expression::Expression<Location>>>>> {
+    many0(square_brackets_comma_separated1(map(
         crate::expression::parse_expression,
-    ));
+        Box::new,
+    )))(input)
+}
 
+pub fn parse_variable(input: Span) -> IResult<puppet_lang::expression::Variable<Location>> {
     map(
         pair(
             preceded(tag("$"), crate::identifier::identifier_with_toplevel),
-            accessor_parser,
+            parse_accessor,
         ),
         |(identifier, accessor)| puppet_lang::expression::Variable {
             extra: identifier.extra.clone(),
-            identifier,
             accessor,
+            identifier,
         },
     )(input)
 }
@@ -41,37 +48,6 @@ pub fn parse_regexp_group_id(
         |identifier| puppet_lang::expression::RegexpGroupID {
             extra: Location::from(input),
             identifier,
-        },
-    )(input)
-}
-
-pub fn parse_lambda(input: Span) -> IResult<puppet_lang::expression::Lambda<Location>> {
-    map(
-        pair(
-            crate::common::pipes_comma_separated0(crate::argument::parse),
-            space0_delimimited(ParseError::protect(
-                |_| "'{' expected".to_string(),
-                crate::statement::parse_statement_block,
-            )),
-        ),
-        |(args, body)| puppet_lang::expression::Lambda { args, body },
-    )(input)
-}
-
-fn parse_funcall(input: Span) -> IResult<puppet_lang::expression::FunctionCall<Location>> {
-    map(
-        tuple((
-            crate::identifier::anycase_identifier_with_ns,
-            space0_delimimited(crate::common::round_brackets_comma_separated0(
-                crate::expression::parse_expression,
-            )),
-            opt(space0_delimimited(parse_lambda)),
-        )),
-        |(identifier, args, lambda)| puppet_lang::expression::FunctionCall {
-            extra: identifier.extra.clone(),
-            identifier,
-            args,
-            lambda,
         },
     )(input)
 }
@@ -167,13 +143,40 @@ fn parse_map(input: Span) -> IResult<puppet_lang::expression::TermVariant<Locati
     );
 
     map(
-        crate::common::curly_brackets_comma_separated0(kv_parser),
-        puppet_lang::expression::TermVariant::Map,
+        tuple((
+            space0_delimimited(tag("{")),
+            separated_list0(comma_separator, kv_parser),
+            space0_delimimited(tag("}")),
+            parse_accessor,
+        )),
+        |(tag_left, value, _tag_right_, accessor)| {
+            puppet_lang::expression::TermVariant::Map(puppet_lang::expression::Map {
+                extra: Location::from(tag_left),
+                value,
+                accessor,
+            })
+        },
     )(input)
 }
 
 pub fn parse_string_variant(input: Span) -> IResult<StringExpr<Location>> {
     alt((crate::double_quoted::parse, crate::single_quoted::parse))(input)
+}
+
+pub fn parse_parens(input: Span) -> IResult<puppet_lang::expression::Parens<Location>> {
+    map(
+        tuple((
+            space0_delimimited(tag("(")),
+            crate::expression::parse_expression,
+            space0_delimimited(tag(")")),
+            parse_accessor,
+        )),
+        |(left_tag, value, _right_tag, accessor)| puppet_lang::expression::Parens {
+            value: Box::new(value),
+            accessor,
+            extra: Location::from(left_tag),
+        },
+    )(input)
 }
 
 pub fn parse_term(input: Span) -> IResult<puppet_lang::expression::Term<Location>> {
@@ -217,9 +220,6 @@ pub fn parse_term(input: Span) -> IResult<puppet_lang::expression::Term<Location
             parse_integer_term,
             puppet_lang::expression::TermVariant::Integer,
         ),
-        map(parse_funcall, |v| {
-            puppet_lang::expression::TermVariant::FunctionCall(v)
-        }),
         parse_type_specification,
         map(
             parse_string_variant,
@@ -229,10 +229,7 @@ pub fn parse_term(input: Span) -> IResult<puppet_lang::expression::Term<Location
             crate::common::square_brackets_comma_separated0(crate::expression::parse_expression),
             puppet_lang::expression::TermVariant::Array,
         ),
-        map(
-            crate::common::round_brackets_delimimited(crate::expression::parse_expression),
-            |v| puppet_lang::expression::TermVariant::Parens(Box::new(v)),
-        ),
+        map(parse_parens, puppet_lang::expression::TermVariant::Parens),
         parse_map,
         map(
             parse_variable,
@@ -263,6 +260,7 @@ fn test_single_quoted() {
                 puppet_lang::expression::StringExpr {
                     data: "aaa".to_owned(),
                     variant: puppet_lang::expression::StringVariant::SingleQuoted,
+                    accessor: Vec::new(),
                     extra: Location::new(0, 1, 1)
                 }
             ),
@@ -274,7 +272,7 @@ fn test_single_quoted() {
 #[test]
 fn test_array_of_types() {
     assert_eq!(
-        parse_term(Span::new("[ Class['some_class'] ]"))
+         parse_term(Span::new("[ Class['some_class'] ]"))
             .unwrap()
             .1,
         puppet_lang::expression::Term {
@@ -292,6 +290,7 @@ fn test_array_of_types() {
                                                     value: puppet_lang::expression::TermVariant::String(puppet_lang::expression::StringExpr {
                                                         data: "some_class".to_owned(),
                                                         variant: puppet_lang::expression::StringVariant::SingleQuoted,
+                                                        accessor: Vec::new(),
                                                         extra: Location::new(8, 1, 9)
                                                     }),
                                                     extra: Location::new(8, 1, 9)
@@ -322,6 +321,7 @@ fn test_double_quoted() {
                 puppet_lang::expression::StringExpr {
                     data: "aaa".to_owned(),
                     variant: puppet_lang::expression::StringVariant::DoubleQuoted,
+                    accessor: Vec::new(),
                     extra: Location::new(0, 1, 1)
                 }
             ),
@@ -433,7 +433,11 @@ fn test_map() {
     assert_eq!(
         parse_term(Span::new("{}")).unwrap().1,
         puppet_lang::expression::Term {
-            value: puppet_lang::expression::TermVariant::Map(vec![]),
+            value: puppet_lang::expression::TermVariant::Map(puppet_lang::expression::Map {
+                value: Vec::new(),
+                accessor: Vec::new(),
+                extra: Location::new(0, 1, 1)
+            }),
             extra: Location::new(0, 1, 1)
         }
     );
@@ -441,80 +445,45 @@ fn test_map() {
     assert_eq!(
         parse_term(Span::new("{false => 1}")).unwrap().1,
         puppet_lang::expression::Term {
-            value: puppet_lang::expression::TermVariant::Map(vec![(
-                puppet_lang::expression::Expression {
-                    value: puppet_lang::expression::ExpressionVariant::Term(
-                        puppet_lang::expression::Term {
-                            value: puppet_lang::expression::TermVariant::Boolean(
-                                puppet_lang::expression::Boolean {
-                                    value: false,
-                                    extra: Location::new(1, 1, 2)
-                                }
-                            ),
-                            extra: Location::new(1, 1, 2)
-                        }
-                    ),
-                    extra: Location::new(1, 1, 2)
-                },
-                puppet_lang::expression::Expression {
-                    value: puppet_lang::expression::ExpressionVariant::Term(
-                        puppet_lang::expression::Term {
-                            value: puppet_lang::expression::TermVariant::Integer(
-                                puppet_lang::expression::Integer {
-                                    value: 1,
-                                    extra: Location::new(10, 1, 11)
-                                }
-                            ),
-                            extra: Location::new(10, 1, 11)
-                        }
-                    ),
-                    extra: Location::new(10, 1, 11)
-                },
-            )]),
+            value: puppet_lang::expression::TermVariant::Map(puppet_lang::expression::Map {
+                value: vec![(
+                    puppet_lang::expression::Expression {
+                        value: puppet_lang::expression::ExpressionVariant::Term(
+                            puppet_lang::expression::Term {
+                                value: puppet_lang::expression::TermVariant::Boolean(
+                                    puppet_lang::expression::Boolean {
+                                        value: false,
+                                        extra: Location::new(1, 1, 2)
+                                    }
+                                ),
+                                extra: Location::new(1, 1, 2)
+                            }
+                        ),
+                        extra: Location::new(1, 1, 2)
+                    },
+                    puppet_lang::expression::Expression {
+                        value: puppet_lang::expression::ExpressionVariant::Term(
+                            puppet_lang::expression::Term {
+                                value: puppet_lang::expression::TermVariant::Integer(
+                                    puppet_lang::expression::Integer {
+                                        value: 1,
+                                        extra: Location::new(10, 1, 11)
+                                    }
+                                ),
+                                extra: Location::new(10, 1, 11)
+                            }
+                        ),
+                        extra: Location::new(10, 1, 11)
+                    },
+                )],
+                accessor: Vec::new(),
+                extra: Location::new(0, 1, 1)
+            }),
             extra: Location::new(0, 1, 1)
         }
     );
 
     assert!(parse_term(Span::new("{'asdasd' => {}, 'a' => 'b', }")).is_ok());
-}
-
-#[test]
-fn test_function_call() {
-    assert_eq!(
-        parse_term(Span::new("lookup('ask8s::docker::gpu_nvidia')"))
-            .unwrap()
-            .1,
-        puppet_lang::expression::Term {
-            value: puppet_lang::expression::TermVariant::FunctionCall(
-                puppet_lang::expression::FunctionCall {
-                    identifier: puppet_lang::identifier::LowerIdentifier {
-                        name: vec!["lookup".to_owned()],
-                        is_toplevel: false,
-                        extra: Location::new(0, 1, 1)
-                    },
-                    args: vec![puppet_lang::expression::Expression {
-                        value: puppet_lang::expression::ExpressionVariant::Term(
-                            puppet_lang::expression::Term {
-                                value: puppet_lang::expression::TermVariant::String(
-                                    puppet_lang::expression::StringExpr {
-                                        extra: Location::new(7, 1, 8),
-                                        data: "ask8s::docker::gpu_nvidia".to_owned(),
-                                        variant:
-                                            puppet_lang::expression::StringVariant::SingleQuoted,
-                                    }
-                                ),
-                                extra: Location::new(7, 1, 8)
-                            }
-                        ),
-                        extra: Location::new(7, 1, 8)
-                    },],
-                    lambda: None,
-                    extra: Location::new(0, 1, 1)
-                }
-            ),
-            extra: Location::new(0, 1, 1)
-        }
-    );
 }
 
 #[test]
@@ -527,7 +496,7 @@ fn test_variable() {
                 is_toplevel: false,
                 extra: Location::new(1, 1, 2)
             },
-            accessor: vec![],
+            accessor: Vec::new(),
             extra: Location::new(1, 1, 2)
         }
     );
@@ -539,7 +508,7 @@ fn test_variable() {
                 is_toplevel: true,
                 extra: Location::new(1, 1, 2)
             },
-            accessor: vec![],
+            accessor: Vec::new(),
             extra: Location::new(1, 1, 2)
         }
     );
@@ -552,7 +521,7 @@ fn test_variable() {
                 extra: Location::new(1, 1, 2)
             },
             accessor: vec![
-                vec![puppet_lang::expression::Expression {
+                vec![Box::new(puppet_lang::expression::Expression {
                     value: puppet_lang::expression::ExpressionVariant::Term(
                         puppet_lang::expression::Term {
                             value: puppet_lang::expression::TermVariant::Integer(
@@ -565,22 +534,23 @@ fn test_variable() {
                         }
                     ),
                     extra: Location::new(4, 1, 5)
-                }],
-                vec![puppet_lang::expression::Expression {
+                })],
+                vec![Box::new(puppet_lang::expression::Expression {
                     value: puppet_lang::expression::ExpressionVariant::Term(
                         puppet_lang::expression::Term {
                             value: puppet_lang::expression::TermVariant::String(
                                 puppet_lang::expression::StringExpr {
                                     extra: Location::new(8, 1, 9),
                                     data: "z".to_owned(),
-                                    variant: puppet_lang::expression::StringVariant::SingleQuoted
+                                    variant: puppet_lang::expression::StringVariant::SingleQuoted,
+                                    accessor: Vec::new()
                                 }
                             ),
                             extra: Location::new(8, 1, 9)
                         }
                     ),
                     extra: Location::new(8, 1, 9)
-                }]
+                })]
             ],
             extra: Location::new(1, 1, 2)
         }

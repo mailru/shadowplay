@@ -8,7 +8,7 @@ use nom::character::complete::alphanumeric1;
 use nom::character::complete::char;
 use nom::combinator::{map, map_opt, map_res, recognize, value, verify};
 use nom::multi::{fold_many0, many1, separated_list1};
-use nom::sequence::{delimited, preceded, terminated};
+use nom::sequence::{delimited, pair, preceded, terminated};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum StringFragment<'a> {
@@ -94,13 +94,15 @@ pub fn parse(input: Span) -> IResult<puppet_lang::expression::StringExpr<Locatio
         bareword,
     ));
 
-    map(single_quoted_parser, |data: String| {
-        puppet_lang::expression::StringExpr {
+    map(
+        pair(single_quoted_parser, crate::term::parse_accessor),
+        |(data, accessor)| puppet_lang::expression::StringExpr {
             data,
             variant: puppet_lang::expression::StringVariant::SingleQuoted,
+            accessor,
             extra: Location::from(input),
-        }
-    })(input)
+        },
+    )(input)
 }
 
 #[test]
@@ -110,6 +112,7 @@ fn test() {
         puppet_lang::expression::StringExpr {
             data: "".to_owned(),
             variant: puppet_lang::expression::StringVariant::SingleQuoted,
+            accessor: Vec::new(),
             extra: Location::new(0, 1, 1)
         }
     );
@@ -118,6 +121,7 @@ fn test() {
         puppet_lang::expression::StringExpr {
             data: "a".to_owned(),
             variant: puppet_lang::expression::StringVariant::SingleQuoted,
+            accessor: Vec::new(),
             extra: Location::new(0, 1, 1)
         }
     );
@@ -126,6 +130,7 @@ fn test() {
         puppet_lang::expression::StringExpr {
             data: "'".to_owned(),
             variant: puppet_lang::expression::StringVariant::SingleQuoted,
+            accessor: Vec::new(),
             extra: Location::new(0, 1, 1)
         }
     );
@@ -134,6 +139,7 @@ fn test() {
         puppet_lang::expression::StringExpr {
             data: "bARE-WORD_".to_owned(),
             variant: puppet_lang::expression::StringVariant::SingleQuoted,
+            accessor: Vec::new(),
             extra: Location::new(0, 1, 1)
         }
     );
@@ -143,6 +149,7 @@ fn test() {
         puppet_lang::expression::StringExpr {
             data: "bAREWORD".to_owned(),
             variant: puppet_lang::expression::StringVariant::SingleQuoted,
+            accessor: Vec::new(),
             extra: Location::new(0, 1, 1)
         }
     );

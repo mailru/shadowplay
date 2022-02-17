@@ -122,6 +122,13 @@ pub struct Storage {
 
 impl Storage {
     pub fn register_early_pass(&mut self, lint: Box<dyn EarlyLintPass>) {
+        if self
+            .early_pass
+            .iter()
+            .any(|registered| registered.name() == lint.name())
+        {
+            panic!("Lint {:?} already registered", lint.name())
+        }
         self.early_pass.push(lint)
     }
 
@@ -155,6 +162,7 @@ impl Storage {
         v.register_early_pass(Box::new(super::lint_case_statement::DefaultCaseIsNotLast));
         v.register_early_pass(Box::new(super::lint_case_statement::MultipleDefaultCase));
         v.register_early_pass(Box::new(super::lint_case_statement::NoDefaultCase));
+        v.register_early_pass(Box::new(super::lint_statement::StatementWithNoSideEffects));
         v
     }
 
@@ -191,7 +199,12 @@ impl AstLinter {
 
         match &elt.value {
             puppet_lang::expression::TermVariant::String(elt) => {
-                errors.append(&mut self.check_string_expression(storage, elt))
+                errors.append(&mut self.check_string_expression(storage, elt));
+                for c in &elt.accessor {
+                    for c in c {
+                        errors.append(&mut self.check_expression(storage, c))
+                    }
+                }
             }
             puppet_lang::expression::TermVariant::Float(_)
             | puppet_lang::expression::TermVariant::Integer(_)
@@ -202,7 +215,6 @@ impl AstLinter {
             | puppet_lang::expression::TermVariant::Undef(_)
             | puppet_lang::expression::TermVariant::Variable(_)
             | puppet_lang::expression::TermVariant::RegexpGroupID(_)
-            | puppet_lang::expression::TermVariant::FunctionCall(_)
             | puppet_lang::expression::TermVariant::Sensitive(_)
             | puppet_lang::expression::TermVariant::TypeSpecitifaction(_)
             | puppet_lang::expression::TermVariant::Regexp(_) => {
@@ -287,10 +299,10 @@ impl AstLinter {
                 errors.append(&mut self.check_expression(storage, right));
             }
             ExpressionVariant::Not(expr) => {
-                // TODO linters for negation
                 errors.append(&mut self.check_expression(storage, expr));
             }
             ExpressionVariant::Selector(_)
+            | ExpressionVariant::FunctionCall(_)
             | ExpressionVariant::Assign(_)
             | ExpressionVariant::MatchRegex(_)
             | ExpressionVariant::NotMatchRegex(_)
@@ -478,6 +490,7 @@ impl AstLinter {
             StatementVariant::Case(elt) => self.check_case(storage, elt),
             StatementVariant::Include(_)
             | StatementVariant::Require(_)
+            | StatementVariant::Fail(_)
             | StatementVariant::Contain(_)
             | StatementVariant::Realize(_)
             | StatementVariant::CreateResources(_)

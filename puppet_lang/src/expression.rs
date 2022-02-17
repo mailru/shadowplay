@@ -3,7 +3,7 @@ use crate::identifier::LowerIdentifier;
 #[derive(Clone, Debug, PartialEq)]
 pub struct Variable<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,
-    pub accessor: Vec<Vec<Expression<EXTRA>>>,
+    pub accessor: Vec<Vec<Box<Expression<EXTRA>>>>,
     pub extra: EXTRA,
 }
 
@@ -24,6 +24,7 @@ pub struct FunctionCall<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,
     pub args: Vec<Expression<EXTRA>>,
     pub lambda: Option<Lambda<EXTRA>>,
+    pub accessor: Vec<Vec<Box<Expression<EXTRA>>>>,
     pub extra: EXTRA,
 }
 
@@ -72,6 +73,7 @@ pub enum StringVariant {
 pub struct StringExpr<EXTRA> {
     pub data: String,
     pub variant: StringVariant,
+    pub accessor: Vec<Vec<Box<Expression<EXTRA>>>>,
     pub extra: EXTRA,
 }
 
@@ -82,18 +84,31 @@ pub struct Boolean<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct Parens<EXTRA> {
+    pub value: Box<Expression<EXTRA>>,
+    pub accessor: Vec<Vec<Box<Expression<EXTRA>>>>,
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Map<EXTRA> {
+    pub value: Vec<(Expression<EXTRA>, Expression<EXTRA>)>,
+    pub accessor: Vec<Vec<Box<Expression<EXTRA>>>>,
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum TermVariant<EXTRA> {
     String(StringExpr<EXTRA>),
     Float(Float<EXTRA>),
     Integer(Integer<EXTRA>),
     Boolean(Boolean<EXTRA>),
     Array(Vec<Expression<EXTRA>>),
-    Parens(Box<Expression<EXTRA>>),
-    Map(Vec<(Expression<EXTRA>, Expression<EXTRA>)>),
+    Parens(Parens<EXTRA>),
+    Map(Map<EXTRA>),
     Undef(Undef<EXTRA>),
     Variable(Variable<EXTRA>),
     RegexpGroupID(RegexpGroupID<EXTRA>),
-    FunctionCall(FunctionCall<EXTRA>),
     Sensitive(Sensitive<EXTRA>),
     TypeSpecitifaction(crate::typing::TypeSpecification<EXTRA>),
     Regexp(Regexp<EXTRA>),
@@ -172,6 +187,7 @@ pub enum ExpressionVariant<EXTRA> {
     In((Term<EXTRA>, Term<EXTRA>)),
     Not(Box<Expression<EXTRA>>),
     Selector(Selector<EXTRA>),
+    FunctionCall(FunctionCall<EXTRA>),
     ChainCall(ChainCall<EXTRA>),
     Term(Term<EXTRA>),
 }

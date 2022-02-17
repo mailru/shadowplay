@@ -53,6 +53,24 @@ fn parse_include(input: Span) -> IResult<StatementVariant<Location>> {
     map(parser, StatementVariant::Include)(input)
 }
 
+fn parse_fail(input: Span) -> IResult<StatementVariant<Location>> {
+    let parser = preceded(
+        tag("fail"),
+        ParseError::protect(
+            |_| "Argument for 'fail' is expected".to_string(),
+            alt((
+                preceded(
+                    separator0,
+                    round_brackets_delimimited(crate::expression::parse_expression),
+                ),
+                preceded(separator1, crate::expression::parse_expression),
+            )),
+        ),
+    );
+
+    map(parser, StatementVariant::Fail)(input)
+}
+
 fn parse_contain(input: Span) -> IResult<StatementVariant<Location>> {
     let parser = preceded(
         tag("contain"),
@@ -405,6 +423,7 @@ fn parse_statement_variant(input: Span) -> IResult<StatementVariant<Location>> {
         parse_case,
         parse_require,
         parse_include,
+        parse_fail,
         parse_contain,
         parse_tag,
         parse_create_resources,

@@ -1,4 +1,5 @@
 use crate::parser::Location;
+use crate::term::parse_accessor;
 
 use super::parser::{IResult, ParseError, Span};
 use nom::branch::alt;
@@ -6,7 +7,7 @@ use nom::bytes::complete::is_not;
 use nom::character::complete::char;
 use nom::combinator::{map, value, verify};
 use nom::multi::fold_many0;
-use nom::sequence::{delimited, preceded};
+use nom::sequence::{delimited, pair, preceded};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum StringFragment<'a> {
@@ -66,10 +67,11 @@ pub fn parse(input: Span) -> IResult<puppet_lang::expression::StringExpr<Locatio
     });
 
     map(
-        delimited(char('"'), build_string, char('"')),
-        |data: String| puppet_lang::expression::StringExpr {
+        delimited(char('"'), pair(build_string, parse_accessor), char('"')),
+        |(data, accessor)| puppet_lang::expression::StringExpr {
             data,
             variant: puppet_lang::expression::StringVariant::DoubleQuoted,
+            accessor,
             extra: Location::from(input),
         },
     )(input)
@@ -82,6 +84,7 @@ fn test() {
         puppet_lang::expression::StringExpr {
             data: "".to_owned(),
             variant: puppet_lang::expression::StringVariant::DoubleQuoted,
+            accessor: Vec::new(),
             extra: Location::new(0, 1, 1)
         }
     );
@@ -90,6 +93,7 @@ fn test() {
         puppet_lang::expression::StringExpr {
             data: "a".to_owned(),
             variant: puppet_lang::expression::StringVariant::DoubleQuoted,
+            accessor: Vec::new(),
             extra: Location::new(0, 1, 1)
         }
     );
@@ -98,6 +102,7 @@ fn test() {
         puppet_lang::expression::StringExpr {
             data: "\"".to_owned(),
             variant: puppet_lang::expression::StringVariant::DoubleQuoted,
+            accessor: Vec::new(),
             extra: Location::new(0, 1, 1)
         }
     );
