@@ -6,7 +6,7 @@ use crate::parser::Location;
 use crate::parser::{IResult, ParseError, Span};
 use nom::combinator::{map_res, value};
 use nom::multi::separated_list0;
-use nom::sequence::tuple;
+use nom::sequence::{terminated, tuple};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -145,7 +145,10 @@ fn parse_map(input: Span) -> IResult<puppet_lang::expression::TermVariant<Locati
     map(
         tuple((
             space0_delimimited(tag("{")),
-            separated_list0(comma_separator, kv_parser),
+            terminated(
+                separated_list0(comma_separator, kv_parser),
+                opt(space0_delimimited(tag(","))),
+            ),
             space0_delimimited(tag("}")),
             parse_accessor,
         )),

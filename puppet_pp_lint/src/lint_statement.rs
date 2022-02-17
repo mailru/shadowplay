@@ -12,6 +12,7 @@ impl LintPass for StatementWithNoSideEffects {
 }
 
 impl EarlyLintPass for StatementWithNoSideEffects {
+    // TODO сделать менее наивную реализацию, с сохранением в EXTRA состояния
     fn check_statement(&self, elt: &puppet_lang::statement::Statement<Location>) -> Vec<LintError> {
         if !crate::tool::statement::has_side_effect(elt) {
             return vec![LintError::new(
