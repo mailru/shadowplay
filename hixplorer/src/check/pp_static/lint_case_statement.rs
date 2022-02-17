@@ -41,13 +41,11 @@ impl EarlyLintPass for DefaultCaseIsNotLast {
         let mut default = None;
         let mut errors = Vec::new();
         for case in &elt.elements {
-            if case.matches.iter().any(|elt| {
-                if let puppet_lang::expression::TermVariant::String(v) = &elt.value {
-                    v.data == "default"
-                } else {
-                    false
-                }
-            }) {
+            if case
+                .matches
+                .iter()
+                .any(|elt| matches!(elt, puppet_lang::expression::CaseVariant::Default(_)))
+            {
                 default = Some(case)
             } else if let Some(default) = default {
                 errors.push(LintError::new(
@@ -81,13 +79,11 @@ impl EarlyLintPass for MultipleDefaultCase {
         > = None;
         let mut errors = Vec::new();
         for case in &elt.elements {
-            if case.matches.iter().any(|elt| {
-                if let puppet_lang::expression::TermVariant::String(v) = &elt.value {
-                    v.data == "default"
-                } else {
-                    false
-                }
-            }) {
+            if case
+                .matches
+                .iter()
+                .any(|elt| matches!(elt, puppet_lang::expression::CaseVariant::Default(_)))
+            {
                 if let Some(default) = default {
                     errors.push(LintError::new(
                         Box::new(self.clone()),
@@ -120,10 +116,8 @@ impl EarlyLintPass for NoDefaultCase {
         let mut has_default = false;
         for case in &elt.elements {
             for case_elt in &case.matches {
-                if let puppet_lang::expression::TermVariant::String(v) = &case_elt.value {
-                    if v.data == "default" {
-                        has_default = true
-                    }
+                if matches!(case_elt, puppet_lang::expression::CaseVariant::Default(_)) {
+                    has_default = true
                 }
             }
         }

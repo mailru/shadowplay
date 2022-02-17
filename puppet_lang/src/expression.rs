@@ -106,8 +106,19 @@ pub struct Term<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct Default<EXTRA> {
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum CaseVariant<EXTRA> {
+    Term(Term<EXTRA>),
+    Default(Default<EXTRA>),
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct SelectorCase<EXTRA> {
-    pub case: Term<EXTRA>,
+    pub case: CaseVariant<EXTRA>,
     pub body: Box<Expression<EXTRA>>,
     pub extra: EXTRA,
 }

@@ -368,7 +368,10 @@ fn parse_case(input: Span) -> IResult<StatementVariant<Location>> {
 
     let parser_element = map(
         tuple((
-            separated_list1(comma_separator, space0_delimimited(crate::term::parse_term)),
+            separated_list1(
+                comma_separator,
+                space0_delimimited(crate::expression::parse_case_variant),
+            ),
             tag(":"),
             space0_delimimited(parse_statement_set),
         )),

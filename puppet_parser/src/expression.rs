@@ -5,6 +5,7 @@ use nom::sequence::tuple;
 /// https://puppet.com/docs/puppet/6/lang_expressions.html#lang_expressions-order-of-operations
 ///
 use nom::{bytes::complete::tag, sequence::pair};
+use puppet_lang::expression::CaseVariant;
 
 use crate::common::{
     comma_separator, fold_many0_with_const_init, space0_delimimited, space1_delimimited,
@@ -103,10 +104,26 @@ fn parse_not(input: Span) -> IResult<puppet_lang::expression::Expression<Locatio
     })(input)
 }
 
+pub fn parse_case_variant(input: Span) -> IResult<CaseVariant<Location>> {
+    map(parse_term, |t| {
+        if matches!(
+            &t.value,
+            puppet_lang::expression::TermVariant::String(puppet_lang::expression::StringExpr {
+                data,
+                ..
+            }) if data == "default"
+        ) {
+            CaseVariant::Default(puppet_lang::expression::Default { extra: t.extra })
+        } else {
+            CaseVariant::Term(t)
+        }
+    })(input)
+}
+
 /// https://puppet.com/docs/puppet/7/lang_conditional.html#lang_condition_selector
 fn parse_selector_case(input: Span) -> IResult<puppet_lang::expression::SelectorCase<Location>> {
     let parser = tuple((
-        parse_term,
+        parse_case_variant,
         space0_delimimited(tag("=>")),
         ParseError::protect(
             |_| "A value for selector case is expected".to_string(),

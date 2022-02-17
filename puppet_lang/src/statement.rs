@@ -68,7 +68,7 @@ pub struct RelationList<EXTRA> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CaseElement<EXTRA> {
-    pub matches: Vec<crate::expression::Term<EXTRA>>,
+    pub matches: Vec<crate::expression::CaseVariant<EXTRA>>,
     pub body: Box<Vec<Statement<EXTRA>>>,
     pub extra: EXTRA,
 }
