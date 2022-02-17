@@ -291,7 +291,7 @@ fn parse_if_else(input: Span) -> IResult<StatementVariant<Location>> {
             |_| "Condition is expected after 'if'".to_string(),
             crate::expression::parse_expression,
         )),
-        parse_statement_set,
+        parse_statement_block,
     ));
 
     let parser_elsif = many0(tuple((
@@ -300,10 +300,10 @@ fn parse_if_else(input: Span) -> IResult<StatementVariant<Location>> {
             |_| "Condition is expected after 'elsif'".to_string(),
             crate::expression::parse_expression,
         )),
-        parse_statement_set,
+        parse_statement_block,
     )));
 
-    let parser_else = preceded(space0_delimimited(tag("else")), parse_statement_set);
+    let parser_else = preceded(space0_delimimited(tag("else")), parse_statement_block);
 
     let parser = tuple((parser_if, opt(parser_elsif), opt(parser_else)));
 
@@ -345,7 +345,7 @@ fn parse_unless(input: Span) -> IResult<StatementVariant<Location>> {
             |_| "Condition is expected after 'unless'".to_string(),
             crate::expression::parse_expression,
         )),
-        parse_statement_set,
+        parse_statement_block,
     ));
 
     map(parser, |(op, condition, body)| {
@@ -373,7 +373,7 @@ fn parse_case(input: Span) -> IResult<StatementVariant<Location>> {
                 space0_delimimited(crate::expression::parse_case_variant),
             ),
             tag(":"),
-            space0_delimimited(parse_statement_set),
+            space0_delimimited(parse_statement_block),
         )),
         |(matches, tag, body)| puppet_lang::statement::CaseElement {
             matches,
@@ -422,14 +422,18 @@ fn parse_statement(input: Span) -> IResult<Statement<Location>> {
     })(input)
 }
 
-pub fn parse_statement_set(input: Span) -> IResult<Vec<Statement<Location>>> {
+pub fn parse_statement_list(input: Span) -> IResult<Vec<Statement<Location>>> {
+    many0(terminated(
+        space0_delimimited(parse_statement),
+        opt(space0_delimimited(tag(";"))),
+    ))(input)
+}
+
+pub fn parse_statement_block(input: Span) -> IResult<Vec<Statement<Location>>> {
     preceded(
         tag("{"),
         terminated(
-            many0(terminated(
-                space0_delimimited(parse_statement),
-                opt(space0_delimimited(tag(";"))),
-            )),
+            parse_statement_list,
             ParseError::protect(
                 |_| "Closing '}' or statement is expected".to_string(),
                 space0_delimimited(tag("}")),
@@ -440,5 +444,5 @@ pub fn parse_statement_set(input: Span) -> IResult<Vec<Statement<Location>>> {
 
 #[test]
 fn test_selector() {
-    assert!(parse_statement_set(Span::new("{ if $z { $a ? { default => 0, } } }")).is_ok())
+    assert!(parse_statement_block(Span::new("{ if $z { $a ? { default => 0, } } }")).is_ok())
 }

@@ -52,7 +52,7 @@ pub fn parse_class(input: Span) -> IResult<Class<Location>> {
                                 space0_delimimited(crate::identifier::identifier_with_toplevel),
                             ),
                         ))),
-                        crate::statement::parse_statement_set,
+                        crate::statement::parse_statement_block,
                     ),
                 ),
             )),
@@ -77,7 +77,7 @@ pub fn parse_definition(input: Span) -> IResult<Definition<Location>> {
                 preceded(super::common::separator0, parse_header),
                 space0_delimimited(ParseError::protect(
                     |_| "'{' expected".to_string(),
-                    crate::statement::parse_statement_set,
+                    crate::statement::parse_statement_block,
                 )),
             ),
         ),
@@ -95,7 +95,7 @@ pub fn parse_plan(input: Span) -> IResult<Plan<Location>> {
             tag("plan"),
             pair(
                 preceded(super::common::separator0, parse_header),
-                crate::statement::parse_statement_set,
+                crate::statement::parse_statement_block,
             ),
         ),
         |((identifier, arguments), body)| Plan {

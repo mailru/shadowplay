@@ -51,7 +51,7 @@ pub fn parse_lambda(input: Span) -> IResult<puppet_lang::expression::Lambda<Loca
             crate::common::pipes_comma_separated0(crate::argument::parse),
             space0_delimimited(ParseError::protect(
                 |_| "'{' expected".to_string(),
-                crate::statement::parse_statement_set,
+                crate::statement::parse_statement_block,
             )),
         ),
         |(args, body)| puppet_lang::expression::Lambda { args, body },
