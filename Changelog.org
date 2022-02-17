@@ -1,4 +1,31 @@
 * Changelog
+** [2022-02-17] v0.8.0
+
+*** New features
+
+ - Unified error API (843a4a5)
+ - Protect match operator (939b0d2)
+ - Added lint SelectorInAttributeValue (00abfd9)
+
+*** Bugfixes
+
+ - Issue reported by linter (231c134)
+ - Statement set is actual toplevel (53cbace)
+ - Extended double quoted string escape sequences (0dfa726)
+ - Single quoted string has limited escape sequences (edb4106)
+
+*** Other changes
+
+ - Updated licence and authors list (2bd45cf)
+ - Added parse_statement_list() (52080bf)
+ - Added README.md (b8dd5a5)
+ - Project is renamed (4286af4)
+ - Moved YAML parser into separate project (d8e1476)
+ - Moved linters into separate subproject 'puppet_pp_lint' (e45d1d5)
+ - 'default' case now parsed into separate variant (d2c0123)
+ - Error message (3e0caca)
+
+
 ** [2022-02-16] v0.7.0
 
 *** New features
