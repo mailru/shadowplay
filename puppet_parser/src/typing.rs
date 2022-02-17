@@ -604,6 +604,7 @@ fn test_struct() {
                 puppet_lang::typing::TypeStructKey::String(puppet_lang::expression::StringExpr {
                     data: "some_key".to_owned(),
                     variant: puppet_lang::expression::StringVariant::SingleQuoted,
+                    accessor: Vec::new(),
                     extra: Location::new(9, 1, 10)
                 }),
                 puppet_lang::typing::TypeSpecification {
@@ -730,6 +731,7 @@ fn test_type_specification() {
                             puppet_lang::expression::StringExpr {
                                 data: "hello".to_owned(),
                                 variant: puppet_lang::expression::StringVariant::SingleQuoted,
+                                accessor: Vec::new(),
                                 extra: Location::new(6, 1, 7),
                             }
                         ),

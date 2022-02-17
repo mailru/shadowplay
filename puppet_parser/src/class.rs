@@ -272,16 +272,19 @@ fn test_body_tag() {
                     puppet_lang::expression::StringExpr {
                         data: "aaa".to_owned(),
                         variant: puppet_lang::expression::StringVariant::SingleQuoted,
+                        accessor: Vec::new(),
                         extra: Location::new(26, 2, 6)
                     },
                     puppet_lang::expression::StringExpr {
                         data: "bbb".to_owned(),
                         variant: puppet_lang::expression::StringVariant::SingleQuoted,
+                        accessor: Vec::new(),
                         extra: Location::new(31, 2, 11)
                     },
                     puppet_lang::expression::StringExpr {
                         data: "ccc".to_owned(),
                         variant: puppet_lang::expression::StringVariant::DoubleQuoted,
+                        accessor: Vec::new(),
                         extra: Location::new(38, 2, 18)
                     }
                 ]),
