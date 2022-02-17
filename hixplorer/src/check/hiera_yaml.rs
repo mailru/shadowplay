@@ -52,7 +52,7 @@ impl Check {
         &self,
         repo_path: &std::path::Path,
         yaml_path: &std::path::Path,
-        yaml_marker: &crate::yaml::Marker,
+        yaml_marker: &located_yaml::Marker,
         puppet_module: &crate::puppet::module::Module,
         argument: &str,
         state: &mut State,
@@ -127,7 +127,15 @@ impl Check {
         state: &mut State,
         config: &crate::config::Config,
     ) -> usize {
-        let yaml = match crate::yaml::load_file(file_path) {
+        let yaml_str = match std::fs::read_to_string(file_path) {
+            Ok(v) => v,
+            Err(err) => {
+                println!("Failed to load file {:?}: {}", file_path, err);
+                return 1;
+            }
+        };
+
+        let yaml = match located_yaml::YamlLoader::load_from_str(&yaml_str) {
             Err(err) => {
                 println!("Failed to read {:?}: {}", file_path, err);
                 return 1;
@@ -145,7 +153,7 @@ impl Check {
         };
 
         let doc = match &doc.yaml {
-            crate::yaml::YamlElt::Hash(h) => h,
+            located_yaml::YamlElt::Hash(h) => h,
             _ => {
                 println!(
                     "Hiera static error in {:?}: Root element is not a map",
@@ -157,7 +165,7 @@ impl Check {
 
         for key in doc.keys() {
             let hiera_key = match &key.yaml {
-                crate::yaml::YamlElt::String(v) => v,
+                located_yaml::YamlElt::String(v) => v,
                 v => {
                     println!(
                         "Hiera static error in {:?}: Invalid key type {:?} at {}",

@@ -2,7 +2,6 @@ pub mod check;
 pub mod config;
 pub mod hiera_config;
 pub mod puppet;
-pub mod yaml;
 
 use structopt::StructOpt;
 
@@ -167,28 +166,28 @@ impl Get {
         &self,
         repo_path: &std::path::Path,
         yaml_path: &std::path::Path,
-        key: &crate::yaml::Yaml,
-        value: &crate::yaml::Yaml,
+        key: &located_yaml::Yaml,
+        value: &located_yaml::Yaml,
         traverse_path: &[&str],
     ) {
         let s = match &value.yaml {
-            yaml::YamlElt::Real(v) => {
+            located_yaml::YamlElt::Real(v) => {
                 format!("{:?}", v)
             }
-            yaml::YamlElt::String(v) => {
+            located_yaml::YamlElt::String(v) => {
                 format!("{:?}", v)
             }
-            yaml::YamlElt::Integer(v) => {
+            located_yaml::YamlElt::Integer(v) => {
                 format!("{:?}", v)
             }
-            yaml::YamlElt::Boolean(v) => {
+            located_yaml::YamlElt::Boolean(v) => {
                 format!("{:?}", v)
             }
-            yaml::YamlElt::Array(_) => "<ARRAY VALUE>".to_owned(),
-            yaml::YamlElt::Hash(_) => "<HASH VALUE>".to_owned(),
-            yaml::YamlElt::Alias(_) => "<YAML ALIAS VALUE>".to_owned(),
-            yaml::YamlElt::Null => "<NULL VALUE>".to_owned(),
-            yaml::YamlElt::BadValue => "<BAD VALUE>".to_owned(),
+            located_yaml::YamlElt::Array(_) => "<ARRAY VALUE>".to_owned(),
+            located_yaml::YamlElt::Hash(_) => "<HASH VALUE>".to_owned(),
+            located_yaml::YamlElt::Alias(_) => "<YAML ALIAS VALUE>".to_owned(),
+            located_yaml::YamlElt::Null => "<NULL VALUE>".to_owned(),
+            located_yaml::YamlElt::BadValue => "<BAD VALUE>".to_owned(),
         };
         let (key_min_line, key_max_line) = key.lines_range();
         let (val_min_line, val_max_line) = value.lines_range();
@@ -213,8 +212,8 @@ impl Get {
         &self,
         repo_path: &std::path::Path,
         yaml_path: &std::path::Path,
-        key: &crate::yaml::Yaml,
-        value: &crate::yaml::Yaml,
+        key: &located_yaml::Yaml,
+        value: &located_yaml::Yaml,
         traverse_path: &[&str],
     ) {
         match self.format {
@@ -226,11 +225,11 @@ impl Get {
             }
             ValuePrintFormat::Yaml => println!(
                 "{}",
-                serde_yaml::to_string(&crate::yaml::Untagged::of_yaml(value)).unwrap()
+                serde_yaml::to_string(&located_yaml::Untagged::of_yaml(value)).unwrap()
             ),
             ValuePrintFormat::Json => println!(
                 "{}",
-                serde_json::to_string(&crate::yaml::Untagged::of_yaml(value)).unwrap()
+                serde_json::to_string(&located_yaml::Untagged::of_yaml(value)).unwrap()
             ),
         }
     }
@@ -271,7 +270,15 @@ impl Get {
                 traverse_path.push(path.as_str());
                 let yaml_path = repo_path.join(&hiera_config.defaults.datadir).join(path);
 
-                let yaml = match crate::yaml::load_file(&yaml_path) {
+                let yaml_str = match std::fs::read_to_string(&yaml_path) {
+                    Ok(v) => v,
+                    Err(err) => {
+                        log::error!("Failed to load file {:?}: {}", yaml_path, err);
+                        continue;
+                    }
+                };
+
+                let yaml = match located_yaml::YamlLoader::load_from_str(&yaml_str) {
                     Ok(v) => v,
                     Err(err) => {
                         log::error!("Failed to parse {:?}: {}", yaml_path, err);
@@ -331,7 +338,7 @@ impl Get {
                 }
 
                 let hash = match &yaml.docs[0].yaml {
-                    crate::yaml::YamlElt::Hash(v) => v,
+                    located_yaml::YamlElt::Hash(v) => v,
                     _ => {
                         log::error!("Top value of {:?} is not a map", yaml_path);
                         continue;
@@ -339,7 +346,7 @@ impl Get {
                 };
 
                 for (k, v) in hash {
-                    if k.yaml == crate::yaml::YamlElt::String(self.key.clone()) {
+                    if k.yaml == located_yaml::YamlElt::String(self.key.clone()) {
                         self.show(repo_path, &yaml_path, k, v, &traverse_path);
                         return;
                     }

@@ -5,7 +5,7 @@ pub struct Check {
     paths: Vec<std::path::PathBuf>,
 }
 
-pub fn static_check(file_path: &std::path::Path, yaml: &crate::yaml::YamlLoader) -> usize {
+pub fn static_check(file_path: &std::path::Path, yaml: &located_yaml::YamlLoader) -> usize {
     let mut errors = 0;
 
     match file_path.metadata() {
@@ -50,7 +50,15 @@ pub fn static_check(file_path: &std::path::Path, yaml: &crate::yaml::YamlLoader)
 
 impl Check {
     pub fn check_file(&self, _repo_path: &std::path::Path, file_path: &std::path::Path) -> usize {
-        let yaml = match crate::yaml::load_file(file_path) {
+        let yaml_str = match std::fs::read_to_string(file_path) {
+            Ok(v) => v,
+            Err(err) => {
+                println!("Failed to load file {:?}: {}", file_path, err);
+                return 1;
+            }
+        };
+
+        let yaml = match located_yaml::YamlLoader::load_from_str(&yaml_str) {
             Err(err) => {
                 println!("Failed to read {:?}: {}", file_path, err);
                 return 1;

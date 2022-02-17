@@ -127,6 +127,7 @@ dependencies = [
  "env_logger",
  "lazy_static",
  "linked-hash-map",
+ "located_yaml",
  "log",
  "nom",
  "nom_locate",
@@ -183,6 +184,17 @@ checksum = "7fb9b38af92608140b86b693604b9ffcc5824240a484d1ecd4795bacb2fe88f3"
 dependencies = [
  "serde",
  "serde_test",
+]
+
+[[package]]
+name = "located_yaml"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb9f29a416753d0fa4a68883cdd7e465975c04c79807c713340415926096221e"
+dependencies = [
+ "linked-hash-map",
+ "serde",
+ "yaml-rust",
 ]
 
 [[package]]
