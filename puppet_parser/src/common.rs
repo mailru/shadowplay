@@ -298,6 +298,7 @@ where
                         return Err(nom::Err::Error(ParseError::new(
                             "Parsed empty token in list".to_string(),
                             input,
+                            None,
                         )));
                     }
 

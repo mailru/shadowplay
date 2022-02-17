@@ -7,13 +7,35 @@ pub type Span<'a> = LocatedSpan<&'a str>;
 pub struct ParseError<'a> {
     span: Span<'a>,
     message: Option<String>,
+    url: Option<String>,
 }
 
 impl<'a> ParseError<'a> {
-    pub fn new(message: String, span: Span<'a>) -> Self {
+    pub fn new(message: String, span: Span<'a>, url: Option<String>) -> Self {
         Self {
             span,
             message: Some(message),
+            url,
+        }
+    }
+
+    pub fn protect_with_url<O, M, F>(
+        mut message_generator: M,
+        mut parser: F,
+    ) -> impl FnMut(Span<'a>) -> IResult<O>
+    where
+        M: FnMut(Span<'a>) -> (String, &str) + Copy,
+        F: nom::Parser<Span<'a>, O, ParseError<'a>>,
+        O: Clone,
+    {
+        move |input: Span| {
+            parser.parse(input).map_err(|err| match err {
+                nom::Err::Error(_err) => {
+                    let (err, url) = message_generator(input);
+                    nom::Err::Failure(ParseError::new(err, input, Some(url.to_string())))
+                }
+                e => e,
+            })
         }
     }
 
@@ -34,7 +56,7 @@ impl<'a> ParseError<'a> {
                     } else {
                         message_generator(input)
                     };
-                    nom::Err::Failure(ParseError::new(err, input))
+                    nom::Err::Failure(ParseError::new(err, input, None))
                 }
                 e => e,
             })
@@ -45,7 +67,7 @@ impl<'a> ParseError<'a> {
     where
         O: Clone,
     {
-        Err(nom::Err::Failure(ParseError::new(message, span)))
+        Err(nom::Err::Failure(ParseError::new(message, span, None)))
     }
 
     pub fn span(&self) -> &Span<'a> {
@@ -54,6 +76,10 @@ impl<'a> ParseError<'a> {
 
     pub fn message(&self) -> &Option<String> {
         &self.message
+    }
+
+    pub fn url(&self) -> &Option<String> {
+        &self.url
     }
 }
 
@@ -74,7 +100,7 @@ impl<'a> std::fmt::Display for ParseError<'a> {
 // That's what makes it nom-compatible.
 impl<'a> nom::error::ParseError<Span<'a>> for ParseError<'a> {
     fn from_error_kind(input: Span<'a>, kind: nom::error::ErrorKind) -> Self {
-        Self::new(format!("parse error {:?}", kind), input)
+        Self::new(format!("parse error {:?}", kind), input, None)
     }
 
     fn append(_input: Span<'a>, _kind: nom::error::ErrorKind, other: Self) -> Self {
@@ -82,7 +108,7 @@ impl<'a> nom::error::ParseError<Span<'a>> for ParseError<'a> {
     }
 
     fn from_char(input: Span<'a>, c: char) -> Self {
-        Self::new(format!("unexpected character '{}'", c), input)
+        Self::new(format!("unexpected character '{}'", c), input, None)
     }
 }
 
@@ -97,6 +123,7 @@ impl<'a> nom::error::FromExternalError<LocatedSpan<&'a str>, std::num::ParseIntE
         Self {
             span,
             message: Some(format!("{}", e)),
+            url: None,
         }
     }
 }

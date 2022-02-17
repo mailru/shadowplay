@@ -41,12 +41,12 @@ fn parse_escaped_char(input: Span) -> IResult<char> {
         char('\\'),
         alt((
             alt((value('\\', char('\\')), value('\'', char('\'')))),
-            ParseError::protect(
+            ParseError::protect_with_url(
                 |s: Span| {
-                    format!(
-                        "Unexpected escaped character {:?}. See https://puppet.com/docs/puppet/7/lang_data_string.html#lang_data_string_single_quoted_strings-escape-sequences",
+                    (format!(
+                        "Unexpected escaped character {:?}.",
                         s.chars().next().unwrap()
-                    )
+                     ), "https://puppet.com/docs/puppet/7/lang_data_string.html#lang_data_string_single_quoted_strings-escape-sequences")
                 },
                 parse_unicode,
             ),

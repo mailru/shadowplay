@@ -150,7 +150,7 @@ impl<'a> From<(&std::path::Path, &puppet_parser::parser::ParseError<'a>)> for Er
         Self {
             error_type: Type::ManifestSyntax,
             message: parse_error.message().clone(),
-            url: None,
+            url: parse_error.url().clone(),
             location: Location::from((path, parse_error.span())),
         }
     }
