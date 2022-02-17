@@ -27,7 +27,6 @@ impl<'a> ParseError<'a> {
         O: Clone,
     {
         move |input: Span| {
-            // println!("PARSING PROTECTED: {:?}", input);
             parser.parse(input).map_err(|err| match err {
                 nom::Err::Error(_err) => {
                     let err = if input.is_empty() {
@@ -47,6 +46,14 @@ impl<'a> ParseError<'a> {
         O: Clone,
     {
         Err(nom::Err::Failure(ParseError::new(message, span)))
+    }
+
+    pub fn span(&self) -> &Span<'a> {
+        &self.span
+    }
+
+    pub fn message(&self) -> &Option<String> {
+        &self.message
     }
 }
 

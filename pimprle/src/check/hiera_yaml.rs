@@ -1,3 +1,4 @@
+use crate::check::error;
 use anyhow::Result;
 use structopt::StructOpt;
 
@@ -57,22 +58,33 @@ impl Check {
         argument: &str,
         state: &mut State,
         config: &crate::config::Config,
-    ) -> usize {
+    ) -> Vec<error::Error> {
         let module_file = puppet_module.full_file_path(repo_path);
         let ast = match self.parse_pp(repo_path, &module_file, state) {
             Err(err) => {
-                println!(
-                    "Hiera static error in {:?} at {}: reference to puppet class {:?} which failed to parse with error: {:?}",
-                    yaml_path, yaml_marker, puppet_module.name(), err
-                );
-                return 1;
+                return vec![error::Error::from((
+                    yaml_path,
+                    error::Type::Hiera,
+                    format!(
+                        "Reference to puppet class {:?} which failed to parse with error: {:?}",
+                        puppet_module.name(),
+                        err
+                    )
+                    .as_str(),
+                    yaml_marker,
+                ))];
             }
             Ok(None) => {
-                println!(
-                    "Hiera static error in {:?} at {}: reference to puppet class {:?} which failed to parse earlier",
-                    yaml_path, yaml_marker, puppet_module.name()
-                );
-                return 1;
+                return vec![error::Error::from((
+                    yaml_path,
+                    error::Type::Hiera,
+                    format!(
+                        "Reference to puppet class {:?} which failed to parse earlier",
+                        puppet_module.name(),
+                    )
+                    .as_str(),
+                    yaml_marker,
+                ))];
             }
             Ok(Some(v)) => v,
         };
@@ -83,19 +95,30 @@ impl Check {
             match elt.value {
                 puppet_lang::statement::StatementVariant::Toplevel(Toplevel::Class(v)) => {
                     if v.identifier.name != puppet_module.identifier() {
-                        println!(
-                        "Hiera static error in {:?} at {}: reference to puppet file {:?} which toplevel class does not match module name",
-                        yaml_path, yaml_marker, puppet_module.file_path()
-                    );
-                        return 1;
+                        return vec![error::Error::from((
+                            yaml_path,
+                            error::Type::Hiera,
+                            format!(
+                                "Reference to puppet file {:?} which toplevel class does not match module name",
+                                puppet_module.file_path(),
+                            )
+                            .as_str(),
+                            yaml_marker,
+                        ))];
                     }
                     class = Some(v)
                 }
                 _ => {
-                    println!(
-                        "Hiera static error in {:?} at {}: reference to puppet file {:?} which toplevel expression is not a class",
-                        yaml_path, yaml_marker, puppet_module.file_path()
-                    );
+                    return vec![error::Error::from((
+                        yaml_path,
+                        error::Type::Hiera,
+                        format!(
+                            "Reference to puppet file {:?} which toplevel expression is not a class",
+                            puppet_module.file_path(),
+                        )
+                        .as_str(),
+                        yaml_marker,
+                    ))];
                 }
             }
         }
@@ -112,17 +135,23 @@ impl Check {
                 {
                     // OK, value is whitelisted
                 } else {
-                    println!(
-                    "Hiera static error in {:?} at {}: reference to puppet class {:?} does not have argument {:?}",
-                    yaml_path, yaml_marker, puppet_module.name(), argument
-                );
-                    return 1;
+                    return vec![error::Error::from((
+                        yaml_path,
+                        error::Type::Hiera,
+                        format!(
+                            "Reference to puppet class {:?} which does not have argument {:?}",
+                            puppet_module.name(),
+                            argument,
+                        )
+                        .as_str(),
+                        yaml_marker,
+                    ))];
                 }
             }
             Some(_) => (),
         };
 
-        0
+        Vec::new()
     }
 
     pub fn check_file(
@@ -131,26 +160,28 @@ impl Check {
         file_path: &std::path::Path,
         state: &mut State,
         config: &crate::config::Config,
-    ) -> usize {
+    ) -> Vec<error::Error> {
+        let mut errors = Vec::new();
+
         let yaml_str = match std::fs::read_to_string(file_path) {
             Ok(v) => v,
             Err(err) => {
-                println!("Failed to load file {:?}: {}", file_path, err);
-                return 1;
+                return vec![error::Error::of_file(
+                    file_path,
+                    error::Type::FileError,
+                    &format!("Cannot load: {}", err),
+                )];
             }
         };
 
         let yaml = match located_yaml::YamlLoader::load_from_str(&yaml_str) {
             Err(err) => {
-                println!("Failed to read {:?}: {}", file_path, err);
-                return 1;
+                return vec![error::Error::from((file_path, &err))];
             }
             Ok(v) => v,
         };
 
-        let mut errors = 0;
-
-        errors += crate::check::yaml::static_check(file_path, &yaml);
+        errors.extend(crate::check::yaml::static_check(file_path, &yaml));
 
         let doc = match yaml.docs.as_slice() {
             [doc] => doc,
@@ -160,11 +191,13 @@ impl Check {
         let doc = match &doc.yaml {
             located_yaml::YamlElt::Hash(h) => h,
             _ => {
-                println!(
-                    "Hiera static error in {:?}: Root element is not a map",
-                    file_path
-                );
-                return errors + 1;
+                errors.push(error::Error::of_file(
+                    file_path,
+                    error::Type::Hiera,
+                    "Root element is not a map",
+                ));
+
+                return errors;
             }
         };
 
@@ -172,13 +205,12 @@ impl Check {
             let hiera_key = match &key.yaml {
                 located_yaml::YamlElt::String(v) => v,
                 v => {
-                    println!(
-                        "Hiera static error in {:?}: Invalid key type {:?} at {}",
+                    errors.push(error::Error::from((
                         file_path,
-                        v.type_name(),
-                        key.marker
-                    );
-                    errors += 1;
+                        error::Type::Hiera,
+                        format!("Invalid key type {:?}", v.type_name()).as_str(),
+                        &key.marker,
+                    )));
                     continue;
                 }
             };
@@ -189,20 +221,22 @@ impl Check {
             }
 
             if SINGLE_SEMICOLON_RE.is_match(hiera_key) {
-                println!(
-                    "Hiera static error in {:?}: key {:?} contains single semicolon at {}",
-                    file_path, hiera_key, key.marker
-                );
-                errors += 1;
+                errors.push(error::Error::from((
+                    file_path,
+                    error::Type::Hiera,
+                    format!("Key {:?} contains single semicolon", hiera_key).as_str(),
+                    &key.marker,
+                )));
             }
 
             match crate::puppet::module::Module::of_hiera(hiera_key) {
                 Err(err) => {
-                    println!(
-                        "Hiera static error in {:?}: {} at {}",
-                        file_path, err, key.marker
-                    );
-                    errors += 1;
+                    errors.push(error::Error::from((
+                        file_path,
+                        error::Type::Hiera,
+                        err.to_string().as_str(),
+                        &key.marker,
+                    )));
                 }
                 Ok(Some((puppet_module, class_argument))) => {
                     let module_file = puppet_module.full_file_path(repo_path);
@@ -215,15 +249,16 @@ impl Check {
                         {
                             // whitelisted module
                         } else {
-                            println!(
-                                "Hiera static error in {:?}: puppet module {:?} does not exists at {}",
-                                file_path, module_file, key.marker
-                            );
-                            errors += 1;
+                            errors.push(error::Error::from((
+                                file_path,
+                                error::Type::Hiera,
+                                format!("Puppet module {:?} does not exist", module_file).as_str(),
+                                &key.marker,
+                            )));
                         }
                         continue;
                     }
-                    errors += self.check_class_argument(
+                    errors.extend(self.check_class_argument(
                         repo_path,
                         file_path,
                         &key.marker,
@@ -231,7 +266,7 @@ impl Check {
                         class_argument,
                         state,
                         config,
-                    )
+                    ))
                 }
                 Ok(None) => (),
             }
@@ -240,11 +275,20 @@ impl Check {
         errors
     }
 
-    pub fn check(&self, repo_path: &std::path::Path, config: &crate::config::Config) {
+    pub fn check(
+        &self,
+        repo_path: &std::path::Path,
+        config: &crate::config::Config,
+        format: &error::OutputFormat,
+    ) {
         let mut state = State::default();
         let mut errors = 0;
         for file_path in &self.paths {
-            errors += self.check_file(repo_path, file_path, &mut state, config)
+            let file_errors = self.check_file(repo_path, file_path, &mut state, config);
+            for err in &file_errors {
+                println!("{}", err.output(format))
+            }
+            errors += file_errors.len();
         }
 
         if errors > 0 {

@@ -58,13 +58,23 @@ pub struct Get {
 }
 
 #[derive(Debug, StructOpt)]
-pub enum Check {
+pub enum CheckVariant {
     /// Check specified yaml files
     Yaml(crate::check::yaml::Check),
     /// Check specified hiera yaml files
     Hiera(crate::check::hiera_yaml::Check),
     /// Check specified *.pp files
     Pp(crate::check::pp::Check),
+}
+
+#[derive(Debug, StructOpt)]
+#[structopt(name = "pimprle", about = "Puppet checker, linter and explorer.")]
+pub struct Check {
+    /// Output format. Possible values: "one-line", "json"
+    #[structopt(short, default_value = "one-line")]
+    pub format: crate::check::error::OutputFormat,
+    #[structopt(subcommand)]
+    pub variant: CheckVariant,
 }
 
 #[derive(Debug, StructOpt)]
@@ -365,10 +375,10 @@ impl Get {
 
 impl Check {
     pub fn check(&self, repo_path: &std::path::Path, config: crate::config::Config) {
-        match self {
-            Check::Yaml(v) => v.check(repo_path, &config),
-            Check::Hiera(v) => v.check(repo_path, &config),
-            Check::Pp(v) => v.check(repo_path, &config),
+        match &self.variant {
+            CheckVariant::Yaml(v) => v.check(repo_path, &config, &self.format),
+            CheckVariant::Hiera(v) => v.check(repo_path, &config, &self.format),
+            CheckVariant::Pp(v) => v.check(repo_path, &config, &self.format),
         }
     }
 }

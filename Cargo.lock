@@ -165,9 +165,9 @@ dependencies = [
 
 [[package]]
 name = "located_yaml"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb9f29a416753d0fa4a68883cdd7e465975c04c79807c713340415926096221e"
+checksum = "e590556c36ece7e248ba3c58c36f4c9c48c25c20a6d7af7b4f9a2a97d2303668"
 dependencies = [
  "linked-hash-map",
  "serde",

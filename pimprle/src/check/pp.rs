@@ -1,3 +1,4 @@
+use crate::check::error;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -6,19 +7,29 @@ pub struct Check {
 }
 
 impl Check {
-    pub fn check_file(&self, _repo_path: &std::path::Path, file_path: &std::path::Path) -> usize {
+    pub fn check_file(
+        &self,
+        _repo_path: &std::path::Path,
+        file_path: &std::path::Path,
+    ) -> Vec<error::Error> {
         let pp = match std::fs::read_to_string(file_path) {
             Err(err) => {
-                println!("Failed to read {:?}: {}", file_path, err);
-                return 1;
+                return vec![error::Error::of_file(
+                    file_path,
+                    error::Type::FileError,
+                    &format!("Cannot load: {}", err),
+                )];
             }
             Ok(v) => v,
         };
 
         let ast = match super::PuppetAst::parse(&pp) {
             Err(err) => {
-                println!("Parse error in {:?}: {}", file_path, err);
-                return 1;
+                return vec![error::Error::of_file(
+                    file_path,
+                    error::Type::ManifestSyntax,
+                    &format!("Cannot parse: {}", err),
+                )];
             }
             Ok(v) => v,
         };
@@ -31,29 +42,25 @@ impl Check {
             errors.append(&mut linter.check_statement(&linter_storage, statement));
         }
 
-        for error in &errors {
-            let url_message = match &error.url {
-                None => "".to_owned(),
-                Some(url) => format!(" // See {}", url),
-            };
-            println!(
-                "Puppet static error [{}] in {:?} at line {} column {}: {}{}",
-                error.linter.name(),
-                file_path,
-                error.location.line(),
-                error.location.column(),
-                error.message,
-                url_message
-            );
-        }
-
-        errors.len()
+        errors
+            .into_iter()
+            .map(|err| error::Error::from((file_path, &err)))
+            .collect()
     }
 
-    pub fn check(&self, repo_path: &std::path::Path, _config: &crate::config::Config) {
+    pub fn check(
+        &self,
+        repo_path: &std::path::Path,
+        _config: &crate::config::Config,
+        format: &error::OutputFormat,
+    ) {
         let mut errors = 0;
         for file_path in &self.paths {
-            errors += self.check_file(repo_path, file_path)
+            let file_errors = self.check_file(repo_path, file_path);
+            for err in &file_errors {
+                println!("{}", err.output(format))
+            }
+            errors += file_errors.len();
         }
 
         if errors > 0 {

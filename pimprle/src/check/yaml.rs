@@ -1,3 +1,4 @@
+use crate::check::error;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -5,63 +6,83 @@ pub struct Check {
     paths: Vec<std::path::PathBuf>,
 }
 
-pub fn static_check(file_path: &std::path::Path, yaml: &located_yaml::YamlLoader) -> usize {
-    let mut errors = 0;
+pub fn static_check(
+    file_path: &std::path::Path,
+    yaml: &located_yaml::YamlLoader,
+) -> Vec<error::Error> {
+    let mut errors = Vec::new();
 
     match file_path.metadata() {
         Err(_) => {
-            println!(
-                "Yaml static error for {:?}: cannot get file metadata",
-                file_path
-            );
-            errors += 1;
+            errors.push(error::Error::of_file(
+                file_path,
+                error::Type::FileError,
+                "Cannot read file metadata",
+            ));
         }
         Ok(metadata) => {
             use std::os::unix::fs::PermissionsExt;
             if metadata.permissions().mode() & 0o111 != 0 {
-                println!("Yaml static error for {:?}: file is executable", file_path);
-                errors += 1;
+                errors.push(error::Error::of_file(
+                    file_path,
+                    error::Type::FileError,
+                    "File is executable",
+                ));
             }
         }
     }
 
     if yaml.docs.is_empty() {
-        println!("Yaml static error in {:?}: Empty (untyped) yaml. Add '{{}}' or '[]' if this is expected.", file_path);
-        return errors + 1;
+        errors.push(error::Error::of_file(
+            file_path,
+            error::Type::Yaml,
+            "Empty (untyped) yaml. Add '{{}}' or '[]' if this is expected.",
+        ));
+        return errors;
     }
 
     if yaml.docs.len() > 1 {
-        println!(
-            "Yaml static error in {:?}: contains multiple documents",
-            file_path
-        );
-        errors += 1;
+        errors.push(error::Error::of_file(
+            file_path,
+            error::Type::Yaml,
+            "Empty (untyped) yaml. Add '{{}}' or '[]' if this is expected.",
+        ));
     }
 
-    if !yaml.errors.is_empty() {
-        for err in &yaml.errors {
-            println!("Yaml static error in {:?}: {}", file_path, err)
-        }
-        errors += 1;
-    }
+    errors.extend(
+        &mut yaml
+            .errors
+            .iter()
+            .map(|e| error::Error::from((file_path, e))),
+    );
 
     errors
 }
 
 impl Check {
-    pub fn check_file(&self, _repo_path: &std::path::Path, file_path: &std::path::Path) -> usize {
+    pub fn check_file(
+        &self,
+        _repo_path: &std::path::Path,
+        file_path: &std::path::Path,
+    ) -> Vec<error::Error> {
         let yaml_str = match std::fs::read_to_string(file_path) {
             Ok(v) => v,
             Err(err) => {
-                println!("Failed to load file {:?}: {}", file_path, err);
-                return 1;
+                return vec![error::Error::of_file(
+                    file_path,
+                    error::Type::Yaml,
+                    &format!("Failed to load file: {}", err),
+                )]
             }
         };
 
         let yaml = match located_yaml::YamlLoader::load_from_str(&yaml_str) {
             Err(err) => {
-                println!("Failed to read {:?}: {}", file_path, err);
-                return 1;
+                return vec![error::Error::of_file(
+                    file_path,
+                    error::Type::Yaml,
+                    &format!("Failed to read file: {}", err),
+                )]
             }
             Ok(v) => v,
         };
@@ -69,10 +90,19 @@ impl Check {
         static_check(file_path, &yaml)
     }
 
-    pub fn check(&self, repo_path: &std::path::Path, _config: &crate::config::Config) {
+    pub fn check(
+        &self,
+        repo_path: &std::path::Path,
+        _config: &crate::config::Config,
+        format: &error::OutputFormat,
+    ) {
         let mut errors = 0;
         for file_path in &self.paths {
-            errors += self.check_file(repo_path, file_path)
+            let file_errors = self.check_file(repo_path, file_path);
+            for err in &file_errors {
+                println!("{}", err.output(format))
+            }
+            errors += file_errors.len();
         }
 
         if errors > 0 {
