@@ -60,7 +60,7 @@ pub(crate) fn parse_match_variant(
         },
     );
 
-    let mut parser = alt((
+    let parser = alt((
         map(parser_match_regex, |value| {
             puppet_lang::expression::Expression {
                 value,
@@ -74,6 +74,11 @@ pub(crate) fn parse_match_variant(
             }
         }),
     ));
+
+    let mut parser = ParseError::protect(
+        |_| "Regex or type specification expected after match operator".to_string(),
+        parser,
+    );
 
     parser(input)
 }
