@@ -313,19 +313,43 @@ fn test_body_require() {
             arguments: Vec::new(),
             body: vec![
                 puppet_lang::statement::Statement {
-                    value: puppet_lang::statement::StatementVariant::Require(LowerIdentifier {
-                        name: vec!["abc".to_owned(), "def".to_owned()],
-                        is_toplevel: false,
-                        extra: Location::new(30, 2, 10),
-                    }),
+                    value: puppet_lang::statement::StatementVariant::Require(vec![
+                        puppet_lang::expression::Expression {
+                            value: puppet_lang::expression::ExpressionVariant::Term(
+                                puppet_lang::expression::Term {
+                                    value: puppet_lang::expression::TermVariant::Identifier(
+                                        LowerIdentifier {
+                                            name: vec!["abc".to_owned(), "def".to_owned()],
+                                            is_toplevel: false,
+                                            extra: Location::new(30, 2, 10),
+                                        }
+                                    ),
+                                    extra: Location::new(30, 2, 10),
+                                }
+                            ),
+                            extra: Location::new(30, 2, 10)
+                        }
+                    ]),
                     extra: Location::new(22, 2, 2),
                 },
                 puppet_lang::statement::Statement {
-                    value: puppet_lang::statement::StatementVariant::Require(LowerIdentifier {
-                        name: vec!["zzz".to_owned()],
-                        is_toplevel: false,
-                        extra: Location::new(47, 2, 27),
-                    }),
+                    value: puppet_lang::statement::StatementVariant::Require(vec![
+                        puppet_lang::expression::Expression {
+                            value: puppet_lang::expression::ExpressionVariant::Term(
+                                puppet_lang::expression::Term {
+                                    value: puppet_lang::expression::TermVariant::Identifier(
+                                        LowerIdentifier {
+                                            name: vec!["zzz".to_owned()],
+                                            is_toplevel: false,
+                                            extra: Location::new(47, 2, 27)
+                                        }
+                                    ),
+                                    extra: Location::new(47, 2, 27)
+                                }
+                            ),
+                            extra: Location::new(47, 2, 27)
+                        }
+                    ]),
                     extra: Location::new(39, 2, 19),
                 }
             ],
