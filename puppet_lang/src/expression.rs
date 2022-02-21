@@ -154,22 +154,30 @@ pub struct ChainCall<EXTRA> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ExpressionVariant<EXTRA> {
-    Multiply((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
-    Divide((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
-    Modulo((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
-    Plus((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
-    Minus((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
-    ShiftLeft((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
-    ShiftRight((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    Assign((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+
+    And((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    Or((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+
     Equal((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
     NotEqual((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
     Gt((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
     GtEq((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
     Lt((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
     LtEq((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
-    And((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
-    Or((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
-    Assign((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+
+    ShiftLeft((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    ShiftRight((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+
+    Plus((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    Minus((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+
+    Multiply((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    Divide((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+    Modulo((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
+
+    ChainCall(ChainCall<EXTRA>),
+
     MatchRegex((Box<Expression<EXTRA>>, Regexp<EXTRA>)),
     NotMatchRegex((Box<Expression<EXTRA>>, Regexp<EXTRA>)),
     MatchType(
@@ -188,7 +196,6 @@ pub enum ExpressionVariant<EXTRA> {
     Not(Box<Expression<EXTRA>>),
     Selector(Selector<EXTRA>),
     FunctionCall(FunctionCall<EXTRA>),
-    ChainCall(ChainCall<EXTRA>),
     Term(Term<EXTRA>),
 }
 
