@@ -66,6 +66,7 @@ pub trait EarlyLintPass: LintPass {
     }
     fn check_expression(
         &self,
+        _is_toplevel_expr: bool,
         _: &puppet_lang::expression::Expression<Location>,
     ) -> Vec<LintError> {
         Vec::new()
@@ -143,7 +144,7 @@ impl Storage {
         v.register_early_pass(Box::new(super::lint_argument::ReadableArgumentsName));
         v.register_early_pass(Box::new(super::lint_argument::LowerCaseArgumentName));
         v.register_early_pass(Box::new(super::lint_unless::DoNotUseUnless));
-        v.register_early_pass(Box::new(super::lint_term::UselessParens));
+        v.register_early_pass(Box::new(super::lint_expression::UselessParens));
         v.register_early_pass(Box::new(super::lint_term::UselessDoubleQuotes));
         v.register_early_pass(Box::new(super::lint_term::LowerCaseVariable));
         v.register_early_pass(Box::new(super::lint_resource_set::UpperCaseName));
@@ -187,6 +188,60 @@ impl AstLinter {
         errors
     }
 
+    pub fn check_array(
+        &self,
+        storage: &Storage,
+        elts: &[puppet_lang::expression::Expression<Location>],
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for expr in elts {
+            errors.append(&mut self.check_expression(storage, true, expr))
+        }
+
+        errors
+    }
+
+    pub fn check_accessor(
+        &self,
+        storage: &Storage,
+        list: &[Vec<Box<puppet_lang::expression::Expression<Location>>>],
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for l1 in list {
+            for l2 in l1 {
+                errors.append(&mut self.check_expression(storage, true, l2));
+            }
+        }
+
+        errors
+    }
+
+    pub fn check_map(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::expression::Map<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for (left, right) in &elt.value {
+            errors.append(&mut self.check_expression(storage, true, left));
+            errors.append(&mut self.check_expression(storage, true, right));
+        }
+        errors.append(&mut self.check_accessor(storage, &elt.accessor));
+
+        errors
+    }
+
+    pub fn check_variable(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::expression::Variable<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        errors.append(&mut self.check_accessor(storage, &elt.accessor));
+
+        errors
+    }
+
     pub fn check_term(
         &self,
         storage: &Storage,
@@ -200,20 +255,24 @@ impl AstLinter {
         match &elt.value {
             puppet_lang::expression::TermVariant::String(elt) => {
                 errors.append(&mut self.check_string_expression(storage, elt));
-                for c in &elt.accessor {
-                    for c in c {
-                        errors.append(&mut self.check_expression(storage, c))
-                    }
-                }
+                errors.append(&mut self.check_accessor(storage, &elt.accessor));
+            }
+            puppet_lang::expression::TermVariant::Parens(expr) => {
+                errors.append(&mut self.check_expression(storage, false, &expr.value))
+            }
+            puppet_lang::expression::TermVariant::Array(list) => {
+                errors.append(&mut self.check_array(storage, list))
+            }
+            puppet_lang::expression::TermVariant::Map(elt) => {
+                errors.append(&mut self.check_map(storage, elt))
+            }
+            puppet_lang::expression::TermVariant::Variable(elt) => {
+                errors.append(&mut self.check_variable(storage, elt))
             }
             puppet_lang::expression::TermVariant::Float(_)
             | puppet_lang::expression::TermVariant::Integer(_)
             | puppet_lang::expression::TermVariant::Boolean(_)
-            | puppet_lang::expression::TermVariant::Array(_)
-            | puppet_lang::expression::TermVariant::Parens(_)
-            | puppet_lang::expression::TermVariant::Map(_)
             | puppet_lang::expression::TermVariant::Undef(_)
-            | puppet_lang::expression::TermVariant::Variable(_)
             | puppet_lang::expression::TermVariant::RegexpGroupID(_)
             | puppet_lang::expression::TermVariant::Sensitive(_)
             | puppet_lang::expression::TermVariant::TypeSpecitifaction(_)
@@ -228,78 +287,79 @@ impl AstLinter {
     pub fn check_expression(
         &self,
         storage: &Storage,
+        is_toplevel_expr: bool,
         elt: &puppet_lang::expression::Expression<Location>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_expression(elt));
+            errors.append(&mut lint.check_expression(is_toplevel_expr, elt));
         }
 
         use puppet_lang::expression::ExpressionVariant;
         match &elt.value {
             ExpressionVariant::Term(elt) => errors.append(&mut self.check_term(storage, elt)),
             ExpressionVariant::Multiply((left, right)) => {
-                errors.append(&mut self.check_expression(storage, left));
-                errors.append(&mut self.check_expression(storage, right));
+                errors.append(&mut self.check_expression(storage, false, left));
+                errors.append(&mut self.check_expression(storage, false, right));
             }
             ExpressionVariant::Divide((left, right)) => {
-                errors.append(&mut self.check_expression(storage, left));
-                errors.append(&mut self.check_expression(storage, right));
+                errors.append(&mut self.check_expression(storage, false, left));
+                errors.append(&mut self.check_expression(storage, false, right));
             }
             ExpressionVariant::Modulo((left, right)) => {
-                errors.append(&mut self.check_expression(storage, left));
-                errors.append(&mut self.check_expression(storage, right));
+                errors.append(&mut self.check_expression(storage, false, left));
+                errors.append(&mut self.check_expression(storage, false, right));
             }
             ExpressionVariant::Plus((left, right)) => {
-                errors.append(&mut self.check_expression(storage, left));
-                errors.append(&mut self.check_expression(storage, right));
+                errors.append(&mut self.check_expression(storage, false, left));
+                errors.append(&mut self.check_expression(storage, false, right));
             }
             ExpressionVariant::Minus((left, right)) => {
-                errors.append(&mut self.check_expression(storage, left));
-                errors.append(&mut self.check_expression(storage, right));
+                errors.append(&mut self.check_expression(storage, false, left));
+                errors.append(&mut self.check_expression(storage, false, right));
             }
             ExpressionVariant::ShiftLeft((left, right)) => {
-                errors.append(&mut self.check_expression(storage, left));
-                errors.append(&mut self.check_expression(storage, right));
+                errors.append(&mut self.check_expression(storage, false, left));
+                errors.append(&mut self.check_expression(storage, false, right));
             }
             ExpressionVariant::ShiftRight((left, right)) => {
-                errors.append(&mut self.check_expression(storage, left));
-                errors.append(&mut self.check_expression(storage, right));
+                errors.append(&mut self.check_expression(storage, false, left));
+                errors.append(&mut self.check_expression(storage, false, right));
             }
             ExpressionVariant::Equal((left, right)) => {
-                errors.append(&mut self.check_expression(storage, left));
-                errors.append(&mut self.check_expression(storage, right));
+                errors.append(&mut self.check_expression(storage, false, left));
+                errors.append(&mut self.check_expression(storage, false, right));
             }
             ExpressionVariant::NotEqual((left, right)) => {
-                errors.append(&mut self.check_expression(storage, left));
-                errors.append(&mut self.check_expression(storage, right));
+                errors.append(&mut self.check_expression(storage, false, left));
+                errors.append(&mut self.check_expression(storage, false, right));
             }
             ExpressionVariant::Gt((left, right)) => {
-                errors.append(&mut self.check_expression(storage, left));
-                errors.append(&mut self.check_expression(storage, right));
+                errors.append(&mut self.check_expression(storage, false, left));
+                errors.append(&mut self.check_expression(storage, false, right));
             }
             ExpressionVariant::GtEq((left, right)) => {
-                errors.append(&mut self.check_expression(storage, left));
-                errors.append(&mut self.check_expression(storage, right));
+                errors.append(&mut self.check_expression(storage, false, left));
+                errors.append(&mut self.check_expression(storage, false, right));
             }
             ExpressionVariant::Lt((left, right)) => {
-                errors.append(&mut self.check_expression(storage, left));
-                errors.append(&mut self.check_expression(storage, right));
+                errors.append(&mut self.check_expression(storage, false, left));
+                errors.append(&mut self.check_expression(storage, false, right));
             }
             ExpressionVariant::LtEq((left, right)) => {
-                errors.append(&mut self.check_expression(storage, left));
-                errors.append(&mut self.check_expression(storage, right));
+                errors.append(&mut self.check_expression(storage, false, left));
+                errors.append(&mut self.check_expression(storage, false, right));
             }
             ExpressionVariant::And((left, right)) => {
-                errors.append(&mut self.check_expression(storage, left));
-                errors.append(&mut self.check_expression(storage, right));
+                errors.append(&mut self.check_expression(storage, false, left));
+                errors.append(&mut self.check_expression(storage, false, right));
             }
             ExpressionVariant::Or((left, right)) => {
-                errors.append(&mut self.check_expression(storage, left));
-                errors.append(&mut self.check_expression(storage, right));
+                errors.append(&mut self.check_expression(storage, false, left));
+                errors.append(&mut self.check_expression(storage, false, right));
             }
             ExpressionVariant::Not(expr) => {
-                errors.append(&mut self.check_expression(storage, expr));
+                errors.append(&mut self.check_expression(storage, false, expr));
             }
             ExpressionVariant::Selector(_)
             | ExpressionVariant::FunctionCall(_)
@@ -327,7 +387,7 @@ impl AstLinter {
             errors.append(&mut lint.check_unless(elt));
         }
 
-        errors.append(&mut self.check_expression(storage, &elt.condition));
+        errors.append(&mut self.check_expression(storage, true, &elt.condition));
         for statement in elt.body.as_ref() {
             errors.append(&mut self.check_statement(storage, statement));
         }
@@ -345,13 +405,13 @@ impl AstLinter {
             errors.append(&mut lint.check_if_else(elt));
         }
 
-        errors.append(&mut self.check_expression(storage, &elt.condition.condition));
+        errors.append(&mut self.check_expression(storage, true, &elt.condition.condition));
         for statement in elt.condition.body.as_ref() {
             errors.append(&mut self.check_statement(storage, statement));
         }
 
         for elsif_block in &elt.elsif_list {
-            errors.append(&mut self.check_expression(storage, &elsif_block.condition));
+            errors.append(&mut self.check_expression(storage, true, &elsif_block.condition));
             for statement in elsif_block.body.as_ref() {
                 errors.append(&mut self.check_statement(storage, statement));
             }
@@ -459,7 +519,7 @@ impl AstLinter {
             errors.append(&mut lint.check_case_statement(elt));
         }
 
-        errors.append(&mut self.check_expression(storage, &elt.condition));
+        errors.append(&mut self.check_expression(storage, true, &elt.condition));
 
         for case in &elt.elements {
             for statement in case.body.as_ref() {
@@ -484,7 +544,7 @@ impl AstLinter {
         let mut variant_errors = match &statement.value {
             StatementVariant::Unless(elt) => self.check_unless(storage, elt),
             StatementVariant::Toplevel(elt) => self.check_toplevel(storage, elt),
-            StatementVariant::Expression(elt) => self.check_expression(storage, elt),
+            StatementVariant::Expression(elt) => self.check_expression(storage, true, elt),
             StatementVariant::IfElse(elt) => self.check_if_else(storage, elt),
             StatementVariant::RelationList(elt) => self.check_relation_list(storage, elt),
             StatementVariant::Case(elt) => self.check_case(storage, elt),
