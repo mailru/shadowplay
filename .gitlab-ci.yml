@@ -57,6 +57,9 @@ build_hammer_macos:
     environment_variables:
       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
       PATH: "/opt/darwin-cc/bin:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin:/sbin"
+    artifacts:
+      - path_glob: /root/build/target/x86_64-apple-darwin/release/pimprle
+        artifact_type: Generic
     description: pimprle, MacOS"
     user_tags:
       - pimprle
