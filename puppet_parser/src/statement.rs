@@ -9,7 +9,7 @@ use puppet_lang::statement::{Statement, StatementVariant};
 
 use crate::{
     common::{
-        comma_separator, curly_brackets_delimimited, round_brackets_comma_separated0,
+        comma_separator, curly_brackets_delimimited, round_brackets_comma_separated1,
         round_brackets_delimimited, separator0, separator1, space0_delimimited, spaced0_separator,
         square_brackets_comma_separated1,
     },
@@ -17,19 +17,31 @@ use crate::{
     term::parse_string_variant,
 };
 
+fn parse_class_reference(input: Span) -> IResult<puppet_lang::expression::Term<Location>> {
+    alt((
+        map(crate::identifier::identifier_with_toplevel, |elt| {
+            puppet_lang::expression::Term {
+                extra: elt.extra.clone(),
+                value: puppet_lang::expression::TermVariant::Identifier(elt),
+            }
+        }),
+        crate::term::parse_term,
+    ))(input)
+}
+
 fn parse_classes_reference_list(
     input: Span,
-) -> IResult<Vec<puppet_lang::expression::Expression<Location>>> {
+) -> IResult<Vec<puppet_lang::expression::Term<Location>>> {
     ParseError::protect(
         |_| "Class names as an arguments are expected".to_string(),
         alt((
             preceded(
                 separator0,
-                round_brackets_comma_separated0(crate::expression::parse_expression),
+                round_brackets_comma_separated1(parse_class_reference),
             ),
             preceded(
                 separator1,
-                separated_list1(comma_separator, crate::expression::parse_expression),
+                separated_list1(comma_separator, parse_class_reference),
             ),
         )),
     )(input)
@@ -100,7 +112,7 @@ fn parse_create_resources(input: Span) -> IResult<StatementVariant<Location>> {
                     "Class name as the first argument for 'create_resources' is expected"
                         .to_string()
                 },
-                space0_delimimited(crate::expression::parse_expression),
+                space0_delimimited(parse_class_reference),
             ),
             comma_separator,
             ParseError::protect(

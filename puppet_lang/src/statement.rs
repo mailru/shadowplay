@@ -84,7 +84,7 @@ pub struct Case<EXTRA> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CreateResources<EXTRA> {
-    pub resource: crate::expression::Expression<EXTRA>,
+    pub resource: crate::expression::Term<EXTRA>,
     pub args: Vec<Expression<EXTRA>>,
     pub extra: EXTRA,
 }
@@ -92,9 +92,9 @@ pub struct CreateResources<EXTRA> {
 #[derive(Clone, Debug, PartialEq)]
 pub enum StatementVariant<EXTRA> {
     Fail(crate::expression::Expression<EXTRA>),
-    Include(Vec<crate::expression::Expression<EXTRA>>),
-    Require(Vec<crate::expression::Expression<EXTRA>>),
-    Contain(Vec<crate::expression::Expression<EXTRA>>),
+    Include(Vec<crate::expression::Term<EXTRA>>),
+    Require(Vec<crate::expression::Term<EXTRA>>),
+    Contain(Vec<crate::expression::Term<EXTRA>>),
     Realize(Vec<crate::typing::TypeSpecification<EXTRA>>),
     CreateResources(CreateResources<EXTRA>),
     Tag(Vec<crate::expression::StringExpr<EXTRA>>),

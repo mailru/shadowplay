@@ -225,10 +225,6 @@ pub fn parse_term(input: Span) -> IResult<puppet_lang::expression::Term<Location
         ),
         parse_type_specification,
         map(
-            crate::identifier::identifier_with_toplevel,
-            puppet_lang::expression::TermVariant::Identifier,
-        ),
-        map(
             parse_string_variant,
             puppet_lang::expression::TermVariant::String,
         ),

@@ -7,7 +7,9 @@ use nom::sequence::tuple;
 use nom::{bytes::complete::tag, sequence::pair};
 use puppet_lang::expression::CaseVariant;
 
-use crate::common::{comma_separator, fold_many0_with_const_init, space0_delimimited};
+use crate::common::{
+    comma_separator, fold_many0_with_const_init, space0_delimimited, space1_delimimited,
+};
 use crate::parser::Location;
 
 use crate::parser::{IResult, Span};
@@ -222,7 +224,7 @@ fn parse_in_expr(input: Span) -> IResult<puppet_lang::expression::Expression<Loc
     let parser = pair(
         parse_chain_call,
         opt(pair(
-            space0_delimimited(tag("in")),
+            space1_delimimited(tag("in")),
             ParseError::protect(
                 |_| "Expression expected after 'in'".to_string(),
                 parse_chain_call,
