@@ -7,9 +7,7 @@ use nom::sequence::tuple;
 use nom::{bytes::complete::tag, sequence::pair};
 use puppet_lang::expression::CaseVariant;
 
-use crate::common::{
-    comma_separator, fold_many0_with_const_init, space0_delimimited, space1_delimimited,
-};
+use crate::common::{comma_separator, fold_many0_with_const_init, space0_delimimited};
 use crate::parser::Location;
 
 use crate::parser::{IResult, Span};
@@ -83,22 +81,6 @@ pub(crate) fn parse_match_variant(
     parser(input)
 }
 
-/// https://puppet.com/docs/puppet/6/lang_expressions.html#lang_exp_comparison_operators-comparison-in
-fn parse_in_expr(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
-    let parser = tuple((
-        crate::term::parse_term,
-        space1_delimimited(tag("in")),
-        crate::term::parse_term,
-    ));
-
-    map(parser, |(left, op, right)| {
-        puppet_lang::expression::Expression {
-            extra: Location::from(op),
-            value: puppet_lang::expression::ExpressionVariant::In((left, right)),
-        }
-    })(input)
-}
-
 /// https://puppet.com/docs/puppet/6/lang_expressions.html#lang_exp_boolean-boolean-not
 fn parse_not(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
     let parser = pair(space0_delimimited(tag("!")), parse_expression);
@@ -121,60 +103,6 @@ pub fn parse_case_variant(input: Span) -> IResult<CaseVariant<Location>> {
             CaseVariant::Default(puppet_lang::expression::Default { extra: t.extra })
         } else {
             CaseVariant::Term(t)
-        }
-    })(input)
-}
-
-/// https://puppet.com/docs/puppet/7/lang_conditional.html#lang_condition_selector
-fn parse_selector_case(input: Span) -> IResult<puppet_lang::expression::SelectorCase<Location>> {
-    let parser = tuple((
-        parse_case_variant,
-        space0_delimimited(tag("=>")),
-        ParseError::protect(
-            |_| "A value for selector case is expected".to_string(),
-            parse_expression,
-        ),
-    ));
-
-    map(parser, |(case, tag, body)| {
-        puppet_lang::expression::SelectorCase {
-            case,
-            body: Box::new(body),
-            extra: Location::from(tag),
-        }
-    })(input)
-}
-
-/// https://puppet.com/docs/puppet/7/lang_conditional.html#lang_condition_selector
-fn parse_selector(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
-    let parser = tuple((
-        parse_term,
-        space0_delimimited(tag("?")),
-        ParseError::protect(
-            |_| "Opening '{' of selector is expected".to_string(),
-            tag("{"),
-        ),
-        space0_delimimited(separated_list1(
-            space0_delimimited(comma_separator),
-            space0_delimimited(parse_selector_case),
-        )),
-        space0_delimimited(opt(comma_separator)),
-        ParseError::protect(
-            |_| "Closing '}' of selector is expected".to_string(),
-            tag("}"),
-        ),
-    ));
-
-    map(parser, |(condition, op, _, cases, _, _)| {
-        puppet_lang::expression::Expression {
-            extra: Location::from(op),
-            value: puppet_lang::expression::ExpressionVariant::Selector(
-                puppet_lang::expression::Selector {
-                    condition,
-                    cases,
-                    extra: Location::from(op),
-                },
-            ),
         }
     })(input)
 }
@@ -229,8 +157,6 @@ fn parse_funcall(input: Span) -> IResult<puppet_lang::expression::Expression<Loc
 fn parse_l0(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
     space0_delimimited(alt((
         parse_not,
-        parse_in_expr,
-        parse_selector,
         parse_match_variant,
         parse_funcall,
         parse_term_expr,
@@ -291,8 +217,90 @@ fn parse_chain_call(input: Span) -> IResult<puppet_lang::expression::Expression<
     parser(input)
 }
 
+/// https://puppet.com/docs/puppet/6/lang_expressions.html#lang_exp_comparison_operators-comparison-in
+fn parse_in_expr(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
+    let parser = pair(
+        parse_chain_call,
+        opt(pair(
+            space0_delimimited(tag("in")),
+            ParseError::protect(
+                |_| "Expression expected after 'in'".to_string(),
+                parse_chain_call,
+            ),
+        )),
+    );
+
+    map(parser, |(left, tail)| match tail {
+        Some((op, right)) => puppet_lang::expression::Expression {
+            extra: Location::from(op),
+            value: puppet_lang::expression::ExpressionVariant::In((
+                Box::new(left),
+                Box::new(right),
+            )),
+        },
+        None => left,
+    })(input)
+}
+
+/// https://puppet.com/docs/puppet/7/lang_conditional.html#lang_condition_selector
+fn parse_selector_case(input: Span) -> IResult<puppet_lang::expression::SelectorCase<Location>> {
+    let parser = tuple((
+        parse_case_variant,
+        space0_delimimited(tag("=>")),
+        ParseError::protect(
+            |_| "A value for selector case is expected".to_string(),
+            parse_expression,
+        ),
+    ));
+
+    map(parser, |(case, tag, body)| {
+        puppet_lang::expression::SelectorCase {
+            case,
+            body: Box::new(body),
+            extra: Location::from(tag),
+        }
+    })(input)
+}
+
+/// https://puppet.com/docs/puppet/7/lang_conditional.html#lang_condition_selector
+fn parse_selector(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
+    let parser = pair(
+        parse_in_expr,
+        opt(tuple((
+            space0_delimimited(tag("?")),
+            ParseError::protect(
+                |_| "Opening '{' of selector is expected".to_string(),
+                tag("{"),
+            ),
+            space0_delimimited(separated_list1(
+                space0_delimimited(comma_separator),
+                space0_delimimited(parse_selector_case),
+            )),
+            space0_delimimited(opt(comma_separator)),
+            ParseError::protect(
+                |_| "Closing '}' of selector is expected".to_string(),
+                tag("}"),
+            ),
+        ))),
+    );
+
+    map(parser, |(condition, tail)| match tail {
+        Some((op, _, cases, _, _)) => puppet_lang::expression::Expression {
+            extra: Location::from(op),
+            value: puppet_lang::expression::ExpressionVariant::Selector(
+                puppet_lang::expression::Selector {
+                    condition: Box::new(condition),
+                    cases,
+                    extra: Location::from(op),
+                },
+            ),
+        },
+        None => condition,
+    })(input)
+}
+
 pub(crate) fn parse_l1(input: Span) -> IResult<puppet_lang::expression::Expression<Location>> {
-    let (input, left_expr) = parse_chain_call(input)?;
+    let (input, left_expr) = parse_selector(input)?;
     let mut parser = fold_many0_with_const_init(
         pair(
             alt((tag("*"), tag("/"), tag("%"))),

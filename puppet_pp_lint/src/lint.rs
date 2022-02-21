@@ -276,6 +276,7 @@ impl AstLinter {
             | puppet_lang::expression::TermVariant::RegexpGroupID(_)
             | puppet_lang::expression::TermVariant::Sensitive(_)
             | puppet_lang::expression::TermVariant::TypeSpecitifaction(_)
+            | puppet_lang::expression::TermVariant::Identifier(_)
             | puppet_lang::expression::TermVariant::Regexp(_) => {
                 // TODO
             }
@@ -466,8 +467,10 @@ impl AstLinter {
             puppet_lang::statement::RelationElt::ResourceSet(elt) => {
                 errors.append(&mut self.check_resource_set(storage, elt))
             }
-            puppet_lang::statement::RelationElt::ResourceCollection(elt) => {
-                errors.append(&mut self.check_resource_collection(storage, elt))
+            puppet_lang::statement::RelationElt::ResourceCollection(list) => {
+                for elt in list {
+                    errors.append(&mut self.check_resource_collection(storage, elt))
+                }
             }
         }
 

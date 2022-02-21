@@ -9,46 +9,40 @@ use puppet_lang::statement::{Statement, StatementVariant};
 
 use crate::{
     common::{
-        comma_separator, curly_brackets_delimimited, round_brackets_delimimited, separator0,
-        separator1, space0_delimimited, spaced0_separator,
+        comma_separator, curly_brackets_delimimited, round_brackets_comma_separated0,
+        round_brackets_delimimited, separator0, separator1, space0_delimimited, spaced0_separator,
+        square_brackets_comma_separated1,
     },
-    identifier::identifier_with_toplevel,
     parser::{IResult, Location, ParseError, Span},
     term::parse_string_variant,
 };
 
+fn parse_classes_reference_list(
+    input: Span,
+) -> IResult<Vec<puppet_lang::expression::Expression<Location>>> {
+    ParseError::protect(
+        |_| "Class names as an arguments are expected".to_string(),
+        alt((
+            preceded(
+                separator0,
+                round_brackets_comma_separated0(crate::expression::parse_expression),
+            ),
+            preceded(
+                separator1,
+                separated_list1(comma_separator, crate::expression::parse_expression),
+            ),
+        )),
+    )(input)
+}
+
 fn parse_require(input: Span) -> IResult<StatementVariant<Location>> {
-    let parser = preceded(
-        tag("require"),
-        ParseError::protect(
-            |_| "Class names as an arguments for 'require' is expected".to_string(),
-            alt((
-                preceded(
-                    separator0,
-                    round_brackets_delimimited(identifier_with_toplevel),
-                ),
-                preceded(separator1, identifier_with_toplevel),
-            )),
-        ),
-    );
+    let parser = preceded(tag("require"), parse_classes_reference_list);
 
     map(parser, StatementVariant::Require)(input)
 }
 
 fn parse_include(input: Span) -> IResult<StatementVariant<Location>> {
-    let parser = preceded(
-        tag("include"),
-        ParseError::protect(
-            |_| "Class names as an arguments for 'include' is expected".to_string(),
-            alt((
-                preceded(
-                    separator0,
-                    round_brackets_delimimited(identifier_with_toplevel),
-                ),
-                preceded(separator1, identifier_with_toplevel),
-            )),
-        ),
-    );
+    let parser = preceded(tag("include"), parse_classes_reference_list);
 
     map(parser, StatementVariant::Include)(input)
 }
@@ -72,19 +66,7 @@ fn parse_fail(input: Span) -> IResult<StatementVariant<Location>> {
 }
 
 fn parse_contain(input: Span) -> IResult<StatementVariant<Location>> {
-    let parser = preceded(
-        tag("contain"),
-        ParseError::protect(
-            |_| "Class names as an arguments for 'contain' is expected".to_string(),
-            alt((
-                preceded(
-                    separator0,
-                    round_brackets_delimimited(identifier_with_toplevel),
-                ),
-                preceded(separator1, identifier_with_toplevel),
-            )),
-        ),
-    );
+    let parser = preceded(tag("contain"), parse_classes_reference_list);
 
     map(parser, StatementVariant::Contain)(input)
 }
@@ -118,14 +100,14 @@ fn parse_create_resources(input: Span) -> IResult<StatementVariant<Location>> {
                     "Class name as the first argument for 'create_resources' is expected"
                         .to_string()
                 },
-                space0_delimimited(crate::identifier::identifier_with_toplevel),
+                space0_delimimited(crate::expression::parse_expression),
             ),
-            space0_delimimited(comma_separator),
+            comma_separator,
             ParseError::protect(
                 |_| "List of resources for 'create_resources' is expected".to_string(),
                 separated_list1(
-                    space0_delimimited(comma_separator),
-                    crate::expression::parse_expression,
+                    comma_separator,
+                    space0_delimimited(crate::expression::parse_expression),
                 ),
             ),
         ))
@@ -258,13 +240,25 @@ fn parse_relation_type(input: Span) -> IResult<puppet_lang::statement::RelationT
     alt((
         map(tag("->"), |tag: Span| {
             puppet_lang::statement::RelationType {
-                variant: puppet_lang::statement::RelationVariant::ExecOrder,
+                variant: puppet_lang::statement::RelationVariant::ExecOrderRight,
                 extra: Location::from(tag),
             }
         }),
         map(tag("~>"), |tag: Span| {
             puppet_lang::statement::RelationType {
-                variant: puppet_lang::statement::RelationVariant::Notify,
+                variant: puppet_lang::statement::RelationVariant::NotifyRight,
+                extra: Location::from(tag),
+            }
+        }),
+        map(tag("<-"), |tag: Span| {
+            puppet_lang::statement::RelationType {
+                variant: puppet_lang::statement::RelationVariant::ExecOrderLeft,
+                extra: Location::from(tag),
+            }
+        }),
+        map(tag("<~"), |tag: Span| {
+            puppet_lang::statement::RelationType {
+                variant: puppet_lang::statement::RelationVariant::NotifyLeft,
                 extra: Location::from(tag),
             }
         }),
@@ -279,6 +273,10 @@ fn parse_relation(input: Span) -> IResult<puppet_lang::statement::RelationList<L
         ),
         map(
             space0_delimimited(crate::resource_collection::parse_resource_collection),
+            |elt| puppet_lang::statement::RelationElt::ResourceCollection(vec![elt]),
+        ),
+        map(
+            square_brackets_comma_separated1(crate::resource_collection::parse_resource_collection),
             puppet_lang::statement::RelationElt::ResourceCollection,
         ),
     ));

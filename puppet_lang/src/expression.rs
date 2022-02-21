@@ -104,6 +104,7 @@ pub enum TermVariant<EXTRA> {
     Integer(Integer<EXTRA>),
     Boolean(Boolean<EXTRA>),
     Array(Vec<Expression<EXTRA>>),
+    Identifier(LowerIdentifier<EXTRA>),
     Parens(Parens<EXTRA>),
     Map(Map<EXTRA>),
     Undef(Undef<EXTRA>),
@@ -140,7 +141,7 @@ pub struct SelectorCase<EXTRA> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Selector<EXTRA> {
-    pub condition: Term<EXTRA>,
+    pub condition: Box<Expression<EXTRA>>,
     pub cases: Vec<SelectorCase<EXTRA>>,
     pub extra: EXTRA,
 }
@@ -192,7 +193,7 @@ pub enum ExpressionVariant<EXTRA> {
             Box<crate::typing::TypeSpecification<EXTRA>>,
         ),
     ),
-    In((Term<EXTRA>, Term<EXTRA>)),
+    In((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
     Not(Box<Expression<EXTRA>>),
     Selector(Selector<EXTRA>),
     FunctionCall(FunctionCall<EXTRA>),

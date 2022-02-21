@@ -22,12 +22,9 @@ impl UselessParens {
     ) {
         let (inner, parens_extra) = match &elt.value {
             puppet_lang::expression::ExpressionVariant::Term(puppet_lang::expression::Term {
-                value,
+                value: puppet_lang::expression::TermVariant::Parens(inner),
                 extra,
-            }) => match value {
-                puppet_lang::expression::TermVariant::Parens(inner) => (inner, extra),
-                _ => return,
-            },
+            }) => (inner, extra),
             _ => return,
         };
 
@@ -36,7 +33,7 @@ impl UselessParens {
             errors.push(LintError::new(
                 Box::new(self.clone()),
                 "Parens can be safely removed",
-                &parens_extra,
+                parens_extra,
             ));
             return;
         }
@@ -48,9 +45,8 @@ impl UselessParens {
             errors.push(LintError::new(
                 Box::new(self.clone()),
                 "Parens around term can be safely removed",
-                &parens_extra,
+                parens_extra,
             ));
-            return;
         }
     }
 }

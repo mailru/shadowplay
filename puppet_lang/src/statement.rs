@@ -38,8 +38,10 @@ pub struct IfElse<EXTRA> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum RelationVariant {
-    ExecOrder,
-    Notify,
+    ExecOrderRight,
+    NotifyRight,
+    ExecOrderLeft,
+    NotifyLeft,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -51,7 +53,7 @@ pub struct RelationType<EXTRA> {
 #[derive(Clone, Debug, PartialEq)]
 pub enum RelationElt<EXTRA> {
     ResourceSet(ResourceSet<EXTRA>),
-    ResourceCollection(crate::resource_collection::ResourceCollection<EXTRA>),
+    ResourceCollection(Vec<crate::resource_collection::ResourceCollection<EXTRA>>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -82,7 +84,7 @@ pub struct Case<EXTRA> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CreateResources<EXTRA> {
-    pub resource: LowerIdentifier<EXTRA>,
+    pub resource: crate::expression::Expression<EXTRA>,
     pub args: Vec<Expression<EXTRA>>,
     pub extra: EXTRA,
 }
@@ -90,9 +92,9 @@ pub struct CreateResources<EXTRA> {
 #[derive(Clone, Debug, PartialEq)]
 pub enum StatementVariant<EXTRA> {
     Fail(crate::expression::Expression<EXTRA>),
-    Include(LowerIdentifier<EXTRA>),
-    Require(LowerIdentifier<EXTRA>),
-    Contain(LowerIdentifier<EXTRA>),
+    Include(Vec<crate::expression::Expression<EXTRA>>),
+    Require(Vec<crate::expression::Expression<EXTRA>>),
+    Contain(Vec<crate::expression::Expression<EXTRA>>),
     Realize(Vec<crate::typing::TypeSpecification<EXTRA>>),
     CreateResources(CreateResources<EXTRA>),
     Tag(Vec<crate::expression::StringExpr<EXTRA>>),
