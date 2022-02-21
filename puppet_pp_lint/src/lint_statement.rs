@@ -25,3 +25,35 @@ impl EarlyLintPass for StatementWithNoSideEffects {
         vec![]
     }
 }
+
+#[derive(Clone)]
+pub struct RelationToTheLeft;
+
+impl LintPass for RelationToTheLeft {
+    fn name(&self) -> &str {
+        "relation_to_the_left"
+    }
+}
+
+impl EarlyLintPass for RelationToTheLeft {
+    fn check_relation(
+        &self,
+        _left: &puppet_lang::statement::RelationElt<Location>,
+        elt: &puppet_lang::statement::Relation<Location>,
+    ) -> Vec<LintError> {
+        match elt.relation_type.variant {
+            puppet_lang::statement::RelationVariant::ExecOrderRight => (),
+            puppet_lang::statement::RelationVariant::NotifyRight => (),
+            puppet_lang::statement::RelationVariant::ExecOrderLeft
+            | puppet_lang::statement::RelationVariant::NotifyLeft => {
+                return vec![LintError::new(
+                    Box::new(self.clone()),
+                    "Avoid relations directed to the left.",
+                    &elt.relation_type.extra,
+                )];
+            }
+        }
+
+        vec![]
+    }
+}

@@ -164,6 +164,7 @@ impl Storage {
         v.register_early_pass(Box::new(super::lint_case_statement::MultipleDefaultCase));
         v.register_early_pass(Box::new(super::lint_case_statement::NoDefaultCase));
         v.register_early_pass(Box::new(super::lint_statement::StatementWithNoSideEffects));
+        v.register_early_pass(Box::new(super::lint_statement::RelationToTheLeft));
         v
     }
 
