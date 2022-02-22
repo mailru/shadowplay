@@ -310,6 +310,24 @@ impl AstLinter {
         errors
     }
 
+    pub fn check_funcall(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::expression::FunctionCall<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+
+        for arg in &elt.args {
+            errors.append(&mut self.check_expression(storage, true, arg));
+        }
+        if let Some(lambda) = &elt.lambda {
+            errors.append(&mut self.check_lambda(storage, lambda))
+        }
+        errors.append(&mut self.check_accessor(storage, &elt.accessor));
+
+        errors
+    }
+
     pub fn check_expression(
         &self,
         storage: &Storage,
@@ -387,15 +405,38 @@ impl AstLinter {
             ExpressionVariant::Not(expr) => {
                 errors.append(&mut self.check_expression(storage, false, expr));
             }
-            ExpressionVariant::Selector(_)
-            | ExpressionVariant::FunctionCall(_)
-            | ExpressionVariant::Assign(_)
-            | ExpressionVariant::MatchRegex(_)
-            | ExpressionVariant::NotMatchRegex(_)
-            | ExpressionVariant::MatchType(_)
-            | ExpressionVariant::NotMatchType(_)
-            | ExpressionVariant::In(_)
-            | ExpressionVariant::ChainCall(_) => {
+            ExpressionVariant::Assign((left, right)) => {
+                errors.append(&mut self.check_expression(storage, false, left));
+                errors.append(&mut self.check_expression(storage, false, right));
+            }
+            ExpressionVariant::Selector(elt) => {
+                errors.append(&mut self.check_expression(storage, false, &elt.condition));
+                for case in &elt.cases {
+                    match &case.case {
+                        puppet_lang::expression::CaseVariant::Term(term) => {
+                            errors.append(&mut self.check_term(storage, term))
+                        }
+                        puppet_lang::expression::CaseVariant::Default(_) => {}
+                    }
+                    errors.append(&mut self.check_expression(storage, false, &case.body));
+                }
+            }
+            ExpressionVariant::FunctionCall(elt) => {
+                errors.append(&mut self.check_funcall(storage, elt))
+            }
+            ExpressionVariant::MatchRegex((left, _))
+            | ExpressionVariant::NotMatchRegex((left, _)) => {
+                errors.append(&mut self.check_expression(storage, false, left));
+            }
+            ExpressionVariant::In((left, right)) => {
+                errors.append(&mut self.check_expression(storage, false, left));
+                errors.append(&mut self.check_expression(storage, false, right));
+            }
+            ExpressionVariant::ChainCall(elt) => {
+                errors.append(&mut self.check_expression(storage, false, &elt.left));
+                errors.append(&mut self.check_funcall(storage, &elt.right));
+            }
+            ExpressionVariant::MatchType(_) | ExpressionVariant::NotMatchType(_) => {
                 // TODO
             }
         };
@@ -616,12 +657,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for arg in arguments {
-            for lint in storage.early_pass() {
-                errors.append(&mut lint.check_argument(arg));
-            }
-            if let Some(default) = &arg.default {
-                errors.append(&mut self.check_expression(storage, true, default));
-            }
+            errors.append(&mut self.check_argument(storage, arg))
         }
 
         for statement in body {
@@ -641,6 +677,37 @@ impl AstLinter {
             errors.append(&mut lint.check_class(elt));
         }
         errors.append(&mut self.check_toplevel_variant(storage, &elt.arguments, &elt.body));
+
+        errors
+    }
+
+    pub fn check_argument(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::argument::Argument<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_argument(elt));
+        }
+        if let Some(default) = &elt.default {
+            errors.append(&mut self.check_expression(storage, true, default));
+        }
+        errors
+    }
+
+    pub fn check_lambda(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::expression::Lambda<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for arg in &elt.args {
+            errors.append(&mut self.check_argument(storage, arg))
+        }
+        for statement in &elt.body {
+            errors.append(&mut self.check_statement(storage, statement));
+        }
 
         errors
     }
