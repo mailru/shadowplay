@@ -49,6 +49,15 @@ pub trait EarlyLintPass: LintPass {
     fn check_plan(&self, _: &puppet_lang::toplevel::Plan<Location>) -> Vec<LintError> {
         Vec::new()
     }
+    fn check_typedef(&self, _: &puppet_lang::toplevel::TypeDef<Location>) -> Vec<LintError> {
+        Vec::new()
+    }
+    fn check_functiondef(
+        &self,
+        _: &puppet_lang::toplevel::FunctionDef<Location>,
+    ) -> Vec<LintError> {
+        Vec::new()
+    }
     fn check_argument(&self, _: &puppet_lang::argument::Argument<Location>) -> Vec<LintError> {
         Vec::new()
     }
@@ -635,12 +644,30 @@ impl AstLinter {
 
     pub fn check_typedef(
         &self,
-        _storage: &Storage,
-        _elt: &puppet_lang::toplevel::TypeDef<Location>,
+        storage: &Storage,
+        elt: &puppet_lang::toplevel::TypeDef<Location>,
     ) -> Vec<LintError> {
-        // TODO
+        let mut errors = Vec::new();
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_typedef(elt));
+        }
 
-        vec![]
+        errors
+    }
+
+    pub fn check_functiondef(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::toplevel::FunctionDef<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_functiondef(elt));
+        }
+
+        errors.append(&mut self.check_toplevel_variant(storage, &elt.arguments, &elt.body));
+
+        errors
     }
 
     pub fn check_toplevel(
@@ -658,6 +685,9 @@ impl AstLinter {
             puppet_lang::toplevel::Toplevel::Definition(elt) => self.check_definition(storage, elt),
             puppet_lang::toplevel::Toplevel::Plan(elt) => self.check_plan(storage, elt),
             puppet_lang::toplevel::Toplevel::TypeDef(elt) => self.check_typedef(storage, elt),
+            puppet_lang::toplevel::Toplevel::FunctionDef(elt) => {
+                self.check_functiondef(storage, elt)
+            }
         };
         errors.append(&mut res);
 

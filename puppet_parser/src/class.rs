@@ -1,13 +1,12 @@
 use crate::parser::Location;
 
-use crate::common::{space0_delimimited, space1_delimimited};
+use crate::common::space0_delimimited;
 use crate::parser::{IResult, ParseError, Span};
 use nom::{
     bytes::complete::tag,
     combinator::{map, opt},
     sequence::{pair, preceded, tuple},
 };
-use puppet_lang::toplevel::TypeDef;
 use puppet_lang::{
     argument::Argument,
     identifier::LowerIdentifier,
@@ -24,7 +23,7 @@ pub fn parse_header(input: Span) -> IResult<(LowerIdentifier<Location>, Vec<Argu
 
     tuple((
         ParseError::protect(
-            |_| "Invalid class name".to_owned(),
+            |_| "Invalid name".to_owned(),
             super::identifier::identifier_with_toplevel,
         ),
         preceded(super::common::separator0, arguments_parser),
@@ -95,25 +94,6 @@ pub fn parse_plan(input: Span) -> IResult<Plan<Location>> {
             identifier,
             arguments,
             body,
-            extra: Location::from(tag),
-        },
-    )(input)
-}
-
-pub fn parse_typedef(input: Span) -> IResult<TypeDef<Location>> {
-    map(
-        tuple((
-            tag("type"),
-            space1_delimimited(crate::identifier::camelcase_identifier_with_ns_located),
-            ParseError::protect(|_| "'=' expected".to_string(), tag("=")),
-            ParseError::protect(
-                |_| "Type specification expected".to_string(),
-                crate::typing::parse_type_specification,
-            ),
-        )),
-        |(tag, identifier, _, value)| TypeDef {
-            identifier,
-            value,
             extra: Location::from(tag),
         },
     )(input)

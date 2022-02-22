@@ -39,9 +39,19 @@ pub struct TypeDef<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct FunctionDef<EXTRA> {
+    pub identifier: LowerIdentifier<EXTRA>,
+    pub arguments: Vec<crate::argument::Argument<EXTRA>>,
+    pub return_type: Option<crate::typing::TypeSpecification<EXTRA>>,
+    pub body: Vec<crate::statement::Statement<EXTRA>>,
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum Toplevel<EXTRA> {
     Class(Class<EXTRA>),
     Definition(Definition<EXTRA>),
     Plan(Plan<EXTRA>),
     TypeDef(TypeDef<EXTRA>),
+    FunctionDef(FunctionDef<EXTRA>),
 }
