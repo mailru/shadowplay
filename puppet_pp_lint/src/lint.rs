@@ -154,7 +154,7 @@ impl Storage {
         v.register_early_pass(Box::new(super::lint_argument::LowerCaseArgumentName));
         v.register_early_pass(Box::new(super::lint_unless::DoNotUseUnless));
         v.register_early_pass(Box::new(super::lint_expression::UselessParens));
-        v.register_early_pass(Box::new(super::lint_term::UselessDoubleQuotes));
+        v.register_early_pass(Box::new(super::lint_string_expr::UselessDoubleQuotes));
         v.register_early_pass(Box::new(super::lint_term::LowerCaseVariable));
         v.register_early_pass(Box::new(super::lint_resource_set::UpperCaseName));
         v.register_early_pass(Box::new(super::lint_resource_set::UniqueAttributeName));
@@ -174,7 +174,7 @@ impl Storage {
         v.register_early_pass(Box::new(super::lint_case_statement::NoDefaultCase));
         v.register_early_pass(Box::new(super::lint_statement::StatementWithNoSideEffects));
         v.register_early_pass(Box::new(super::lint_statement::RelationToTheLeft));
-        v.register_early_pass(Box::new(super::lint_term::InvalidStringEscape));
+        v.register_early_pass(Box::new(super::lint_string_expr::InvalidStringEscape));
         v
     }
 
@@ -453,6 +453,7 @@ impl AstLinter {
             for attribute in &resource.attributes {
                 match attribute {
                     puppet_lang::statement::ResourceAttribute::Name((name, value)) => {
+                        errors.append(&mut self.check_string_expression(storage, name));
                         errors.append(&mut self.check_expression(storage, true, value))
                     }
                     puppet_lang::statement::ResourceAttribute::Group(term) => {

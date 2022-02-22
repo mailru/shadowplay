@@ -1,9 +1,10 @@
 pub mod lint;
 mod lint_argument;
 mod lint_case_statement;
-pub mod lint_expression;
+mod lint_expression;
 mod lint_resource_set;
 mod lint_statement;
+mod lint_string_expr;
 mod lint_term;
 mod lint_toplevel;
 mod lint_unless;
