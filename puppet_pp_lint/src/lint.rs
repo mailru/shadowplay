@@ -64,6 +64,12 @@ pub trait EarlyLintPass: LintPass {
     fn check_statement(&self, _: &puppet_lang::statement::Statement<Location>) -> Vec<LintError> {
         Vec::new()
     }
+    fn check_statement_set(
+        &self,
+        _: &[puppet_lang::statement::Statement<Location>],
+    ) -> Vec<LintError> {
+        Vec::new()
+    }
     fn check_unless(
         &self,
         _: &puppet_lang::statement::ConditionAndStatement<Location>,
@@ -497,6 +503,7 @@ impl AstLinter {
         }
 
         errors.append(&mut self.check_expression(storage, true, &elt.condition));
+        errors.append(&mut self.check_statement_set(storage, elt.body.as_ref()));
         for statement in elt.body.as_ref() {
             errors.append(&mut self.check_statement(storage, statement));
         }
@@ -515,18 +522,21 @@ impl AstLinter {
         }
 
         errors.append(&mut self.check_expression(storage, true, &elt.condition.condition));
+        errors.append(&mut self.check_statement_set(storage, elt.condition.body.as_ref()));
         for statement in elt.condition.body.as_ref() {
             errors.append(&mut self.check_statement(storage, statement));
         }
 
         for elsif_block in &elt.elsif_list {
             errors.append(&mut self.check_expression(storage, true, &elsif_block.condition));
+            errors.append(&mut self.check_statement_set(storage, elsif_block.body.as_ref()));
             for statement in elsif_block.body.as_ref() {
                 errors.append(&mut self.check_statement(storage, statement));
             }
         }
 
         if let Some(else_block) = &elt.else_block {
+            errors.append(&mut self.check_statement_set(storage, else_block.as_ref()));
             for statement in else_block.as_ref() {
                 errors.append(&mut self.check_statement(storage, statement));
             }
@@ -648,9 +658,23 @@ impl AstLinter {
         errors.append(&mut self.check_expression(storage, true, &elt.condition));
 
         for case in &elt.elements {
+            errors.append(&mut self.check_statement_set(storage, case.body.as_ref()));
             for statement in case.body.as_ref() {
                 errors.append(&mut self.check_statement(storage, statement));
             }
+        }
+
+        errors
+    }
+
+    pub fn check_statement_set(
+        &self,
+        storage: &Storage,
+        list: &[puppet_lang::statement::Statement<Location>],
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_statement_set(list));
         }
 
         errors
@@ -711,6 +735,7 @@ impl AstLinter {
             errors.append(&mut self.check_argument(storage, arg))
         }
 
+        errors.append(&mut self.check_statement_set(storage, body));
         for statement in body {
             errors.append(&mut self.check_statement(storage, statement));
         }
@@ -756,6 +781,7 @@ impl AstLinter {
         for arg in &elt.args {
             errors.append(&mut self.check_argument(storage, arg))
         }
+        errors.append(&mut self.check_statement_set(storage, &elt.body));
         for statement in &elt.body {
             errors.append(&mut self.check_statement(storage, statement));
         }

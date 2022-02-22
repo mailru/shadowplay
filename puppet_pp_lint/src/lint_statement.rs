@@ -13,13 +13,19 @@ impl LintPass for StatementWithNoEffect {
 
 impl EarlyLintPass for StatementWithNoEffect {
     // TODO сделать менее наивную реализацию, с сохранением в EXTRA состояния
-    fn check_statement(&self, elt: &puppet_lang::statement::Statement<Location>) -> Vec<LintError> {
-        if !crate::tool::statement::has_side_effect(elt) {
-            return vec![LintError::new(
-                Box::new(self.clone()),
-                "Statement without effect. Can be safely removed.",
-                &elt.extra,
-            )];
+    fn check_statement_set(
+        &self,
+        list: &[puppet_lang::statement::Statement<Location>],
+    ) -> Vec<LintError> {
+        let list_len = list.len();
+        for (idx, elt) in list.iter().enumerate() {
+            if !crate::tool::statement::has_side_effect(elt) && idx != list_len - 1 {
+                return vec![LintError::new(
+                    Box::new(self.clone()),
+                    "Statement without effect which is not a return value. Can be safely removed.",
+                    &elt.extra,
+                )];
+            }
         }
 
         vec![]
