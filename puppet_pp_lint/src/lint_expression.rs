@@ -1,4 +1,4 @@
-use puppet_lang::expression::{Expression, ExpressionVariant, Term, TermVariant};
+use puppet_lang::expression::{Expression, ExpressionVariant, Parens, Term, TermVariant};
 use puppet_parser::parser::Location;
 
 use crate::lint::LintError;
@@ -50,6 +50,19 @@ impl UselessParens {
             ));
         }
     }
+
+    fn inner_check<C>(&self, elt: &Expression<Location>, checker: C) -> bool
+    where
+        C: Fn(&ExpressionVariant<Location>) -> bool,
+    {
+        match &elt.value {
+            ExpressionVariant::Term(Term {
+                value: TermVariant::Parens(inner),
+                ..
+            }) => checker(&inner.value.value),
+            _ => false,
+        }
+    }
 }
 
 impl EarlyLintPass for UselessParens {
@@ -69,11 +82,39 @@ impl EarlyLintPass for UselessParens {
             }
             ExpressionVariant::And((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
-                self.check(outer_priority, &mut errors, right)
+                self.check(outer_priority, &mut errors, right);
+                if self.inner_check(left, |elt| matches!(elt, ExpressionVariant::And(_))) {
+                    errors.push(LintError::new(
+                        Box::new(self.clone()),
+                        "Parens can be safely removed. '($a and $b) and $c' can be replaced with '$a and $b and $c'",
+                        &left.extra,
+                    ));
+                }
+                if self.inner_check(right, |elt| matches!(elt, ExpressionVariant::And(_))) {
+                    errors.push(LintError::new(
+                        Box::new(self.clone()),
+                        "Parens can be safely removed. '$a and ($b and $c)' can be replaced with '$a and $b and $c'",
+                        &right.extra,
+                    ));
+                }
             }
             ExpressionVariant::Or((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
-                self.check(outer_priority, &mut errors, right)
+                self.check(outer_priority, &mut errors, right);
+                if self.inner_check(left, |elt| matches!(elt, ExpressionVariant::Or(_))) {
+                    errors.push(LintError::new(
+                        Box::new(self.clone()),
+                        "Parens can be safely removed. '($a or $b) or $c' can be replaced with '$a or $b or $c'",
+                        &left.extra,
+                    ));
+                }
+                if self.inner_check(right, |elt| matches!(elt, ExpressionVariant::Or(_))) {
+                    errors.push(LintError::new(
+                        Box::new(self.clone()),
+                        "Parens can be safely removed. '$a or ($b or $c)' can be replaced with '$a or $b or $c'",
+                        &right.extra,
+                    ));
+                }
             }
             ExpressionVariant::Equal((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
@@ -107,21 +148,58 @@ impl EarlyLintPass for UselessParens {
                 self.check(outer_priority, &mut errors, left);
                 self.check(outer_priority, &mut errors, right)
             }
-            ExpressionVariant::Plus((left, right)) => {
+            ExpressionVariant::Plus((left, right)) | ExpressionVariant::Minus((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
-                self.check(outer_priority, &mut errors, right)
+                self.check(outer_priority, &mut errors, right);
+                let eq = self.inner_check(left, |elt| {
+                    matches!(elt, ExpressionVariant::Plus(_))
+                        || matches!(elt, ExpressionVariant::Minus(_))
+                });
+                if eq {
+                    errors.push(LintError::new(
+                        Box::new(self.clone()),
+                        "Parens can be safely removed. '($a + $b) + $c' can be replaced with '$a + $b + $c'",
+                        &left.extra,
+                    ));
+                }
+                let eq = self.inner_check(right, |elt| {
+                    matches!(elt, ExpressionVariant::Plus(_))
+                        || matches!(elt, ExpressionVariant::Minus(_))
+                });
+                if eq {
+                    errors.push(LintError::new(
+                        Box::new(self.clone()),
+                        "Parens can be safely removed. '$a + ($b + $c)' can be replaced with '$a + $b + $c'",
+                        &right.extra,
+                    ));
+                }
             }
-            ExpressionVariant::Minus((left, right)) => {
+            ExpressionVariant::Multiply((left, right))
+            | ExpressionVariant::Divide((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
-                self.check(outer_priority, &mut errors, right)
-            }
-            ExpressionVariant::Multiply((left, right)) => {
-                self.check(outer_priority, &mut errors, left);
-                self.check(outer_priority, &mut errors, right)
-            }
-            ExpressionVariant::Divide((left, right)) => {
-                self.check(outer_priority, &mut errors, left);
-                self.check(outer_priority, &mut errors, right)
+                self.check(outer_priority, &mut errors, right);
+                let eq = self.inner_check(left, |elt| {
+                    matches!(elt, ExpressionVariant::Multiply(_))
+                        || matches!(elt, ExpressionVariant::Divide(_))
+                });
+                if eq {
+                    errors.push(LintError::new(
+                        Box::new(self.clone()),
+                        "Parens can be safely removed. '($a * $b) * $c' can be replaced with '$a * $b * $c'",
+                        &left.extra,
+                    ));
+                }
+                let eq = self.inner_check(right, |elt| {
+                    matches!(elt, ExpressionVariant::Multiply(_))
+                        || matches!(elt, ExpressionVariant::Divide(_))
+                });
+                if eq {
+                    errors.push(LintError::new(
+                        Box::new(self.clone()),
+                        "Parens can be safely removed. '$a * ($b * $c)' can be replaced with '$a * $b * $c'",
+                        &right.extra,
+                    ));
+                }
             }
             ExpressionVariant::Modulo((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
@@ -151,8 +229,21 @@ impl EarlyLintPass for UselessParens {
             ExpressionVariant::Selector(elt) => {
                 self.check(outer_priority, &mut errors, &elt.condition);
             }
-            ExpressionVariant::FunctionCall(_) | ExpressionVariant::Term(_) => {
+            ExpressionVariant::FunctionCall(_) => {
                 // no inner elements available
+            }
+            ExpressionVariant::Term(elt) => {
+                if let TermVariant::Parens(Parens { value: inner, .. }) = &elt.value {
+                    if let ExpressionVariant::Term(elt) = &inner.value {
+                        if let TermVariant::Parens(_) = &elt.value {
+                            errors.push(LintError::new(
+                                Box::new(self.clone()),
+                                "Double parens. Can be safely removed.",
+                                &elt.extra,
+                            ));
+                        }
+                    }
+                }
             }
         }
 
