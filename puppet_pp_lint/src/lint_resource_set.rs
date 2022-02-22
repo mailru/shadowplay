@@ -50,15 +50,16 @@ impl EarlyLintPass for UniqueAttributeName {
         for resource in &elt.list {
             let mut names = std::collections::HashSet::new();
             for attribute in &resource.attributes {
-                if let puppet_lang::statement::ResourceAttribute::Name(name) = attribute {
-                    if names.contains(&name.0.data) {
+                if let puppet_lang::statement::ResourceAttribute::Name(pair) = attribute {
+                    let name = puppet_ast_tool::string::raw_content(&pair.0);
+                    if names.contains(&name) {
                         errors.push(LintError::new(
                             Box::new(self.clone()),
-                            &format!("Attribute {:?} is not unique", name.0.data),
+                            &format!("Attribute {:?} is not unique", name),
                             &elt.extra,
                         ));
                     }
-                    let _ = names.insert(&name.0.data);
+                    let _ = names.insert(name.clone());
                 }
             }
         }
@@ -84,8 +85,9 @@ impl EarlyLintPass for EnsureAttributeIsNotTheFirst {
         let mut errors = Vec::new();
         for resource in &elt.list {
             for (pos, attribute) in resource.attributes.iter().enumerate() {
-                if let puppet_lang::statement::ResourceAttribute::Name(name) = attribute {
-                    if name.0.data == "ensure" && pos > 0 {
+                if let puppet_lang::statement::ResourceAttribute::Name(pair) = attribute {
+                    let name = puppet_ast_tool::string::raw_content(&pair.0);
+                    if name == "ensure" && pos > 0 {
                         errors.push(LintError::new_with_url(
                             Box::new(self.clone()),
                             "Attribute 'ensure' is not the first.",
@@ -110,6 +112,62 @@ impl LintPass for FileModeAttributeIsString {
     }
 }
 
+impl FileModeAttributeIsString {
+    fn check_expr(&self, expr: &puppet_lang::string::StringExpr<Location>) -> Vec<LintError> {
+        let list = match &expr.data {
+            puppet_lang::string::StringVariant::SingleQuoted(list) => list.clone(),
+            puppet_lang::string::StringVariant::DoubleQuoted(list) => {
+                let mut r = Vec::new();
+                for elt in list {
+                    match elt {
+                        puppet_lang::string::DoubleQuotedFragment::StringFragment(elt) => {
+                            r.push(elt.clone())
+                        }
+                        puppet_lang::string::DoubleQuotedFragment::Expression(_) => {
+                            return Vec::new()
+                        }
+                    }
+                }
+                r
+            }
+        };
+
+        let mut errors = Vec::new();
+        for elt in list {
+            match elt {
+                puppet_lang::string::StringFragment::Literal(v) => {
+                    if !v.chars().all(|v| v.is_digit(10)) {
+                        errors.push(LintError::new_with_url(
+                                            Box::new(self.clone()),
+                                            "Mode attribute is a string which is not all of digits.",
+                                            "https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-file-modes",
+                                            &expr.extra,
+                                        ));
+                    }
+                    if v.len() != 4 {
+                        errors.push(LintError::new_with_url(
+                                            Box::new(self.clone()),
+                                            "Mode attribute is a string which length != 4.",
+                                            "https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-file-modes",
+                                            &expr.extra,
+                                        ));
+                    }
+                }
+                puppet_lang::string::StringFragment::Escaped(elt)
+                | puppet_lang::string::StringFragment::EscapedUTF(elt) => {
+                    errors.push(LintError::new(
+                        Box::new(self.clone()),
+                        "Mode attribute contains escaped char.",
+                        &elt.extra,
+                    ))
+                }
+            }
+        }
+
+        errors
+    }
+}
+
 impl EarlyLintPass for FileModeAttributeIsString {
     fn check_resource_set(
         &self,
@@ -122,28 +180,14 @@ impl EarlyLintPass for FileModeAttributeIsString {
         for resource in &elt.list {
             for attribute in &resource.attributes {
                 if let puppet_lang::statement::ResourceAttribute::Name(attribute) = attribute {
-                    if attribute.0.data == "mode" {
+                    let name = puppet_ast_tool::string::raw_content(&attribute.0);
+                    if name == "mode" {
                         if let puppet_lang::expression::ExpressionVariant::Term(term) =
                             &attribute.1.value
                         {
                             match &term.value {
                                 puppet_lang::expression::TermVariant::String(v) => {
-                                    if !v.data.chars().all(|v| v.is_digit(10)) {
-                                        return vec![LintError::new_with_url(
-                                            Box::new(self.clone()),
-                                            "Mode attribute is a string which is not all of digits.",
-                                            "https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-file-modes",
-                                            &attribute.1.extra,
-                                        )];
-                                    }
-                                    if v.data.len() != 4 {
-                                        return vec![LintError::new_with_url(
-                                            Box::new(self.clone()),
-                                            "Mode attribute is a string which length != 4.",
-                                            "https://puppet.com/docs/puppet/7/style_guide.html#style_guide_resources-file-modes",
-                                            &attribute.1.extra,
-                                        )];
-                                    }
+                                    return self.check_expr(v)
                                 }
                                 puppet_lang::expression::TermVariant::Integer(_) => {
                                     return vec![LintError::new_with_url(
@@ -183,7 +227,7 @@ impl EarlyLintPass for MultipleResourcesWithoutDefault {
         for resource in &elt.list {
             if let puppet_lang::expression::ExpressionVariant::Term(term) = &resource.title.value {
                 if let puppet_lang::expression::TermVariant::String(v) = &term.value {
-                    if v.data == "default" {
+                    if puppet_ast_tool::string::raw_content(v) == "default" {
                         has_default = true
                     }
                 }

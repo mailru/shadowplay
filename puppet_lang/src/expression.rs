@@ -64,20 +64,6 @@ pub struct Regexp<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum StringVariant {
-    SingleQuoted,
-    DoubleQuoted,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct StringExpr<EXTRA> {
-    pub data: String,
-    pub variant: StringVariant,
-    pub accessor: Vec<Vec<Box<Expression<EXTRA>>>>,
-    pub extra: EXTRA,
-}
-
-#[derive(Clone, Debug, PartialEq)]
 pub struct Boolean<EXTRA> {
     pub value: bool,
     pub extra: EXTRA,
@@ -99,7 +85,7 @@ pub struct Map<EXTRA> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TermVariant<EXTRA> {
-    String(StringExpr<EXTRA>),
+    String(crate::string::StringExpr<EXTRA>),
     Float(Float<EXTRA>),
     Integer(Integer<EXTRA>),
     Boolean(Boolean<EXTRA>),

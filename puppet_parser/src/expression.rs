@@ -97,10 +97,7 @@ pub fn parse_case_variant(input: Span) -> IResult<CaseVariant<Location>> {
     map(parse_term, |t| {
         if matches!(
             &t.value,
-            puppet_lang::expression::TermVariant::String(puppet_lang::expression::StringExpr {
-                data,
-                ..
-            }) if data == "default"
+            puppet_lang::expression::TermVariant::String(s) if puppet_ast_tool::string::raw_content(s) == "default"
         ) {
             CaseVariant::Default(puppet_lang::expression::Default { extra: t.extra })
         } else {
@@ -672,11 +669,13 @@ fn test_function_call() {
                         value: puppet_lang::expression::ExpressionVariant::Term(
                             puppet_lang::expression::Term {
                                 value: puppet_lang::expression::TermVariant::String(
-                                    puppet_lang::expression::StringExpr {
+                                    puppet_lang::string::StringExpr {
+                                        data: puppet_lang::string::StringVariant::SingleQuoted(
+                                            vec![puppet_lang::string::StringFragment::Literal(
+                                                "ask8s::docker::gpu_nvidia".to_owned()
+                                            )]
+                                        ),
                                         extra: Location::new(7, 1, 8),
-                                        data: "ask8s::docker::gpu_nvidia".to_owned(),
-                                        variant:
-                                            puppet_lang::expression::StringVariant::SingleQuoted,
                                         accessor: Vec::new()
                                     }
                                 ),

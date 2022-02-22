@@ -14,16 +14,34 @@ impl LintPass for UselessDoubleQuotes {
 impl EarlyLintPass for UselessDoubleQuotes {
     fn check_string_expression(
         &self,
-        elt: &puppet_lang::expression::StringExpr<Location>,
+        elt: &puppet_lang::string::StringExpr<Location>,
     ) -> Vec<super::lint::LintError> {
-        if elt.variant == puppet_lang::expression::StringVariant::DoubleQuoted
-            && !elt.data.contains('$')
-            && !elt.data.contains('\'')
-            && !elt.data.contains('\\')
-        {
+        let s = match &elt.data {
+            puppet_lang::string::StringVariant::SingleQuoted(_) => return Vec::new(),
+            puppet_lang::string::StringVariant::DoubleQuoted(elt) => elt,
+        };
+
+        let mut is_useful = false;
+        for fragment in s {
+            match fragment {
+                puppet_lang::string::DoubleQuotedFragment::StringFragment(fragment) => {
+                    match fragment {
+                        puppet_lang::string::StringFragment::Literal(_)
+                        | puppet_lang::string::StringFragment::EscapedUTF(_) => {}
+                        puppet_lang::string::StringFragment::Escaped(c) if c.data == '\'' => {
+                            is_useful = true
+                        }
+                        puppet_lang::string::StringFragment::Escaped(_) => {}
+                    }
+                }
+                puppet_lang::string::DoubleQuotedFragment::Expression(_) => return Vec::new(),
+            }
+        }
+
+        if !is_useful {
             return vec![LintError::new(
                 Box::new(self.clone()),
-                "Double quotes of string with no interpolated values and no escaped chars [EXPERIMENTAL]",
+                "Double quoted string with no interpolated values and no escaped single quotes",
                 &elt.extra,
             )];
         }

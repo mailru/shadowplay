@@ -2,7 +2,7 @@ use crate::{expression::Expression, identifier::LowerIdentifier};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ResourceAttribute<EXTRA> {
-    Name((crate::expression::StringExpr<EXTRA>, Expression<EXTRA>)),
+    Name((crate::string::StringExpr<EXTRA>, Expression<EXTRA>)),
     Group(crate::expression::Term<EXTRA>),
 }
 
@@ -97,7 +97,7 @@ pub enum StatementVariant<EXTRA> {
     Contain(Vec<crate::expression::Term<EXTRA>>),
     Realize(Vec<crate::typing::TypeSpecification<EXTRA>>),
     CreateResources(CreateResources<EXTRA>),
-    Tag(Vec<crate::expression::StringExpr<EXTRA>>),
+    Tag(Vec<crate::string::StringExpr<EXTRA>>),
     Expression(crate::expression::Expression<EXTRA>),
     RelationList(RelationList<EXTRA>),
     IfElse(IfElse<EXTRA>),

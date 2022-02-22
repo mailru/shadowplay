@@ -1,4 +1,4 @@
-package.name = "puppet-parser"
+package.name = "puppet-ast-tool"
 package.version = "0.1.0"
 package.edition = "2021"
 package.authors = ["Evgenii Lepikhin <e.lepikhin@corp.mail.ru>", "VK Company / mail.ru"]
@@ -6,8 +6,4 @@ package.license = "MIT/Apache-2.0"
 
 [dependencies]
 puppet-lang = { path = "../puppet_lang" }
-puppet-ast-tool = { path = "../puppet_ast_tool" }
-regex = "1"
-lazy_static = "1"
-nom = "7"
-nom_locate = "4"
+

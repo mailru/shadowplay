@@ -4,24 +4,22 @@ use super::parser::{IResult, ParseError, Span};
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::bytes::complete::{is_not, take_while_m_n};
-use nom::character::complete::alphanumeric1;
 use nom::character::complete::char;
-use nom::combinator::{map, map_opt, map_res, recognize, value, verify};
+use nom::character::complete::{alphanumeric1, anychar};
+use nom::combinator::{map, map_opt, map_res, recognize, verify};
 use nom::multi::{fold_many0, many1, separated_list1};
 use nom::sequence::{delimited, pair, preceded, terminated};
+use puppet_lang::string::{Escaped, StringFragment, StringVariant};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum StringFragment<'a> {
-    Literal(&'a str),
-    EscapedChar(char),
-}
-
-fn parse_literal(input: Span) -> IResult<&str> {
+fn parse_literal(input: Span) -> IResult<StringFragment<Location>> {
     let not_quote_slash = is_not("'\\");
-    verify(map(not_quote_slash, |s: Span| *s), |s: &str| !s.is_empty())(input)
+    map(
+        verify(map(not_quote_slash, |s: Span| *s), |s: &str| !s.is_empty()),
+        |data| StringFragment::Literal(data.to_string()),
+    )(input)
 }
 
-pub fn parse_unicode(input: Span) -> IResult<char> {
+pub fn parse_unicode(input: Span) -> IResult<StringFragment<Location>> {
     let parse_hex = ParseError::protect(
         |_| "unexpected sequence in UTF character".to_owned(),
         take_while_m_n(1, 6, |c: char| c.is_ascii_hexdigit()),
@@ -33,35 +31,34 @@ pub fn parse_unicode(input: Span) -> IResult<char> {
         u32::from_str_radix(*hex, 16)
     });
 
-    map_opt(parse_u32, std::char::from_u32)(input)
-}
-
-fn parse_escaped_char(input: Span) -> IResult<char> {
-    preceded(
-        char('\\'),
-        alt((
-            alt((value('\\', char('\\')), value('\'', char('\'')))),
-            ParseError::protect_with_url(
-                |s: Span| {
-                    (format!(
-                        "Unexpected escaped character {:?}.",
-                        s.chars().next().unwrap()
-                     ), "https://puppet.com/docs/puppet/7/lang_data_string.html#lang_data_string_single_quoted_strings-escape-sequences")
-                },
-                parse_unicode,
-            ),
-        )),
+    map(
+        pair(
+            recognize(char('\\')),
+            map_opt(parse_u32, std::char::from_u32),
+        ),
+        |(tag, data)| {
+            StringFragment::EscapedUTF(Escaped {
+                data,
+                extra: Location::from(tag),
+            })
+        },
     )(input)
 }
 
-fn parse_fragment(input: Span) -> IResult<StringFragment> {
-    alt((
-        map(parse_literal, StringFragment::Literal),
-        map(parse_escaped_char, StringFragment::EscapedChar),
-    ))(input)
+pub fn parse_escaped(input: Span) -> IResult<StringFragment<Location>> {
+    map(pair(recognize(char('\\')), anychar), |(tag, data)| {
+        StringFragment::Escaped(Escaped {
+            data,
+            extra: Location::from(tag),
+        })
+    })(input)
 }
 
-pub fn bareword(input: Span) -> IResult<String> {
+fn parse_fragment(input: Span) -> IResult<StringFragment<Location>> {
+    alt((parse_literal, parse_unicode, parse_escaped))(input)
+}
+
+pub fn bareword(input: Span) -> IResult<StringFragment<Location>> {
     let parser = verify(
         recognize(separated_list1(
             tag("-"),
@@ -70,17 +67,15 @@ pub fn bareword(input: Span) -> IResult<String> {
         |s: &Span| s.chars().next().unwrap().is_ascii_lowercase(),
     );
 
-    map(parser, |v: Span| v.to_string())(input)
+    map(parser, |data: Span| {
+        StringFragment::Literal(data.to_string())
+    })(input)
 }
 
-// TODO возможно имеет смысл в будущем возвращать Vec<StringFragment>, чтобы парсить содержимое
-pub fn parse(input: Span) -> IResult<puppet_lang::expression::StringExpr<Location>> {
-    let build_string = fold_many0(parse_fragment, String::new, |mut string, fragment| {
-        match fragment {
-            StringFragment::Literal(s) => string.push_str(s),
-            StringFragment::EscapedChar(c) => string.push(c),
-        }
-        string
+pub fn parse(input: Span) -> IResult<puppet_lang::string::StringExpr<Location>> {
+    let build_string = fold_many0(parse_fragment, Vec::new, |mut list, fragment| {
+        list.push(fragment);
+        list
     });
 
     let single_quoted_parser = alt((
@@ -91,14 +86,13 @@ pub fn parse(input: Span) -> IResult<puppet_lang::expression::StringExpr<Locatio
                 terminated(build_string, char('\'')),
             ),
         ),
-        bareword,
+        map(bareword, |word| vec![word]),
     ));
 
     map(
         pair(single_quoted_parser, crate::term::parse_accessor),
-        |(data, accessor)| puppet_lang::expression::StringExpr {
-            data,
-            variant: puppet_lang::expression::StringVariant::SingleQuoted,
+        |(data, accessor)| puppet_lang::string::StringExpr {
+            data: StringVariant::SingleQuoted(data),
             accessor,
             extra: Location::from(input),
         },
@@ -109,36 +103,41 @@ pub fn parse(input: Span) -> IResult<puppet_lang::expression::StringExpr<Locatio
 fn test() {
     assert_eq!(
         parse(Span::new("''")).unwrap().1,
-        puppet_lang::expression::StringExpr {
-            data: "".to_owned(),
-            variant: puppet_lang::expression::StringVariant::SingleQuoted,
+        puppet_lang::string::StringExpr {
+            data: puppet_lang::string::StringVariant::SingleQuoted(Vec::new()),
             accessor: Vec::new(),
             extra: Location::new(0, 1, 1)
         }
     );
     assert_eq!(
         parse(Span::new("'a'")).unwrap().1,
-        puppet_lang::expression::StringExpr {
-            data: "a".to_owned(),
-            variant: puppet_lang::expression::StringVariant::SingleQuoted,
+        puppet_lang::string::StringExpr {
+            data: puppet_lang::string::StringVariant::SingleQuoted(vec![
+                puppet_lang::string::StringFragment::Literal("a".to_owned())
+            ]),
             accessor: Vec::new(),
             extra: Location::new(0, 1, 1)
         }
     );
     assert_eq!(
         parse(Span::new("'\\''")).unwrap().1,
-        puppet_lang::expression::StringExpr {
-            data: "'".to_owned(),
-            variant: puppet_lang::expression::StringVariant::SingleQuoted,
+        puppet_lang::string::StringExpr {
+            data: puppet_lang::string::StringVariant::SingleQuoted(vec![
+                puppet_lang::string::StringFragment::Escaped(Escaped {
+                    data: '\'',
+                    extra: Location::new(1, 1, 2)
+                })
+            ]),
             accessor: Vec::new(),
             extra: Location::new(0, 1, 1)
         }
     );
     assert_eq!(
         parse(Span::new("bARE-WORD_")).unwrap().1,
-        puppet_lang::expression::StringExpr {
-            data: "bARE-WORD_".to_owned(),
-            variant: puppet_lang::expression::StringVariant::SingleQuoted,
+        puppet_lang::string::StringExpr {
+            data: puppet_lang::string::StringVariant::SingleQuoted(vec![
+                puppet_lang::string::StringFragment::Literal("bARE-WORD_".to_owned())
+            ]),
             accessor: Vec::new(),
             extra: Location::new(0, 1, 1)
         }
@@ -146,9 +145,10 @@ fn test() {
 
     assert_eq!(
         parse(Span::new("bAREWORD-")).unwrap().1,
-        puppet_lang::expression::StringExpr {
-            data: "bAREWORD".to_owned(),
-            variant: puppet_lang::expression::StringVariant::SingleQuoted,
+        puppet_lang::string::StringExpr {
+            data: puppet_lang::string::StringVariant::SingleQuoted(vec![
+                puppet_lang::string::StringFragment::Literal("bAREWORD".to_owned())
+            ]),
             accessor: Vec::new(),
             extra: Location::new(0, 1, 1)
         }

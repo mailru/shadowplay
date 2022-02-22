@@ -601,9 +601,10 @@ fn test_struct() {
         puppet_lang::typing::TypeSpecificationVariant::Struct(puppet_lang::typing::TypeStruct {
             extra: Location::new(0, 1, 1),
             keys: vec![(
-                puppet_lang::typing::TypeStructKey::String(puppet_lang::expression::StringExpr {
-                    data: "some_key".to_owned(),
-                    variant: puppet_lang::expression::StringVariant::SingleQuoted,
+                puppet_lang::typing::TypeStructKey::String(puppet_lang::string::StringExpr {
+                    data: puppet_lang::string::StringVariant::SingleQuoted(vec![
+                        puppet_lang::string::StringFragment::Literal("some_key".to_owned())
+                    ]),
                     accessor: Vec::new(),
                     extra: Location::new(9, 1, 10)
                 }),
@@ -728,9 +729,12 @@ fn test_type_specification() {
                     name: vec!["Class".to_owned(),],
                     arguments: vec![puppet_lang::expression::Term {
                         value: puppet_lang::expression::TermVariant::String(
-                            puppet_lang::expression::StringExpr {
-                                data: "hello".to_owned(),
-                                variant: puppet_lang::expression::StringVariant::SingleQuoted,
+                            puppet_lang::string::StringExpr {
+                                data: puppet_lang::string::StringVariant::SingleQuoted(vec![
+                                    puppet_lang::string::StringFragment::Literal(
+                                        "hello".to_owned()
+                                    )
+                                ]),
                                 accessor: Vec::new(),
                                 extra: Location::new(6, 1, 7),
                             }

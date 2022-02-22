@@ -262,21 +262,26 @@ fn test_body_tag() {
             arguments: Vec::new(),
             body: vec![puppet_lang::statement::Statement {
                 value: puppet_lang::statement::StatementVariant::Tag(vec![
-                    puppet_lang::expression::StringExpr {
-                        data: "aaa".to_owned(),
-                        variant: puppet_lang::expression::StringVariant::SingleQuoted,
+                    puppet_lang::string::StringExpr {
+                        data: puppet_lang::string::StringVariant::SingleQuoted(vec![
+                            puppet_lang::string::StringFragment::Literal("aaa".to_owned())
+                        ]),
                         accessor: Vec::new(),
                         extra: Location::new(26, 2, 6)
                     },
-                    puppet_lang::expression::StringExpr {
-                        data: "bbb".to_owned(),
-                        variant: puppet_lang::expression::StringVariant::SingleQuoted,
+                    puppet_lang::string::StringExpr {
+                        data: puppet_lang::string::StringVariant::SingleQuoted(vec![
+                            puppet_lang::string::StringFragment::Literal("bbb".to_owned())
+                        ]),
                         accessor: Vec::new(),
                         extra: Location::new(31, 2, 11)
                     },
-                    puppet_lang::expression::StringExpr {
-                        data: "ccc".to_owned(),
-                        variant: puppet_lang::expression::StringVariant::DoubleQuoted,
+                    puppet_lang::string::StringExpr {
+                        data: puppet_lang::string::StringVariant::DoubleQuoted(vec![
+                            puppet_lang::string::DoubleQuotedFragment::StringFragment(
+                                puppet_lang::string::StringFragment::Literal("ccc".to_owned())
+                            )
+                        ]),
                         accessor: Vec::new(),
                         extra: Location::new(38, 2, 18)
                     }

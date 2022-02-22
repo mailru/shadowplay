@@ -85,7 +85,7 @@ pub trait EarlyLintPass: LintPass {
     }
     fn check_string_expression(
         &self,
-        _: &puppet_lang::expression::StringExpr<Location>,
+        _: &puppet_lang::string::StringExpr<Location>,
     ) -> Vec<LintError> {
         Vec::new()
     }
@@ -188,7 +188,7 @@ impl AstLinter {
     pub fn check_string_expression(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::expression::StringExpr<Location>,
+        elt: &puppet_lang::string::StringExpr<Location>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {

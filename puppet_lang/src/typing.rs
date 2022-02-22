@@ -62,10 +62,10 @@ pub struct TypeSensitive<EXTRA> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TypeStructKey<EXTRA> {
-    String(crate::expression::StringExpr<EXTRA>),
-    Optional(crate::expression::StringExpr<EXTRA>),
+    String(crate::string::StringExpr<EXTRA>),
+    Optional(crate::string::StringExpr<EXTRA>),
     // TODO
-    NotUndef(crate::expression::StringExpr<EXTRA>),
+    NotUndef(crate::string::StringExpr<EXTRA>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
