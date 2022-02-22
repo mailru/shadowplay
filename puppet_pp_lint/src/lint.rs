@@ -448,6 +448,20 @@ impl AstLinter {
             errors.append(&mut lint.check_resource_set(elt));
         }
 
+        for resource in &elt.list {
+            errors.append(&mut self.check_expression(storage, true, &resource.title));
+            for attribute in &resource.attributes {
+                match attribute {
+                    puppet_lang::statement::ResourceAttribute::Name((name, value)) => {
+                        errors.append(&mut self.check_expression(storage, true, value))
+                    }
+                    puppet_lang::statement::ResourceAttribute::Group(term) => {
+                        errors.append(&mut self.check_term(storage, term))
+                    }
+                }
+            }
+        }
+
         errors
     }
 
@@ -586,9 +600,12 @@ impl AstLinter {
         body: &[puppet_lang::statement::Statement<Location>],
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
-        for lint in storage.early_pass() {
-            for arg in arguments {
+        for arg in arguments {
+            for lint in storage.early_pass() {
                 errors.append(&mut lint.check_argument(arg));
+            }
+            if let Some(default) = &arg.default {
+                errors.append(&mut self.check_expression(storage, true, default));
             }
         }
 
