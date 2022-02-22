@@ -147,8 +147,8 @@ impl EarlyLintPass for UselessParens {
             puppet_lang::expression::ExpressionVariant::Not(elt) => {
                 self.check(outer_priority, &mut errors, elt);
             }
-            puppet_lang::expression::ExpressionVariant::Selector(_) => {
-                todo!()
+            puppet_lang::expression::ExpressionVariant::Selector(elt) => {
+                self.check(outer_priority, &mut errors, &elt.condition);
             }
             puppet_lang::expression::ExpressionVariant::FunctionCall(_)
             | puppet_lang::expression::ExpressionVariant::Term(_) => {
