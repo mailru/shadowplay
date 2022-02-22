@@ -30,7 +30,6 @@ impl EarlyLintPass for InvalidStringEscape {
 
         let mut errors = Vec::new();
         for fragment in list {
-            println!("??? {:?}", fragment);
             if let puppet_lang::string::StringFragment::Escaped(c) = fragment {
                 match &elt.data {
                     puppet_lang::string::StringVariant::SingleQuoted(_) => {
