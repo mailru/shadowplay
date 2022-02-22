@@ -3,21 +3,21 @@ use puppet_parser::parser::Location;
 use crate::lint::{EarlyLintPass, LintError, LintPass};
 
 #[derive(Clone)]
-pub struct StatementWithNoSideEffects;
+pub struct StatementWithNoEffect;
 
-impl LintPass for StatementWithNoSideEffects {
+impl LintPass for StatementWithNoEffect {
     fn name(&self) -> &str {
         "statement_with_no_side_effects"
     }
 }
 
-impl EarlyLintPass for StatementWithNoSideEffects {
+impl EarlyLintPass for StatementWithNoEffect {
     // TODO сделать менее наивную реализацию, с сохранением в EXTRA состояния
     fn check_statement(&self, elt: &puppet_lang::statement::Statement<Location>) -> Vec<LintError> {
         if !crate::tool::statement::has_side_effect(elt) {
             return vec![LintError::new(
                 Box::new(self.clone()),
-                "Statement without side effects. Can be safely removed.",
+                "Statement without effect. Can be safely removed.",
                 &elt.extra,
             )];
         }

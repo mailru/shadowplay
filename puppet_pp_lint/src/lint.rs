@@ -177,7 +177,7 @@ impl Storage {
         v.register_early_pass(Box::new(super::lint_case_statement::DefaultCaseIsNotLast));
         v.register_early_pass(Box::new(super::lint_case_statement::MultipleDefaultCase));
         v.register_early_pass(Box::new(super::lint_case_statement::NoDefaultCase));
-        v.register_early_pass(Box::new(super::lint_statement::StatementWithNoSideEffects));
+        v.register_early_pass(Box::new(super::lint_statement::StatementWithNoEffect));
         v.register_early_pass(Box::new(super::lint_statement::RelationToTheLeft));
         v.register_early_pass(Box::new(super::lint_string_expr::InvalidStringEscape));
         v
