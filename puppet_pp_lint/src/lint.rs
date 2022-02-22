@@ -267,6 +267,42 @@ impl AstLinter {
         errors
     }
 
+    pub fn check_type_specification(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::typing::TypeSpecification<Location>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+
+        match &elt.data {
+            puppet_lang::typing::TypeSpecificationVariant::ExternalType(elt) => {
+                for arg in &elt.arguments {
+                    errors.append(&mut self.check_expression(storage, true, arg));
+                }
+            }
+            puppet_lang::typing::TypeSpecificationVariant::Float(_)
+            | puppet_lang::typing::TypeSpecificationVariant::Integer(_)
+            | puppet_lang::typing::TypeSpecificationVariant::Numeric(_)
+            | puppet_lang::typing::TypeSpecificationVariant::String(_)
+            | puppet_lang::typing::TypeSpecificationVariant::Pattern(_)
+            | puppet_lang::typing::TypeSpecificationVariant::Regex(_)
+            | puppet_lang::typing::TypeSpecificationVariant::Hash(_)
+            | puppet_lang::typing::TypeSpecificationVariant::Boolean(_)
+            | puppet_lang::typing::TypeSpecificationVariant::Array(_)
+            | puppet_lang::typing::TypeSpecificationVariant::Undef(_)
+            | puppet_lang::typing::TypeSpecificationVariant::Any(_)
+            | puppet_lang::typing::TypeSpecificationVariant::Optional(_)
+            | puppet_lang::typing::TypeSpecificationVariant::Variant(_)
+            | puppet_lang::typing::TypeSpecificationVariant::Enum(_)
+            | puppet_lang::typing::TypeSpecificationVariant::Struct(_)
+            | puppet_lang::typing::TypeSpecificationVariant::Sensitive(_)
+            | puppet_lang::typing::TypeSpecificationVariant::Tuple(_) => { // TODO }
+            }
+        }
+
+        errors
+    }
+
     pub fn check_term(
         &self,
         storage: &Storage,
@@ -294,13 +330,15 @@ impl AstLinter {
             puppet_lang::expression::TermVariant::Variable(elt) => {
                 errors.append(&mut self.check_variable(storage, elt))
             }
+            puppet_lang::expression::TermVariant::TypeSpecitifaction(elt) => {
+                errors.append(&mut self.check_type_specification(storage, elt))
+            }
             puppet_lang::expression::TermVariant::Float(_)
             | puppet_lang::expression::TermVariant::Integer(_)
             | puppet_lang::expression::TermVariant::Boolean(_)
             | puppet_lang::expression::TermVariant::Undef(_)
             | puppet_lang::expression::TermVariant::RegexpGroupID(_)
             | puppet_lang::expression::TermVariant::Sensitive(_)
-            | puppet_lang::expression::TermVariant::TypeSpecitifaction(_)
             | puppet_lang::expression::TermVariant::Identifier(_)
             | puppet_lang::expression::TermVariant::Regexp(_) => {
                 // TODO
@@ -436,8 +474,10 @@ impl AstLinter {
                 errors.append(&mut self.check_expression(storage, false, &elt.left));
                 errors.append(&mut self.check_funcall(storage, &elt.right));
             }
-            ExpressionVariant::MatchType(_) | ExpressionVariant::NotMatchType(_) => {
-                // TODO
+            ExpressionVariant::MatchType((left, right))
+            | ExpressionVariant::NotMatchType((left, right)) => {
+                errors.append(&mut self.check_expression(storage, false, left));
+                errors.append(&mut self.check_type_specification(storage, right));
             }
         };
 
@@ -625,26 +665,35 @@ impl AstLinter {
         }
 
         use puppet_lang::statement::StatementVariant;
-        let mut variant_errors = match &statement.value {
-            StatementVariant::Unless(elt) => self.check_unless(storage, elt),
-            StatementVariant::Toplevel(elt) => self.check_toplevel(storage, elt),
-            StatementVariant::Expression(elt) => self.check_expression(storage, true, elt),
-            StatementVariant::IfElse(elt) => self.check_if_else(storage, elt),
-            StatementVariant::RelationList(elt) => self.check_relation_list(storage, elt),
-            StatementVariant::Case(elt) => self.check_case(storage, elt),
+        match &statement.value {
+            StatementVariant::Unless(elt) => errors.append(&mut self.check_unless(storage, elt)),
+            StatementVariant::Toplevel(elt) => {
+                errors.append(&mut self.check_toplevel(storage, elt))
+            }
+            StatementVariant::Expression(elt) => {
+                errors.append(&mut self.check_expression(storage, true, elt))
+            }
+            StatementVariant::IfElse(elt) => errors.append(&mut self.check_if_else(storage, elt)),
+            StatementVariant::RelationList(elt) => {
+                errors.append(&mut self.check_relation_list(storage, elt))
+            }
+            StatementVariant::Case(elt) => errors.append(&mut self.check_case(storage, elt)),
+            StatementVariant::CreateResources(elt) => {
+                for arg in &elt.args {
+                    errors.append(&mut self.check_expression(storage, true, arg))
+                }
+            }
+            StatementVariant::Fail(arg) => {
+                errors.append(&mut self.check_expression(storage, true, arg))
+            }
             StatementVariant::Include(_)
             | StatementVariant::Require(_)
-            | StatementVariant::Fail(_)
             | StatementVariant::Contain(_)
             | StatementVariant::Realize(_)
-            | StatementVariant::CreateResources(_)
             | StatementVariant::Tag(_) => {
                 // TODO
-                vec![]
             }
         };
-
-        errors.append(&mut variant_errors);
 
         errors
     }
