@@ -1,3 +1,4 @@
+use puppet_lang::expression::{Expression, ExpressionVariant, Term, TermVariant};
 use puppet_parser::parser::Location;
 
 use crate::lint::LintError;
@@ -18,10 +19,10 @@ impl UselessParens {
         &self,
         outer_priority: u32,
         errors: &mut Vec<super::lint::LintError>,
-        elt: &puppet_lang::expression::Expression<Location>,
+        elt: &Expression<Location>,
     ) {
         let (inner, parens_extra) = match &elt.value {
-            puppet_lang::expression::ExpressionVariant::Term(puppet_lang::expression::Term {
+            ExpressionVariant::Term(puppet_lang::expression::Term {
                 value: puppet_lang::expression::TermVariant::Parens(inner),
                 extra,
             }) => (inner, extra),
@@ -55,109 +56,108 @@ impl EarlyLintPass for UselessParens {
     fn check_expression(
         &self,
         is_toplevel_expr: bool,
-        elt: &puppet_lang::expression::Expression<Location>,
+        elt: &Expression<Location>,
     ) -> Vec<super::lint::LintError> {
         let outer_priority = crate::tool::expression::priority(elt);
 
         let mut errors = Vec::new();
 
         match &elt.value {
-            puppet_lang::expression::ExpressionVariant::Assign((left, right)) => {
+            ExpressionVariant::Assign((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
                 self.check(outer_priority, &mut errors, right)
             }
-            puppet_lang::expression::ExpressionVariant::And((left, right)) => {
+            ExpressionVariant::And((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
                 self.check(outer_priority, &mut errors, right)
             }
-            puppet_lang::expression::ExpressionVariant::Or((left, right)) => {
+            ExpressionVariant::Or((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
                 self.check(outer_priority, &mut errors, right)
             }
-            puppet_lang::expression::ExpressionVariant::Equal((left, right)) => {
+            ExpressionVariant::Equal((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
                 self.check(outer_priority, &mut errors, right)
             }
-            puppet_lang::expression::ExpressionVariant::NotEqual((left, right)) => {
+            ExpressionVariant::NotEqual((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
                 self.check(outer_priority, &mut errors, right)
             }
-            puppet_lang::expression::ExpressionVariant::Gt((left, right)) => {
+            ExpressionVariant::Gt((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
                 self.check(outer_priority, &mut errors, right)
             }
-            puppet_lang::expression::ExpressionVariant::GtEq((left, right)) => {
+            ExpressionVariant::GtEq((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
                 self.check(outer_priority, &mut errors, right)
             }
-            puppet_lang::expression::ExpressionVariant::Lt((left, right)) => {
+            ExpressionVariant::Lt((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
                 self.check(outer_priority, &mut errors, right)
             }
-            puppet_lang::expression::ExpressionVariant::LtEq((left, right)) => {
+            ExpressionVariant::LtEq((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
                 self.check(outer_priority, &mut errors, right)
             }
-            puppet_lang::expression::ExpressionVariant::ShiftLeft((left, right)) => {
+            ExpressionVariant::ShiftLeft((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
                 self.check(outer_priority, &mut errors, right)
             }
-            puppet_lang::expression::ExpressionVariant::ShiftRight((left, right)) => {
+            ExpressionVariant::ShiftRight((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
                 self.check(outer_priority, &mut errors, right)
             }
-            puppet_lang::expression::ExpressionVariant::Plus((left, right)) => {
+            ExpressionVariant::Plus((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
                 self.check(outer_priority, &mut errors, right)
             }
-            puppet_lang::expression::ExpressionVariant::Minus((left, right)) => {
+            ExpressionVariant::Minus((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
                 self.check(outer_priority, &mut errors, right)
             }
-            puppet_lang::expression::ExpressionVariant::Multiply((left, right)) => {
+            ExpressionVariant::Multiply((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
                 self.check(outer_priority, &mut errors, right)
             }
-            puppet_lang::expression::ExpressionVariant::Divide((left, right)) => {
+            ExpressionVariant::Divide((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
                 self.check(outer_priority, &mut errors, right)
             }
-            puppet_lang::expression::ExpressionVariant::Modulo((left, right)) => {
+            ExpressionVariant::Modulo((left, right)) => {
                 self.check(outer_priority, &mut errors, left);
                 self.check(outer_priority, &mut errors, right)
             }
-            puppet_lang::expression::ExpressionVariant::ChainCall(elt) => {
+            ExpressionVariant::ChainCall(elt) => {
                 self.check(outer_priority, &mut errors, &elt.left);
             }
-            puppet_lang::expression::ExpressionVariant::MatchRegex((left, _)) => {
+            ExpressionVariant::MatchRegex((left, _)) => {
                 self.check(outer_priority, &mut errors, left);
             }
-            puppet_lang::expression::ExpressionVariant::NotMatchRegex((left, _)) => {
+            ExpressionVariant::NotMatchRegex((left, _)) => {
                 self.check(outer_priority, &mut errors, left);
             }
-            puppet_lang::expression::ExpressionVariant::MatchType((left, _)) => {
+            ExpressionVariant::MatchType((left, _)) => {
                 self.check(outer_priority, &mut errors, left);
             }
-            puppet_lang::expression::ExpressionVariant::NotMatchType((left, _)) => {
+            ExpressionVariant::NotMatchType((left, _)) => {
                 self.check(outer_priority, &mut errors, left);
             }
-            puppet_lang::expression::ExpressionVariant::In(_) => {
+            ExpressionVariant::In(_) => {
                 // no inner elements available
             }
-            puppet_lang::expression::ExpressionVariant::Not(elt) => {
+            ExpressionVariant::Not(elt) => {
                 self.check(outer_priority, &mut errors, elt);
             }
-            puppet_lang::expression::ExpressionVariant::Selector(elt) => {
+            ExpressionVariant::Selector(elt) => {
                 self.check(outer_priority, &mut errors, &elt.condition);
             }
-            puppet_lang::expression::ExpressionVariant::FunctionCall(_)
-            | puppet_lang::expression::ExpressionVariant::Term(_) => {
+            ExpressionVariant::FunctionCall(_) | ExpressionVariant::Term(_) => {
                 // no inner elements available
             }
         }
 
         if is_toplevel_expr {
-            if let puppet_lang::expression::ExpressionVariant::Term(t) = &elt.value {
+            if let ExpressionVariant::Term(t) = &elt.value {
                 if matches!(t.value, puppet_lang::expression::TermVariant::Parens(_)) {
                     errors.push(LintError::new(
                         Box::new(self.clone()),
@@ -169,5 +169,40 @@ impl EarlyLintPass for UselessParens {
         }
 
         errors
+    }
+}
+
+#[derive(Clone)]
+pub struct AssignmentToInvalidExpression;
+
+impl LintPass for AssignmentToInvalidExpression {
+    fn name(&self) -> &str {
+        "assignment_to_invalid_expression"
+    }
+}
+
+impl EarlyLintPass for AssignmentToInvalidExpression {
+    fn check_expression(
+        &self,
+        _is_toplevel_expr: bool,
+        elt: &Expression<Location>,
+    ) -> Vec<super::lint::LintError> {
+        if let ExpressionVariant::Assign((left, _)) = &elt.value {
+            if !matches!(
+                left.value,
+                ExpressionVariant::Term(Term {
+                    value: TermVariant::Variable(_),
+                    ..
+                })
+            ) {
+                return vec![LintError::new(
+                    Box::new(self.clone()),
+                    "Left operand of assignment operator must be a variable",
+                    &elt.extra,
+                )];
+            }
+        }
+
+        Vec::new()
     }
 }

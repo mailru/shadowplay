@@ -154,6 +154,9 @@ impl Storage {
         v.register_early_pass(Box::new(super::lint_argument::LowerCaseArgumentName));
         v.register_early_pass(Box::new(super::lint_unless::DoNotUseUnless));
         v.register_early_pass(Box::new(super::lint_expression::UselessParens));
+        v.register_early_pass(Box::new(
+            super::lint_expression::AssignmentToInvalidExpression,
+        ));
         v.register_early_pass(Box::new(super::lint_string_expr::UselessDoubleQuotes));
         v.register_early_pass(Box::new(super::lint_term::LowerCaseVariable));
         v.register_early_pass(Box::new(super::lint_resource_set::UpperCaseName));
