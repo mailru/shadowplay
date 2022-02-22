@@ -9,6 +9,7 @@ pub fn parse(input: Span) -> IResult<Toplevel<Location>> {
         map(super::class::parse_class, Toplevel::Class),
         map(super::class::parse_definition, Toplevel::Definition),
         map(super::class::parse_plan, Toplevel::Plan),
+        map(super::class::parse_typedef, Toplevel::TypeDef),
     )))(input)
 }
 

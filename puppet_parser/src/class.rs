@@ -1,12 +1,13 @@
 use crate::parser::Location;
 
-use crate::common::space0_delimimited;
+use crate::common::{space0_delimimited, space1_delimimited};
 use crate::parser::{IResult, ParseError, Span};
 use nom::{
     bytes::complete::tag,
     combinator::{map, opt},
     sequence::{pair, preceded, tuple},
 };
+use puppet_lang::toplevel::TypeDef;
 use puppet_lang::{
     argument::Argument,
     identifier::LowerIdentifier,
@@ -32,37 +33,32 @@ pub fn parse_header(input: Span) -> IResult<(LowerIdentifier<Location>, Vec<Argu
 
 pub fn parse_class(input: Span) -> IResult<Class<Location>> {
     let mut parser = map(
-        preceded(
+        tuple((
             tag("class"),
-            tuple((
-                preceded(
-                    super::common::separator1,
-                    ParseError::protect(
-                        |_| "Failed to parse class header".to_owned(),
-                        parse_header,
-                    ),
+            preceded(
+                super::common::separator1,
+                ParseError::protect(|_| "Failed to parse class header".to_owned(), parse_header),
+            ),
+            ParseError::protect(
+                |_| "'{' or 'inherits' expected".to_string(),
+                pair(
+                    space0_delimimited(opt(preceded(
+                        tag("inherits"),
+                        ParseError::protect(
+                            |_| "Failed to parse what class inherits".to_owned(),
+                            space0_delimimited(crate::identifier::identifier_with_toplevel),
+                        ),
+                    ))),
+                    crate::statement::parse_statement_block,
                 ),
-                ParseError::protect(
-                    |_| "'{' or 'inherits' expected".to_string(),
-                    pair(
-                        space0_delimimited(opt(preceded(
-                            tag("inherits"),
-                            ParseError::protect(
-                                |_| "Failed to parse what class inherits".to_owned(),
-                                space0_delimimited(crate::identifier::identifier_with_toplevel),
-                            ),
-                        ))),
-                        crate::statement::parse_statement_block,
-                    ),
-                ),
-            )),
-        ),
-        |((identifier, arguments), (inherits, body))| Class {
+            ),
+        )),
+        |(tag, (identifier, arguments), (inherits, body))| Class {
             identifier,
             arguments,
             body,
             inherits,
-            extra: Location::from(input),
+            extra: Location::from(tag),
         },
     );
 
@@ -71,37 +67,54 @@ pub fn parse_class(input: Span) -> IResult<Class<Location>> {
 
 pub fn parse_definition(input: Span) -> IResult<Definition<Location>> {
     map(
-        preceded(
+        tuple((
             tag("define"),
-            pair(
-                preceded(super::common::separator0, parse_header),
-                space0_delimimited(ParseError::protect(
-                    |_| "'{' expected".to_string(),
-                    crate::statement::parse_statement_block,
-                )),
-            ),
-        ),
-        |((identifier, arguments), body)| Definition {
+            preceded(super::common::separator1, parse_header),
+            space0_delimimited(ParseError::protect(
+                |_| "'{' expected".to_string(),
+                crate::statement::parse_statement_block,
+            )),
+        )),
+        |(tag, (identifier, arguments), body)| Definition {
             identifier,
             arguments,
             body,
+            extra: Location::from(tag),
         },
     )(input)
 }
 
 pub fn parse_plan(input: Span) -> IResult<Plan<Location>> {
     map(
-        preceded(
+        tuple((
             tag("plan"),
-            pair(
-                preceded(super::common::separator0, parse_header),
-                crate::statement::parse_statement_block,
-            ),
-        ),
-        |((identifier, arguments), body)| Plan {
+            preceded(super::common::separator1, parse_header),
+            crate::statement::parse_statement_block,
+        )),
+        |(tag, (identifier, arguments), body)| Plan {
             identifier,
             arguments,
             body,
+            extra: Location::from(tag),
+        },
+    )(input)
+}
+
+pub fn parse_typedef(input: Span) -> IResult<TypeDef<Location>> {
+    map(
+        tuple((
+            tag("type"),
+            space1_delimimited(crate::identifier::camelcase_identifier_with_ns_located),
+            ParseError::protect(|_| "'=' expected".to_string(), tag("=")),
+            ParseError::protect(
+                |_| "Type specification expected".to_string(),
+                crate::typing::parse_type_specification,
+            ),
+        )),
+        |(tag, identifier, _, value)| TypeDef {
+            identifier,
+            value,
+            extra: Location::from(tag),
         },
     )(input)
 }

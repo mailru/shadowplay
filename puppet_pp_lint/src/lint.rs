@@ -633,6 +633,16 @@ impl AstLinter {
         errors
     }
 
+    pub fn check_typedef(
+        &self,
+        _storage: &Storage,
+        _elt: &puppet_lang::toplevel::TypeDef<Location>,
+    ) -> Vec<LintError> {
+        // TODO
+
+        vec![]
+    }
+
     pub fn check_toplevel(
         &self,
         storage: &Storage,
@@ -647,6 +657,7 @@ impl AstLinter {
             puppet_lang::toplevel::Toplevel::Class(elt) => self.check_class(storage, elt),
             puppet_lang::toplevel::Toplevel::Definition(elt) => self.check_definition(storage, elt),
             puppet_lang::toplevel::Toplevel::Plan(elt) => self.check_plan(storage, elt),
+            puppet_lang::toplevel::Toplevel::TypeDef(elt) => self.check_typedef(storage, elt),
         };
         errors.append(&mut res);
 

@@ -52,6 +52,17 @@ pub fn camelcase_identifier_with_ns(input: Span) -> IResult<Vec<&str>> {
     nom::multi::separated_list1(tag("::"), camel_case_identifier)(input)
 }
 
+pub fn camelcase_identifier_with_ns_located(
+    input: Span,
+) -> IResult<puppet_lang::identifier::CamelIdentifier<Location>> {
+    map(camelcase_identifier_with_ns, |name| {
+        puppet_lang::identifier::CamelIdentifier {
+            name: name.iter().map(|v| v.to_string()).collect(),
+            extra: Location::from(input),
+        }
+    })(input)
+}
+
 pub fn anycase_identifier_with_ns(input: Span) -> IResult<LowerIdentifier<Location>> {
     map(
         pair(
