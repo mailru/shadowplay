@@ -4,7 +4,7 @@ use super::parser::{IResult, ParseError, Span};
 use nom::branch::alt;
 use nom::bytes::complete::{is_not, tag};
 use nom::character::complete::{anychar, char};
-use nom::combinator::{map, verify};
+use nom::combinator::{map, peek, verify};
 use nom::multi::fold_many0;
 use nom::sequence::{delimited, pair, preceded, terminated};
 use puppet_lang::string::{DoubleQuotedFragment, StringExpr, StringFragment, StringVariant};
@@ -19,8 +19,12 @@ fn parse_literal(input: Span) -> IResult<StringFragment<Location>> {
 
 fn parse_interpolation(input: Span) -> IResult<DoubleQuotedFragment<Location>> {
     let parser_variable = || {
-        map(crate::identifier::identifier_with_toplevel, |identifier| {
-            puppet_lang::expression::Expression {
+        map(
+            pair(
+                crate::identifier::identifier_with_toplevel,
+                crate::term::parse_accessor,
+            ),
+            |(identifier, accessor)| puppet_lang::expression::Expression {
                 extra: identifier.extra.clone(),
                 value: puppet_lang::expression::ExpressionVariant::Term(
                     puppet_lang::expression::Term {
@@ -28,14 +32,14 @@ fn parse_interpolation(input: Span) -> IResult<DoubleQuotedFragment<Location>> {
                         value: puppet_lang::expression::TermVariant::Variable(
                             puppet_lang::expression::Variable {
                                 extra: identifier.extra.clone(),
-                                accessor: Vec::new(),
+                                accessor,
                                 identifier,
                             },
                         ),
                     },
                 ),
-            }
-        })
+            },
+        )
     };
 
     let parser_delimited = alt((parser_variable(), crate::expression::parse_expression));
@@ -53,6 +57,9 @@ fn parse_interpolation(input: Span) -> IResult<DoubleQuotedFragment<Location>> {
         char('$'),
         alt((
             map(parser, DoubleQuotedFragment::Expression),
+            map(peek(char('"')), |_| {
+                DoubleQuotedFragment::StringFragment(StringFragment::Literal("$".to_owned()))
+            }),
             map(anychar, |c| {
                 DoubleQuotedFragment::StringFragment(StringFragment::Literal(format!("${}", c)))
             }),

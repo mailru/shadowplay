@@ -11,7 +11,7 @@ use crate::{
     common::{
         comma_separator, curly_brackets_delimimited, round_brackets_comma_separated1,
         round_brackets_delimimited, separator0, separator1, space0_delimimited, spaced0_separator,
-        square_brackets_comma_separated1,
+        spaced_word, square_brackets_comma_separated1,
     },
     parser::{IResult, Location, ParseError, Span},
     term::parse_string_variant,
@@ -35,33 +35,27 @@ fn parse_classes_reference_list(
     ParseError::protect(
         |_| "Class names as an arguments are expected".to_string(),
         alt((
-            preceded(
-                separator0,
-                round_brackets_comma_separated1(parse_class_reference),
-            ),
-            preceded(
-                separator1,
-                separated_list1(comma_separator, parse_class_reference),
-            ),
+            round_brackets_comma_separated1(parse_class_reference),
+            separated_list1(comma_separator, parse_class_reference),
         )),
     )(input)
 }
 
 fn parse_require(input: Span) -> IResult<StatementVariant<Location>> {
-    let parser = preceded(tag("require"), parse_classes_reference_list);
+    let parser = preceded(spaced_word("require"), parse_classes_reference_list);
 
     map(parser, StatementVariant::Require)(input)
 }
 
 fn parse_include(input: Span) -> IResult<StatementVariant<Location>> {
-    let parser = preceded(tag("include"), parse_classes_reference_list);
+    let parser = preceded(spaced_word("include"), parse_classes_reference_list);
 
     map(parser, StatementVariant::Include)(input)
 }
 
 fn parse_fail(input: Span) -> IResult<StatementVariant<Location>> {
     let parser = preceded(
-        tag("fail"),
+        spaced_word("fail"),
         ParseError::protect(
             |_| "Argument for 'fail' is expected".to_string(),
             alt((
@@ -69,7 +63,7 @@ fn parse_fail(input: Span) -> IResult<StatementVariant<Location>> {
                     separator0,
                     round_brackets_delimimited(crate::expression::parse_expression),
                 ),
-                preceded(separator1, crate::expression::parse_expression),
+                crate::expression::parse_expression,
             )),
         ),
     );
@@ -78,26 +72,20 @@ fn parse_fail(input: Span) -> IResult<StatementVariant<Location>> {
 }
 
 fn parse_contain(input: Span) -> IResult<StatementVariant<Location>> {
-    let parser = preceded(tag("contain"), parse_classes_reference_list);
+    let parser = preceded(spaced_word("contain"), parse_classes_reference_list);
 
     map(parser, StatementVariant::Contain)(input)
 }
 
 fn parse_tag(input: Span) -> IResult<StatementVariant<Location>> {
     let parser = preceded(
-        tag("tag"),
-        preceded(
-            separator1,
-            ParseError::protect(
-                |_| "Arguments for 'tag' are expected".to_string(),
-                alt((
-                    round_brackets_delimimited(separated_list1(
-                        comma_separator,
-                        parse_string_variant,
-                    )),
-                    separated_list1(comma_separator, parse_string_variant),
-                )),
-            ),
+        spaced_word("tag"),
+        ParseError::protect(
+            |_| "Arguments for 'tag' are expected".to_string(),
+            alt((
+                round_brackets_delimimited(separated_list1(comma_separator, parse_string_variant)),
+                separated_list1(comma_separator, parse_string_variant),
+            )),
         ),
     );
 
@@ -126,7 +114,7 @@ fn parse_create_resources(input: Span) -> IResult<StatementVariant<Location>> {
     };
 
     let parser = pair(
-        tag("create_resources"),
+        spaced_word("create_resources"),
         ParseError::protect(
             |_| "Arguments for 'create_resources' is expected".to_string(),
             alt((
@@ -147,19 +135,16 @@ fn parse_create_resources(input: Span) -> IResult<StatementVariant<Location>> {
 
 fn parse_realize(input: Span) -> IResult<StatementVariant<Location>> {
     let parser = preceded(
-        tag("realize"),
-        preceded(
-            separator1,
-            ParseError::protect(
-                |_| "Arguments for 'realize' are expected".to_string(),
-                alt((
-                    round_brackets_delimimited(separated_list1(
-                        comma_separator,
-                        crate::typing::parse_type_specification,
-                    )),
-                    separated_list1(comma_separator, crate::typing::parse_type_specification),
+        spaced_word("realize"),
+        ParseError::protect(
+            |_| "Arguments for 'realize' are expected".to_string(),
+            alt((
+                round_brackets_delimimited(separated_list1(
+                    comma_separator,
+                    crate::typing::parse_type_specification,
                 )),
-            ),
+                separated_list1(comma_separator, crate::typing::parse_type_specification),
+            )),
         ),
     );
 
@@ -314,24 +299,36 @@ fn parse_relation(input: Span) -> IResult<puppet_lang::statement::RelationList<L
 
 fn parse_if_else(input: Span) -> IResult<StatementVariant<Location>> {
     let parser_if = tuple((
-        space0_delimimited(tag("if")),
+        spaced_word("if"),
         space0_delimimited(ParseError::protect(
             |_| "Condition is expected after 'if'".to_string(),
             crate::expression::parse_expression,
         )),
-        parse_statement_block,
+        ParseError::protect(
+            |_| "Statement block expected 'if' condition".to_string(),
+            parse_statement_block,
+        ),
     ));
 
     let parser_elsif = many0(tuple((
-        space0_delimimited(tag("elsif")),
+        spaced_word("elsif"),
         space0_delimimited(ParseError::protect(
             |_| "Condition is expected after 'elsif'".to_string(),
             crate::expression::parse_expression,
         )),
-        parse_statement_block,
+        ParseError::protect(
+            |_| "Statement block expected 'elsif' condition".to_string(),
+            parse_statement_block,
+        ),
     )));
 
-    let parser_else = preceded(space0_delimimited(tag("else")), parse_statement_block);
+    let parser_else = preceded(
+        spaced_word("else"),
+        ParseError::protect(
+            |_| "Statement block expected 'else'".to_string(),
+            parse_statement_block,
+        ),
+    );
 
     let parser = tuple((parser_if, opt(parser_elsif), opt(parser_else)));
 

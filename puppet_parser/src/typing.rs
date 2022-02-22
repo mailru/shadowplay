@@ -312,9 +312,10 @@ fn parse_external_type(
 ) -> IResult<puppet_lang::typing::TypeSpecificationVariant<Location>> {
     let parser = pair(
         crate::identifier::camelcase_identifier_with_ns,
-        opt(crate::common::square_brackets_comma_separated1(
-            crate::term::parse_term,
-        )),
+        opt(crate::common::square_brackets_comma_separated1(alt((
+            crate::expression::parse_expression,
+            // TODO parse values like Class[some::class::name]
+        )))),
     );
 
     map(parser, |(name, arguments)| {
@@ -727,15 +728,20 @@ fn test_type_specification() {
             data: puppet_lang::typing::TypeSpecificationVariant::ExternalType(
                 puppet_lang::typing::ExternalType {
                     name: vec!["Class".to_owned(),],
-                    arguments: vec![puppet_lang::expression::Term {
-                        value: puppet_lang::expression::TermVariant::String(
-                            puppet_lang::string::StringExpr {
-                                data: puppet_lang::string::StringVariant::SingleQuoted(vec![
-                                    puppet_lang::string::StringFragment::Literal(
-                                        "hello".to_owned()
-                                    )
-                                ]),
-                                accessor: Vec::new(),
+                    arguments: vec![puppet_lang::expression::Expression {
+                        value: puppet_lang::expression::ExpressionVariant::Term(
+                            puppet_lang::expression::Term {
+                                value: puppet_lang::expression::TermVariant::String(
+                                    puppet_lang::string::StringExpr {
+                                        data: puppet_lang::string::StringVariant::SingleQuoted(
+                                            vec![puppet_lang::string::StringFragment::Literal(
+                                                "hello".to_owned()
+                                            )]
+                                        ),
+                                        accessor: Vec::new(),
+                                        extra: Location::new(6, 1, 7),
+                                    }
+                                ),
                                 extra: Location::new(6, 1, 7),
                             }
                         ),

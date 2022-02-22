@@ -257,9 +257,7 @@ pub fn parse_term(input: Span) -> IResult<puppet_lang::expression::Term<Location
 #[test]
 fn test_array_of_types() {
     assert_eq!(
-         parse_term(Span::new("[ Class['some_class'] ]"))
-            .unwrap()
-            .1,
+        parse_term(Span::new("[ Class['some_class'] ]")).unwrap().1,
         puppet_lang::expression::Term {
             value: puppet_lang::expression::TermVariant::Array(vec![
                 puppet_lang::expression::Expression {
@@ -271,16 +269,22 @@ fn test_array_of_types() {
                                         puppet_lang::typing::TypeSpecificationVariant::ExternalType(
                                             puppet_lang::typing::ExternalType {
                                                 name: vec!["Class".to_owned()],
-                                                arguments: vec![puppet_lang::expression::Term {
-                                                    value: puppet_lang::expression::TermVariant::String(puppet_lang::string::StringExpr {
-                                                        data: puppet_lang::string::StringVariant::SingleQuoted(vec![
-                                                            puppet_lang::string::StringFragment::Literal("some_class".to_owned())
-                                                        ]),
-                                                        accessor: Vec::new(),
+                                                arguments: vec![
+                                                    puppet_lang::expression::Expression {
+                                                        value: puppet_lang::expression::ExpressionVariant::Term(
+                                                            puppet_lang::expression::Term {
+                                                                value: puppet_lang::expression::TermVariant::String(puppet_lang::string::StringExpr {
+                                                                    data: puppet_lang::string::StringVariant::SingleQuoted(vec![
+                                                                        puppet_lang::string::StringFragment::Literal("some_class".to_owned())
+                                                                    ]),
+                                                                    accessor: Vec::new(),
+                                                                    extra: Location::new(8, 1, 9)
+                                                                }),
+                                                                extra: Location::new(8, 1, 9)
+                                                            }),
                                                         extra: Location::new(8, 1, 9)
-                                                    }),
-                                                    extra: Location::new(8, 1, 9)
-                                                }],
+                                                        }
+                                                ],
                                                 extra: Location::new(2, 1, 3)
                                             }
                                         ),

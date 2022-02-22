@@ -20,7 +20,7 @@ pub fn parse_typedef(input: Span) -> IResult<puppet_lang::toplevel::TypeDef<Loca
             ParseError::protect(|_| "'=' expected".to_string(), tag("=")),
             ParseError::protect(
                 |_| "Type specification expected".to_string(),
-                crate::typing::parse_type_specification,
+                space0_delimimited(crate::typing::parse_type_specification),
             ),
         )),
         |(tag, identifier, _, value)| puppet_lang::toplevel::TypeDef {

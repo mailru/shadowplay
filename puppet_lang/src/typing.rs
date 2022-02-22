@@ -126,11 +126,10 @@ pub struct Enum<EXTRA> {
     pub extra: EXTRA,
 }
 
-// TODO определенные где-то в иных файлах типы
 #[derive(Clone, Debug, PartialEq)]
 pub struct ExternalType<EXTRA> {
     pub name: Vec<String>,
-    pub arguments: Vec<crate::expression::Term<EXTRA>>,
+    pub arguments: Vec<crate::expression::Expression<EXTRA>>,
     pub extra: EXTRA,
 }
 

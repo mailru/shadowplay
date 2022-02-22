@@ -1,8 +1,8 @@
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag, take_until},
-    character::complete::{char, multispace1, newline},
-    combinator::{opt, value},
+    character::complete::{anychar, char, multispace1, newline},
+    combinator::{opt, peek, value, verify},
     multi::{many0, many1, separated_list0, separated_list1},
     sequence::{delimited, pair, preceded, terminated, tuple},
     Parser,
@@ -172,6 +172,17 @@ where
         // В конце не обязательная запятая
         opt(comma_separator),
     ))
+}
+
+pub fn word<'a>(searchword: &'static str) -> impl FnMut(Span<'a>) -> IResult<Span<'a>> {
+    terminated(
+        tag(searchword),
+        peek(verify(anychar, |c| !c.is_alphanumeric() && *c != '_')),
+    )
+}
+
+pub fn spaced_word<'a>(searchword: &'static str) -> impl FnMut(Span<'a>) -> IResult<Span<'a>> {
+    space0_delimimited(word(searchword))
 }
 
 #[test]

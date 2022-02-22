@@ -7,9 +7,7 @@ use nom::sequence::tuple;
 use nom::{bytes::complete::tag, sequence::pair};
 use puppet_lang::expression::CaseVariant;
 
-use crate::common::{
-    comma_separator, fold_many0_with_const_init, space0_delimimited, space1_delimimited,
-};
+use crate::common::{comma_separator, fold_many0_with_const_init, space0_delimimited, spaced_word};
 use crate::parser::Location;
 
 use crate::parser::{IResult, Span};
@@ -221,7 +219,7 @@ fn parse_in_expr(input: Span) -> IResult<puppet_lang::expression::Expression<Loc
     let parser = pair(
         parse_chain_call,
         opt(pair(
-            space1_delimimited(tag("in")),
+            spaced_word("in"),
             ParseError::protect(
                 |_| "Expression expected after 'in'".to_string(),
                 parse_chain_call,
@@ -690,6 +688,64 @@ fn test_function_call() {
                 }
             ),
             extra: Location::new(0, 1, 1)
+        }
+    );
+}
+
+#[test]
+fn test_in_with_parens() {
+    assert_eq!(
+        parse_expression(Span::new("(1 in $a)")).unwrap().1,
+        puppet_lang::expression::Expression {
+            value: puppet_lang::expression::ExpressionVariant::Term(
+                puppet_lang::expression::Term {
+                    value: puppet_lang::expression::TermVariant::Parens(puppet_lang::expression::Parens {
+                        value: Box::new(puppet_lang::expression::Expression {
+                            value: puppet_lang::expression::ExpressionVariant::In((
+                                Box::new(puppet_lang::expression::Expression {
+                                    value: puppet_lang::expression::ExpressionVariant::Term(
+                                        puppet_lang::expression::Term {
+                                            value: puppet_lang::expression::TermVariant::Integer(
+                                                puppet_lang::expression::Integer {
+                                                    value: 1,
+                                                    extra: Location::new(1,1,2)
+                                                }
+                                            ),
+                                            extra: Location::new(1,1,2)
+                                        }
+                                    ),
+                                    extra: Location::new(1,1,2)
+                                }),
+                                Box::new(puppet_lang::expression::Expression {
+                                    value: puppet_lang::expression::ExpressionVariant::Term(
+                                        puppet_lang::expression::Term {
+                                            value: puppet_lang::expression::TermVariant::Variable(
+                                                puppet_lang::expression::Variable {
+                                                    identifier:
+                                                        puppet_lang::identifier::LowerIdentifier {
+                                                            name: vec!["a".to_owned()],
+                                                            is_toplevel: false,
+                                                            extra: Location::new(7,1,8)
+                                                        },
+                                                    accessor: vec![],
+                                                    extra: Location::new(7,1,8)
+                                                }
+                                            ),
+                                            extra: Location::new(6,1,7)
+                                        }
+                                    ),
+                                    extra: Location::new(6,1,7)
+                                })
+                            )),
+                            extra: Location::new(3,1,4)
+                        }),
+                        accessor: vec![],
+                        extra: Location::new(0,1,1)
+                    }),
+                    extra: Location::new(0,1,1)
+                }
+            ),
+            extra: Location::new(0,1,1)
         }
     );
 }
