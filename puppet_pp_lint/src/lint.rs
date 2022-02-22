@@ -196,6 +196,17 @@ impl AstLinter {
             errors.append(&mut lint.check_string_expression(elt));
         }
 
+        if let puppet_lang::string::StringVariant::DoubleQuoted(s) = &elt.data {
+            for fragment in s {
+                match fragment {
+                    puppet_lang::string::DoubleQuotedFragment::StringFragment(_) => {}
+                    puppet_lang::string::DoubleQuotedFragment::Expression(elt) => {
+                        errors.append(&mut self.check_expression(storage, true, elt))
+                    }
+                }
+            }
+        }
+
         errors
     }
 

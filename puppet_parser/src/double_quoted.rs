@@ -2,25 +2,68 @@ use crate::parser::Location;
 
 use super::parser::{IResult, ParseError, Span};
 use nom::branch::alt;
-use nom::bytes::complete::is_not;
-use nom::character::complete::char;
+use nom::bytes::complete::{is_not, tag};
+use nom::character::complete::{anychar, char};
 use nom::combinator::{map, verify};
 use nom::multi::fold_many0;
-use nom::sequence::{pair, preceded, terminated};
+use nom::sequence::{delimited, pair, preceded, terminated};
 use puppet_lang::string::{DoubleQuotedFragment, StringExpr, StringFragment, StringVariant};
 
 fn parse_literal(input: Span) -> IResult<StringFragment<Location>> {
-    let not_quote_slash = is_not("\"\\");
+    let not_quote_slash = is_not("\"\\$");
     map(
         verify(map(not_quote_slash, |s: Span| *s), |s: &str| !s.is_empty()),
         |data| StringFragment::Literal(data.to_string()),
     )(input)
 }
 
+fn parse_interpolation(input: Span) -> IResult<DoubleQuotedFragment<Location>> {
+    let parser_variable = || {
+        map(crate::identifier::identifier_with_toplevel, |identifier| {
+            puppet_lang::expression::Expression {
+                extra: identifier.extra.clone(),
+                value: puppet_lang::expression::ExpressionVariant::Term(
+                    puppet_lang::expression::Term {
+                        extra: identifier.extra.clone(),
+                        value: puppet_lang::expression::TermVariant::Variable(
+                            puppet_lang::expression::Variable {
+                                extra: identifier.extra.clone(),
+                                accessor: Vec::new(),
+                                identifier,
+                            },
+                        ),
+                    },
+                ),
+            }
+        })
+    };
+
+    let parser_delimited = alt((parser_variable(), crate::expression::parse_expression));
+
+    let parser = alt((
+        delimited(
+            tag("{"),
+            parser_delimited,
+            ParseError::protect(|_| "Closing '}' expected".to_string(), tag("}")),
+        ),
+        parser_variable(),
+    ));
+
+    preceded(
+        char('$'),
+        alt((
+            map(parser, DoubleQuotedFragment::Expression),
+            map(anychar, |c| {
+                DoubleQuotedFragment::StringFragment(StringFragment::Literal(format!("${}", c)))
+            }),
+        )),
+    )(input)
+}
+
 fn parse_fragment(input: Span) -> IResult<DoubleQuotedFragment<Location>> {
-    // TODO parse interpolations
     alt((
         map(parse_literal, DoubleQuotedFragment::StringFragment),
+        parse_interpolation,
         map(
             crate::single_quoted::parse_unicode,
             DoubleQuotedFragment::StringFragment,
