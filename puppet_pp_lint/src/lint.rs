@@ -157,6 +157,8 @@ impl Storage {
         v.register_early_pass(Box::new(
             super::lint_expression::AssignmentToInvalidExpression,
         ));
+        v.register_early_pass(Box::new(super::lint_expression::DoubleNegation));
+        v.register_early_pass(Box::new(super::lint_expression::NegationOfEquation));
         v.register_early_pass(Box::new(super::lint_string_expr::UselessDoubleQuotes));
         v.register_early_pass(Box::new(super::lint_term::LowerCaseVariable));
         v.register_early_pass(Box::new(super::lint_resource_set::UpperCaseName));

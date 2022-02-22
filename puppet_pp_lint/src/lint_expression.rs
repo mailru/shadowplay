@@ -206,3 +206,103 @@ impl EarlyLintPass for AssignmentToInvalidExpression {
         Vec::new()
     }
 }
+
+#[derive(Clone)]
+pub struct DoubleNegation;
+
+impl LintPass for DoubleNegation {
+    fn name(&self) -> &str {
+        "double_negation"
+    }
+}
+
+impl EarlyLintPass for DoubleNegation {
+    fn check_expression(
+        &self,
+        _is_toplevel_expr: bool,
+        elt: &Expression<Location>,
+    ) -> Vec<super::lint::LintError> {
+        let inner = match &elt.value {
+            ExpressionVariant::Not(inner) => inner,
+            _ => return Vec::new(),
+        };
+
+        if matches!(inner.value, ExpressionVariant::Not(_)) {
+            return vec![LintError::new(
+                Box::new(self.clone()),
+                "Double negation",
+                &elt.extra,
+            )];
+        }
+
+        Vec::new()
+    }
+}
+
+#[derive(Clone)]
+pub struct NegationOfEquation;
+
+impl LintPass for NegationOfEquation {
+    fn name(&self) -> &str {
+        "negation_of_equation"
+    }
+}
+
+impl EarlyLintPass for NegationOfEquation {
+    fn check_expression(
+        &self,
+        _is_toplevel_expr: bool,
+        elt: &Expression<Location>,
+    ) -> Vec<super::lint::LintError> {
+        let inner = match &elt.value {
+            ExpressionVariant::Not(inner) => inner,
+            _ => return Vec::new(),
+        };
+
+        let inner = match &inner.value {
+            ExpressionVariant::Term(Term {
+                value: TermVariant::Parens(inner),
+                ..
+            }) => inner,
+            _ => return Vec::new(),
+        };
+
+        if matches!(inner.value.value, ExpressionVariant::Equal(_)) {
+            return vec![LintError::new(
+                Box::new(self.clone()),
+                "Negation of equality. !($a == $b) can be replaced with $a != $b",
+                &elt.extra,
+            )];
+        }
+
+        if matches!(inner.value.value, ExpressionVariant::NotEqual(_)) {
+            return vec![LintError::new(
+                Box::new(self.clone()),
+                "Negation of inequality. !($a != $b) can be replaced with $a == $b",
+                &elt.extra,
+            )];
+        }
+
+        if matches!(inner.value.value, ExpressionVariant::NotMatchType(_))
+            || matches!(inner.value.value, ExpressionVariant::NotMatchRegex(_))
+        {
+            return vec![LintError::new(
+                Box::new(self.clone()),
+                "Negation of negative match. !($a !~ $b) can be replaced with $a ~= $b",
+                &elt.extra,
+            )];
+        }
+
+        if matches!(inner.value.value, ExpressionVariant::MatchType(_))
+            || matches!(inner.value.value, ExpressionVariant::MatchRegex(_))
+        {
+            return vec![LintError::new(
+                Box::new(self.clone()),
+                "Negation of matching. !($a ~= $b) can be replaced with $a !~ $b",
+                &elt.extra,
+            )];
+        }
+
+        Vec::new()
+    }
+}
