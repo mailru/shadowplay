@@ -1,6 +1,4 @@
-use crate::parser::Location;
-
-use super::parser::{IResult, ParseError, Span};
+use crate::{IResult, Location, ParseError, Span};
 use nom::{
     bytes::complete::tag,
     combinator::{map, opt},

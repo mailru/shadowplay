@@ -1,9 +1,8 @@
 use crate::{
     common::{space0_delimimited, space1_delimimited},
-    parser::{IResult, Location, ParseError},
+    {IResult, Location, ParseError, Span},
 };
 
-use super::parser::Span;
 use nom::{
     branch::alt,
     bytes::complete::tag,

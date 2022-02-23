@@ -1,6 +1,4 @@
-use crate::parser::Location;
-
-use crate::parser::{IResult, ParseError, Span};
+use crate::{IResult, Location, ParseError, Span};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -65,7 +63,7 @@ pub fn parse_float(
         puppet_lang::typing::TypeSpecificationVariant::Float(puppet_lang::typing::TypeFloat {
             min,
             max,
-            extra: crate::parser::Location::from(input),
+            extra: Location::from(input),
         })
     })(input)
 }
@@ -82,7 +80,7 @@ pub fn parse_integer(
         puppet_lang::typing::TypeSpecificationVariant::Integer(puppet_lang::typing::TypeInteger {
             min,
             max,
-            extra: crate::parser::Location::from(input),
+            extra: Location::from(input),
         })
     })(input)
 }
@@ -99,7 +97,7 @@ pub fn parse_string(
         puppet_lang::typing::TypeSpecificationVariant::String(puppet_lang::typing::TypeString {
             min,
             max,
-            extra: crate::parser::Location::from(input),
+            extra: Location::from(input),
         })
     })(input)
 }
@@ -119,7 +117,7 @@ fn parse_array(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVar
             inner: Some(Box::new(inner)),
             min,
             max,
-            extra: crate::parser::Location::from(input),
+            extra: Location::from(input),
         }
     });
     let parser = preceded(
@@ -131,7 +129,7 @@ fn parse_array(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVar
                     inner: None,
                     min: None,
                     max: None,
-                    extra: crate::parser::Location::from(input),
+                    extra: Location::from(input),
                 })
             },
         ),
@@ -156,7 +154,7 @@ fn parse_hash(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVari
             value: Some(Box::new(value)),
             min,
             max,
-            extra: crate::parser::Location::from(input),
+            extra: Location::from(input),
         }
     });
 
@@ -170,7 +168,7 @@ fn parse_hash(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVari
                     value: None,
                     min: None,
                     max: None,
-                    extra: crate::parser::Location::from(input),
+                    extra: Location::from(input),
                 })
             },
         ),
@@ -184,13 +182,13 @@ fn parse_optional(input: Span) -> IResult<puppet_lang::typing::TypeSpecification
         map(parse_type_specification, |v| {
             puppet_lang::typing::TypeOptional {
                 value: puppet_lang::typing::TypeOptionalVariant::TypeSpecification(Box::new(v)),
-                extra: crate::parser::Location::from(input),
+                extra: Location::from(input),
             }
         }),
         map(crate::term::parse_term, |v| {
             puppet_lang::typing::TypeOptional {
                 value: puppet_lang::typing::TypeOptionalVariant::Term(Box::new(v)),
-                extra: crate::parser::Location::from(input),
+                extra: Location::from(input),
             }
         }),
     )));
@@ -214,13 +212,13 @@ fn parse_sensitive(
                     value: puppet_lang::typing::TypeSensitiveVariant::TypeSpecification(Box::new(
                         v,
                     )),
-                    extra: crate::parser::Location::from(input),
+                    extra: Location::from(input),
                 }
             }),
             map(crate::term::parse_term, |v| {
                 puppet_lang::typing::TypeSensitive {
                     value: puppet_lang::typing::TypeSensitiveVariant::Term(Box::new(v)),
-                    extra: crate::parser::Location::from(input),
+                    extra: Location::from(input),
                 }
             }),
         ))),

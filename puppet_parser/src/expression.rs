@@ -8,14 +8,11 @@ use nom::{bytes::complete::tag, sequence::pair};
 use puppet_lang::expression::CaseVariant;
 
 use crate::common::{comma_separator, fold_many0_with_const_init, space0_delimimited, spaced_word};
-use crate::parser::Location;
 
-use crate::parser::{IResult, Span};
 use crate::term::{parse_accessor, parse_term};
+use crate::{IResult, Location, ParseError, Span};
 
 use nom::{branch::alt, combinator::map};
-
-use crate::parser::ParseError;
 
 /// https://puppet.com/docs/puppet/6/lang_expressions.html#lang_exp_comparison_operators-comparison-regex-or-data-type-match
 pub(crate) fn parse_match_variant(

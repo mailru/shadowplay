@@ -7,7 +7,7 @@ use nom::{
 
 use crate::{
     common::{fold_many0_with_const_init, space0_delimimited},
-    parser::{IResult, Location, ParseError, Span},
+    {IResult, Location, ParseError, Span},
 };
 
 pub fn parse_search_condition(

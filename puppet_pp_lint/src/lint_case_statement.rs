@@ -1,4 +1,4 @@
-use puppet_parser::parser::Location;
+use puppet_parser::Location;
 
 use crate::lint::{EarlyLintPass, LintError, LintPass};
 
@@ -72,9 +72,7 @@ impl LintPass for MultipleDefaultCase {
 
 impl EarlyLintPass for MultipleDefaultCase {
     fn check_case_statement(&self, elt: &puppet_lang::statement::Case<Location>) -> Vec<LintError> {
-        let mut default: Option<
-            &puppet_lang::statement::CaseElement<puppet_parser::parser::Location>,
-        > = None;
+        let mut default: Option<&puppet_lang::statement::CaseElement<Location>> = None;
         let mut errors = Vec::new();
         for case in &elt.elements {
             if case

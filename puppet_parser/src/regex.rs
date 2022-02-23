@@ -1,6 +1,4 @@
-use crate::parser::Location;
-
-use super::parser::{IResult, Span};
+use crate::{IResult, Location, Span};
 use nom::branch::alt;
 use nom::bytes::complete::{is_not, tag};
 use nom::character::complete::{anychar, char};

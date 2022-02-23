@@ -8,7 +8,7 @@ use nom::{
     Parser,
 };
 
-use super::parser::{IResult, ParseError, Span};
+use crate::{IResult, ParseError, Span};
 
 pub fn comment(input: Span) -> IResult<()> {
     let shell_comment_extractor = value(

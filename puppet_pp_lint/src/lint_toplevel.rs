@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use puppet_parser::parser::Location;
+use puppet_parser::Location;
 
 use super::lint::{EarlyLintPass, LintError, LintPass};
 

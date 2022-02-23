@@ -2,8 +2,7 @@ use crate::common::{
     comma_separator, round_brackets_delimimited, space0_delimimited,
     square_brackets_comma_separated1,
 };
-use crate::parser::Location;
-use crate::parser::{IResult, ParseError, Span};
+use crate::{IResult, Location, ParseError, Span};
 use nom::combinator::{map_res, value};
 use nom::multi::separated_list0;
 use nom::sequence::{terminated, tuple};

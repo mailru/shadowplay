@@ -13,8 +13,8 @@ use crate::{
         round_brackets_delimimited, separator0, separator1, space0_delimimited, spaced0_separator,
         spaced_word, square_brackets_comma_separated1,
     },
-    parser::{IResult, Location, ParseError, Span},
     term::parse_string_variant,
+    {IResult, Location, ParseError, Span},
 };
 
 fn parse_class_reference(input: Span) -> IResult<puppet_lang::expression::Term<Location>> {

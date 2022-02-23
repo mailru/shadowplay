@@ -84,8 +84,8 @@ impl Display for Location {
     }
 }
 
-impl<'a> From<(&std::path::Path, &puppet_parser::parser::Span<'a>)> for Location {
-    fn from(pair: (&std::path::Path, &puppet_parser::parser::Span)) -> Self {
+impl<'a> From<(&std::path::Path, &puppet_parser::Span<'a>)> for Location {
+    fn from(pair: (&std::path::Path, &puppet_parser::Span)) -> Self {
         let (path, span) = pair;
         Location {
             path: std::path::PathBuf::from(path),
@@ -96,8 +96,8 @@ impl<'a> From<(&std::path::Path, &puppet_parser::parser::Span<'a>)> for Location
     }
 }
 
-impl<'a> From<(&std::path::Path, &puppet_parser::parser::Location)> for Location {
-    fn from(pair: (&std::path::Path, &puppet_parser::parser::Location)) -> Self {
+impl<'a> From<(&std::path::Path, &puppet_parser::Location)> for Location {
+    fn from(pair: (&std::path::Path, &puppet_parser::Location)) -> Self {
         let (path, location) = pair;
         Location {
             path: std::path::PathBuf::from(path),
@@ -153,8 +153,8 @@ pub struct Error {
     pub location: Location,
 }
 
-impl<'a> From<(&std::path::Path, &puppet_parser::parser::ParseError<'a>)> for Error {
-    fn from(pair: (&std::path::Path, &puppet_parser::parser::ParseError)) -> Self {
+impl<'a> From<(&std::path::Path, &puppet_parser::ParseError<'a>)> for Error {
+    fn from(pair: (&std::path::Path, &puppet_parser::ParseError)) -> Self {
         let (path, parse_error) = pair;
         Self {
             error_type: Type::ManifestSyntax,

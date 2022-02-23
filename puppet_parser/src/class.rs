@@ -1,7 +1,5 @@
-use crate::parser::Location;
-
 use crate::common::space0_delimimited;
-use crate::parser::{IResult, ParseError, Span};
+use crate::{IResult, Location, ParseError, Span};
 use nom::{
     bytes::complete::tag,
     combinator::{map, opt},

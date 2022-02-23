@@ -1,6 +1,4 @@
-use crate::parser::Location;
-
-use super::parser::{IResult, ParseError, Span};
+use crate::{IResult, Location, ParseError, Span};
 use nom::branch::alt;
 use nom::bytes::complete::tag;
 use nom::bytes::complete::{is_not, take_while_m_n};

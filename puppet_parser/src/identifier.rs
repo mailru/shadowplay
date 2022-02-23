@@ -8,7 +8,7 @@ use nom::{
 };
 use puppet_lang::identifier::LowerIdentifier;
 
-use crate::parser::{IResult, Location, Span};
+use crate::{IResult, Location, Span};
 
 pub fn char_lower(input: Span) -> IResult<char> {
     verify(anychar, |c| c.is_ascii_lowercase() || *c == '_')(input)

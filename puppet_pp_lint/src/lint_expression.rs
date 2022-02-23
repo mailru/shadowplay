@@ -1,5 +1,5 @@
 use puppet_lang::expression::{Expression, ExpressionVariant, Parens, Term, TermVariant};
-use puppet_parser::parser::Location;
+use puppet_parser::Location;
 
 use crate::lint::LintError;
 

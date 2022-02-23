@@ -1,4 +1,4 @@
-use puppet_parser::parser::Location;
+use puppet_parser::Location;
 
 pub trait LintPass {
     fn name(&self) -> &str;
