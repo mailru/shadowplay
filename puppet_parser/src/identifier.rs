@@ -2,7 +2,7 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{alpha1, alphanumeric1, anychar, digit1},
-    combinator::{map, opt, peek, recognize, rest, verify},
+    combinator::{map, opt, recognize, verify},
     multi::many0,
     sequence::{pair, tuple},
 };
@@ -83,31 +83,18 @@ pub fn anycase_identifier_with_ns(input: Span) -> IResult<LowerIdentifier<Range>
 }
 
 pub fn identifier_with_toplevel(input: Span) -> IResult<LowerIdentifier<Range>> {
-    map(
-        tuple((
-            map(opt(tag("::")), |v| v.is_some()),
-            lower_identifier_with_ns,
-            peek(rest),
-        )),
-        |(is_toplevel, name, tail)| LowerIdentifier {
+    let (input, toplevel_mark) = opt(tag("::"))(input)?;
+    map(lower_identifier_with_ns, move |name| {
+        let extra = match &toplevel_mark {
+            Some(v) => Range::from((v, name.last().unwrap())),
+            None => Range::from((name.first().unwrap(), name.last().unwrap())),
+        };
+        LowerIdentifier {
             name: name.iter().map(|v| v.to_string()).collect(),
-            is_toplevel,
-            extra: Range::from((input, tail)),
-        },
-    )(input)
-}
-
-#[test]
-fn test_lower_case_identifier_with_ns() {
-    assert_eq!(
-        lower_identifier_with_ns(Span::new("asd")).unwrap().1,
-        vec![Span::new("asd")]
-    );
-    assert_eq!(
-        lower_identifier_with_ns(Span::new("asd::def")).unwrap().1,
-        vec![Span::new("asd"), Span::new("def")]
-    );
-    assert!(lower_identifier_with_ns(Span::new("")).is_err())
+            is_toplevel: toplevel_mark.is_some(),
+            extra,
+        }
+    })(input)
 }
 
 #[test]
@@ -117,7 +104,7 @@ fn test_identifier_with_toplevel() {
         LowerIdentifier {
             name: vec!["asd".to_owned()],
             is_toplevel: true,
-            extra: Range::new(0, 1, 1, 3, 1, 4)
+            extra: Range::new(0, 1, 1, 4, 1, 5)
         }
     );
     assert_eq!(
@@ -125,7 +112,7 @@ fn test_identifier_with_toplevel() {
         LowerIdentifier {
             name: vec!["asd".to_owned()],
             is_toplevel: false,
-            extra: Range::new(0, 1, 1, 3, 1, 4)
+            extra: Range::new(0, 1, 1, 2, 1, 3)
         }
     );
     assert_eq!(
@@ -133,7 +120,7 @@ fn test_identifier_with_toplevel() {
         LowerIdentifier {
             name: vec!["asd".to_owned(), "def".to_owned()],
             is_toplevel: false,
-            extra: Range::new(0, 1, 1, 3, 1, 4)
+            extra: Range::new(0, 1, 1, 7, 1, 8)
         }
     );
 }

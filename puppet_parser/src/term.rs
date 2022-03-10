@@ -301,33 +301,33 @@ fn test_array_of_types() {
                                                                     data: puppet_lang::string::StringVariant::SingleQuoted(vec![
                                                                         puppet_lang::string::StringFragment::Literal(puppet_lang::string::Literal {
                                                                             data: "some_class".to_owned(),
-                                                                     extra: Range::new(8, 1, 9, 1, 1, 1)
+                                                                            extra: Range::new(9, 1, 10, 18, 1, 19)
                                                                         })
                                                                     ]),
                                                                     accessor: None,
-                                                                     extra: Range::new(8, 1, 9, 1, 1, 1)
+                                                                    extra: Range::new(8, 1, 9, 19, 1, 20)
                                                                 }),
-                                                                extra: Range::new(8, 1, 9, 1, 1, 1)
+                                                                extra: Range::new(8, 1, 9, 19, 1, 20)
                                                             }),
-                                                        extra: Range::new(8, 1, 9, 1, 1, 1)
+                                                        extra: Range::new(8, 1, 9, 19, 1, 20)
                                                         }
                                                 ],
-                                                extra: Range::new(2, 1, 3, 1, 1, 1)
+                                                extra: Range::new(2, 1, 3, 20, 1, 21)
                                             }
                                         ),
-                                    extra: Range::new(2, 1, 3, 1, 1, 1)
+                                    extra: Range::new(2, 1, 3, 20, 1, 21)
                                 }
                             ),
-                            extra: Range::new(2, 1, 3, 1, 1, 1)
+                            extra: Range::new(2, 1, 3, 20, 1, 21)
                         }
                     ),
-                    extra: Range::new(2, 1, 3, 1, 1, 1)
+                    extra: Range::new(2, 1, 3, 20, 1, 21)
                 }
                 ],
                 accessor: None,
-                extra: Range::new(0, 1, 1, 1, 1, 1)
+                extra: Range::new(0, 1, 1, 22, 1, 23)
             }),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 22, 1, 23)
         }
     )
 }
@@ -339,11 +339,11 @@ fn test_numbers() {
         puppet_lang::expression::Term {
             value: puppet_lang::expression::TermVariant::Integer(
                 puppet_lang::expression::Integer {
-                    extra: Range::new(0, 1, 1, 1, 1, 1),
+                    extra: Range::new(0, 1, 1, 4, 1, 5),
                     value: 12345
                 }
             ),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 4, 1, 5)
         }
     );
     assert_eq!(
@@ -351,9 +351,9 @@ fn test_numbers() {
         puppet_lang::expression::Term {
             value: puppet_lang::expression::TermVariant::Float(puppet_lang::expression::Float {
                 value: 12345.1,
-                extra: Range::new(0, 1, 1, 1, 1, 1)
+                extra: Range::new(0, 1, 1, 6, 1, 7)
             }),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 6, 1, 7)
         }
     );
     assert_eq!(
@@ -361,9 +361,9 @@ fn test_numbers() {
         puppet_lang::expression::Term {
             value: puppet_lang::expression::TermVariant::Float(puppet_lang::expression::Float {
                 value: -12345.3,
-                extra: Range::new(0, 1, 1, 1, 1, 1)
+                extra: Range::new(0, 1, 1, 7, 1, 8)
             }),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 7, 1, 8)
         }
     );
 }
@@ -376,10 +376,10 @@ fn test_bool() {
             value: puppet_lang::expression::TermVariant::Boolean(
                 puppet_lang::expression::Boolean {
                     value: true,
-                    extra: Range::new(0, 1, 1, 1, 1, 1)
+                    extra: Range::new(0, 1, 1, 3, 1, 4)
                 }
             ),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 3, 1, 4)
         }
     );
     assert_eq!(
@@ -388,10 +388,10 @@ fn test_bool() {
             value: puppet_lang::expression::TermVariant::Boolean(
                 puppet_lang::expression::Boolean {
                     value: false,
-                    extra: Range::new(0, 1, 1, 1, 1, 1)
+                    extra: Range::new(0, 1, 1, 4, 1, 5)
                 }
             ),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 4, 1, 5)
         }
     );
 }
@@ -404,9 +404,9 @@ fn test_array() {
             value: puppet_lang::expression::TermVariant::Array(puppet_lang::expression::Array {
                 value: vec![],
                 accessor: None,
-                extra: Range::new(0, 1, 1, 1, 1, 1)
+                extra: Range::new(0, 1, 1, 1, 1, 2)
             }),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 1, 1, 2)
         }
     );
 
@@ -420,18 +420,18 @@ fn test_array() {
                             value: puppet_lang::expression::TermVariant::Boolean(
                                 puppet_lang::expression::Boolean {
                                     value: false,
-                                    extra: Range::new(1, 1, 2, 1, 1, 1)
+                                    extra: Range::new(1, 1, 2, 5, 1, 6)
                                 }
                             ),
-                            extra: Range::new(1, 1, 2, 1, 1, 1)
+                            extra: Range::new(1, 1, 2, 5, 1, 6)
                         }
                     ),
-                    extra: Range::new(1, 1, 2, 1, 1, 1)
+                    extra: Range::new(1, 1, 2, 5, 1, 6)
                 }],
                 accessor: None,
-                extra: Range::new(0, 1, 1, 1, 1, 1)
+                extra: Range::new(0, 1, 1, 6, 1, 7)
             }),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 6, 1, 7)
         }
     );
 }
@@ -444,9 +444,9 @@ fn test_map() {
             value: puppet_lang::expression::TermVariant::Map(puppet_lang::expression::Map {
                 value: Vec::new(),
                 accessor: None,
-                extra: Range::new(0, 1, 1, 1, 1, 1)
+                extra: Range::new(0, 1, 1, 1, 1, 2)
             }),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 1, 1, 2)
         }
     );
 
@@ -461,13 +461,13 @@ fn test_map() {
                                 value: puppet_lang::expression::TermVariant::Boolean(
                                     puppet_lang::expression::Boolean {
                                         value: false,
-                                        extra: Range::new(1, 1, 2, 1, 1, 1)
+                                        extra: Range::new(1, 1, 2, 5, 1, 6)
                                     }
                                 ),
-                                extra: Range::new(1, 1, 2, 1, 1, 1)
+                                extra: Range::new(1, 1, 2, 5, 1, 6)
                             }
                         ),
-                        extra: Range::new(1, 1, 2, 1, 1, 1)
+                        extra: Range::new(1, 1, 2, 5, 1, 6)
                     },
                     puppet_lang::expression::Expression {
                         value: puppet_lang::expression::ExpressionVariant::Term(
@@ -475,19 +475,19 @@ fn test_map() {
                                 value: puppet_lang::expression::TermVariant::Integer(
                                     puppet_lang::expression::Integer {
                                         value: 1,
-                                        extra: Range::new(10, 1, 11, 1, 1, 1)
+                                        extra: Range::new(10, 1, 11, 10, 1, 11)
                                     }
                                 ),
-                                extra: Range::new(10, 1, 11, 1, 1, 1)
+                                extra: Range::new(10, 1, 11, 10, 1, 11)
                             }
                         ),
-                        extra: Range::new(10, 1, 11, 1, 1, 1)
+                        extra: Range::new(10, 1, 11, 10, 1, 11)
                     },
                 )],
                 accessor: None,
-                extra: Range::new(0, 1, 1, 1, 1, 1)
+                extra: Range::new(0, 1, 1, 11, 1, 12)
             }),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 11, 1, 12)
         }
     );
 
@@ -502,10 +502,10 @@ fn test_variable() {
             identifier: puppet_lang::identifier::LowerIdentifier {
                 name: vec!["a".to_owned()],
                 is_toplevel: false,
-                extra: Range::new(1, 1, 2, 1, 1, 1)
+                extra: Range::new(1, 1, 2, 1, 1, 2)
             },
             accessor: None,
-            extra: Range::new(1, 1, 2, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 1, 1, 2)
         }
     );
     assert_eq!(
@@ -514,10 +514,10 @@ fn test_variable() {
             identifier: puppet_lang::identifier::LowerIdentifier {
                 name: vec!["a".to_owned(), "b".to_owned()],
                 is_toplevel: true,
-                extra: Range::new(1, 1, 2, 1, 1, 1)
+                extra: Range::new(1, 1, 2, 6, 1, 7)
             },
             accessor: None,
-            extra: Range::new(1, 1, 2, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 6, 1, 7)
         }
     );
     assert_eq!(
@@ -526,7 +526,7 @@ fn test_variable() {
             identifier: puppet_lang::identifier::LowerIdentifier {
                 name: vec!["a".to_owned()],
                 is_toplevel: false,
-                extra: Range::new(1, 1, 2, 1, 1, 1)
+                extra: Range::new(1, 1, 2, 1, 1, 2)
             },
             accessor: Some(Accessor {
                 list: vec![
@@ -535,14 +535,14 @@ fn test_variable() {
                             puppet_lang::expression::Term {
                                 value: puppet_lang::expression::TermVariant::Integer(
                                     puppet_lang::expression::Integer {
-                                        extra: Range::new(4, 1, 5, 1, 1, 1),
+                                        extra: Range::new(4, 1, 5, 4, 1, 5),
                                         value: 1,
                                     }
                                 ),
-                                extra: Range::new(4, 1, 5, 1, 1, 1)
+                                extra: Range::new(4, 1, 5, 4, 1, 5)
                             }
                         ),
-                        extra: Range::new(4, 1, 5, 1, 1, 1)
+                        extra: Range::new(4, 1, 5, 4, 1, 5)
                     })],
                     vec![Box::new(puppet_lang::expression::Expression {
                         value: puppet_lang::expression::ExpressionVariant::Term(
@@ -553,23 +553,23 @@ fn test_variable() {
                                             vec![puppet_lang::string::StringFragment::Literal(
                                                 puppet_lang::string::Literal {
                                                     data: "z".to_owned(),
-                                                    extra: Range::new(8, 1, 9, 1, 1, 1),
+                                                    extra: Range::new(9, 1, 10, 9, 1, 10),
                                                 }
                                             )]
                                         ),
                                         accessor: None,
-                                        extra: Range::new(8, 1, 9, 1, 1, 1),
+                                        extra: Range::new(8, 1, 9, 10, 1, 11),
                                     }
                                 ),
-                                extra: Range::new(8, 1, 9, 1, 1, 1)
+                                extra: Range::new(8, 1, 9, 10, 1, 11)
                             }
                         ),
-                        extra: Range::new(8, 1, 9, 1, 1, 1)
+                        extra: Range::new(8, 1, 9, 10, 1, 11)
                     })]
                 ],
-                extra: Range::new(1, 1, 2, 1, 1, 1)
+                extra: Range::new(2, 1, 3, 11, 1, 12)
             }),
-            extra: Range::new(1, 1, 2, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 11, 1, 12)
         }
     );
 }

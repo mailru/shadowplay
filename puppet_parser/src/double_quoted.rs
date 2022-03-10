@@ -152,7 +152,7 @@ fn test() {
                 ))
             ]),
             accessor: None,
-            extra: Range::new(0, 1, 1, 1, 2, 3)
+            extra: Range::new(0, 1, 1, 2, 1, 3)
         }
     );
     assert_eq!(
@@ -167,7 +167,7 @@ fn test() {
                 ))
             ]),
             accessor: None,
-            extra: Range::new(1, 1, 2, 2, 1, 3)
+            extra: Range::new(0, 1, 1, 3, 1, 4)
         }
     );
 }

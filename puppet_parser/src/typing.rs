@@ -451,7 +451,7 @@ fn test_float() {
         puppet_lang::typing::TypeSpecificationVariant::Float(puppet_lang::typing::TypeFloat {
             min: None,
             max: None,
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 4, 1, 5)
         })
     );
     assert_eq!(
@@ -459,10 +459,10 @@ fn test_float() {
         puppet_lang::typing::TypeSpecificationVariant::Float(puppet_lang::typing::TypeFloat {
             min: Some(puppet_lang::expression::Float {
                 value: 100.0,
-                extra: Range::new(7, 1, 8, 1, 1, 1)
+                extra: Range::new(7, 1, 8, 11, 1, 12)
             }),
             max: None,
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 13, 1, 14)
         })
     );
     assert_eq!(
@@ -470,13 +470,13 @@ fn test_float() {
         puppet_lang::typing::TypeSpecificationVariant::Float(puppet_lang::typing::TypeFloat {
             min: Some(puppet_lang::expression::Float {
                 value: 100.0,
-                extra: Range::new(7, 1, 8, 1, 1, 1)
+                extra: Range::new(7, 1, 8, 11, 1, 12)
             }),
             max: Some(puppet_lang::expression::Float {
                 value: 200.0,
-                extra: Range::new(14, 1, 15, 1, 1, 1)
+                extra: Range::new(14, 1, 15, 18, 1, 19)
             }),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 20, 1, 21)
         })
     );
     assert!(parse_float(Span::new("Float[ 100,  1000, 10.0]")).is_ok());

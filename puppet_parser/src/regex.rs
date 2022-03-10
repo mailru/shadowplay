@@ -52,28 +52,28 @@ fn test() {
         parse(Span::new("//")).unwrap().1,
         puppet_lang::expression::Regexp {
             data: "".to_owned(),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 1, 1, 2)
         }
     );
     assert_eq!(
         parse(Span::new("/aaa/")).unwrap().1,
         puppet_lang::expression::Regexp {
             data: "aaa".to_owned(),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 4, 1, 5)
         }
     );
     assert_eq!(
         parse(Span::new("/\\//")).unwrap().1,
         puppet_lang::expression::Regexp {
             data: "\\/".to_owned(),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 3, 1, 4)
         }
     );
     assert_eq!(
         parse(Span::new("/\\d/")).unwrap().1,
         puppet_lang::expression::Regexp {
             data: "\\d".to_owned(),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 3, 1, 4)
         }
     );
 }

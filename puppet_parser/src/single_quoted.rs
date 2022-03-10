@@ -10,7 +10,7 @@ use nom::sequence::{pair, preceded, tuple};
 use puppet_lang::string::{Escaped, Literal, StringFragment, StringVariant};
 
 fn parse_literal(input: Span) -> IResult<StringFragment<Range>> {
-    let not_quote_slash = is_not("\"\\");
+    let not_quote_slash = is_not("\'\\");
     map(
         verify(not_quote_slash, |s: &Span| !(*s).is_empty()),
         |data: Span| {
@@ -89,9 +89,9 @@ pub fn parse(input: Span) -> IResult<puppet_lang::string::StringExpr<Range>> {
     alt((
         map(
             tuple((
-                recognize(char('\'')),
+                tag("'"),
                 ParseError::protect(|_| "Unterminated quoted string".to_string(), build_string),
-                recognize(char('\'')),
+                tag("'"),
                 crate::term::parse_accessor,
             )),
             |(left_tag, data, right_tag, accessor)| puppet_lang::string::StringExpr {
@@ -133,7 +133,7 @@ fn test() {
                 })
             ]),
             accessor: None,
-            extra: Range::new(0, 1, 1, 1, 2, 3)
+            extra: Range::new(0, 1, 1, 2, 1, 3)
         }
     );
     assert_eq!(
@@ -146,7 +146,7 @@ fn test() {
                 })
             ]),
             accessor: None,
-            extra: Range::new(0, 1, 1, 2, 1, 4)
+            extra: Range::new(0, 1, 1, 3, 1, 4)
         }
     );
     assert_eq!(
@@ -155,11 +155,11 @@ fn test() {
             data: puppet_lang::string::StringVariant::SingleQuoted(vec![
                 puppet_lang::string::StringFragment::Literal(puppet_lang::string::Literal {
                     data: "bARE-WORD_".to_owned(),
-                    extra: Range::new(1, 1, 2, 2, 1, 3)
+                    extra: Range::new(0, 1, 1, 9, 1, 10)
                 })
             ]),
             accessor: None,
-            extra: Range::new(1, 1, 2, 2, 1, 3)
+            extra: Range::new(0, 1, 1, 9, 1, 10)
         }
     );
 
@@ -169,11 +169,11 @@ fn test() {
             data: puppet_lang::string::StringVariant::SingleQuoted(vec![
                 puppet_lang::string::StringFragment::Literal(puppet_lang::string::Literal {
                     data: "bAREWORD".to_owned(),
-                    extra: Range::new(1, 1, 2, 2, 1, 3)
+                    extra: Range::new(0, 1, 1, 7, 1, 8)
                 })
             ]),
             accessor: None,
-            extra: Range::new(1, 1, 2, 2, 1, 3)
+            extra: Range::new(0, 1, 1, 7, 1, 8)
         }
     );
     assert!(parse(Span::new("-")).is_err());
