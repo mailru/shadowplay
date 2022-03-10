@@ -37,65 +37,72 @@ where
 }
 
 fn parse_min_max_args<'a, O, F>(
+    keyword: &'static str,
     parser: F,
-) -> impl FnMut(Span<'a>) -> IResult<(Option<O>, Option<O>)>
+) -> impl FnMut(Span<'a>) -> IResult<(Option<O>, Option<O>, Range, Range)>
 where
     F: Parser<Span<'a>, O, ParseError<'a>> + Copy,
     O: Clone,
 {
     map(
-        opt(crate::common::square_brackets_delimimited(parse_min_max(
-            parser,
-        ))),
-        move |args: Option<(Span<'a>, (Option<O>, Option<O>), Span<'a>)>| {
-            args.map(|v| v.1).unwrap_or((None, None))
+        pair(
+            tag(keyword),
+            opt(crate::common::square_brackets_delimimited(parse_min_max(
+                parser,
+            ))),
+        ),
+        // move |args: Option<(Span<'a>, (Option<O>, Option<O>), Span<'a>)>| {
+        move |(kw, args)| match args {
+            Some((_left_bracket, (min, max), right_bracket)) => (
+                min,
+                max,
+                Range::from((kw, kw)),
+                Range::from((right_bracket, right_bracket)),
+            ),
+            None => (None, None, Range::from((kw, kw)), Range::from((kw, kw))),
         },
     )
 }
 
 pub fn parse_float(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVariant<Range>> {
-    let parser = pair(
-        tag("Float"),
-        parse_min_max_args(crate::term::parse_float_term),
-    );
-
-    map(parser, |(keyword, (min, max))| {
-        puppet_lang::typing::TypeSpecificationVariant::Float(puppet_lang::typing::TypeFloat {
-            min,
-            max,
-            extra: Range::from((keyword, keyword)),
-        })
-    })(input)
+    map(
+        parse_min_max_args("Float", crate::term::parse_float_term),
+        |(min, max, start_range, end_range)| {
+            puppet_lang::typing::TypeSpecificationVariant::Float(puppet_lang::typing::TypeFloat {
+                min,
+                max,
+                extra: Range::from((&start_range, &end_range)),
+            })
+        },
+    )(input)
 }
 
 pub fn parse_integer(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVariant<Range>> {
-    let parser = pair(
-        tag("Integer"),
-        parse_min_max_args(crate::term::parse_integer_term),
-    );
-
-    map(parser, |(keyword, (min, max))| {
-        puppet_lang::typing::TypeSpecificationVariant::Integer(puppet_lang::typing::TypeInteger {
-            min,
-            max,
-            extra: Range::from((keyword, keyword)),
-        })
-    })(input)
+    map(
+        parse_min_max_args("Float", crate::term::parse_integer_term),
+        |(min, max, start_range, end_range)| {
+            puppet_lang::typing::TypeSpecificationVariant::Integer(
+                puppet_lang::typing::TypeInteger {
+                    min,
+                    max,
+                    extra: Range::from((&start_range, &end_range)),
+                },
+            )
+        },
+    )(input)
 }
 
 pub fn parse_string(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVariant<Range>> {
-    let parser = pair(
-        tag("String"),
-        parse_min_max_args(crate::term::parse_usize_term),
-    );
-
-    map(parser, |(keyword, (min, max))| {
-        puppet_lang::typing::TypeSpecificationVariant::String(puppet_lang::typing::TypeString {
-            min,
-            max,
-            extra: Range::from((keyword, keyword)),
-        })
-    })(input)
+    map(
+        parse_min_max_args("String", crate::term::parse_usize_term),
+        |(min, max, start_range, end_range)| {
+            puppet_lang::typing::TypeSpecificationVariant::String(puppet_lang::typing::TypeString {
+                min,
+                max,
+                extra: Range::from((&start_range, &end_range)),
+            })
+        },
+    )(input)
 }
 
 fn parse_array(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVariant<Range>> {
@@ -139,33 +146,32 @@ fn parse_hash(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVari
         preceded(crate::common::comma_separator, parse_type_specification),
         opt(preceded(
             crate::common::comma_separator,
-            parse_min_max_args(crate::term::parse_usize_term),
+            parse_min_max(crate::term::parse_usize_term),
         )),
     ));
 
     let (input, keyword) = tag("Hash")(input)?;
 
-    let args_parser = map(args_parser, move |(key, value, min_max)| {
-        let (min, max) = min_max.unwrap_or((None, None));
-        puppet_lang::typing::TypeHash {
-            key: Some(Box::new(key)),
-            value: Some(Box::new(value)),
-            min,
-            max,
-            extra: Range::from((keyword, keyword)),
-        }
-    });
-
     let parser = map(
         opt(crate::common::square_brackets_delimimited(args_parser)),
-        move |v| {
-            v.map(|v| v.1).unwrap_or(puppet_lang::typing::TypeHash {
+        move |args| match args {
+            None => puppet_lang::typing::TypeHash {
                 key: None,
                 value: None,
                 min: None,
                 max: None,
                 extra: Range::from((keyword, keyword)),
-            })
+            },
+            Some((_left_bracket, (key_type, value_type, min_max), right_bracket)) => {
+                let (min, max) = min_max.unwrap_or((None, None));
+                puppet_lang::typing::TypeHash {
+                    key: Some(Box::new(key_type)),
+                    value: Some(Box::new(value_type)),
+                    min,
+                    max,
+                    extra: Range::from((keyword, right_bracket)),
+                }
+            }
         },
     );
 
