@@ -1,9 +1,15 @@
 use crate::identifier::LowerIdentifier;
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct Accessor<EXTRA> {
+    pub list: Vec<Vec<Box<Expression<EXTRA>>>>,
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Variable<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,
-    pub accessor: Vec<Vec<Box<Expression<EXTRA>>>>,
+    pub accessor: Option<Accessor<EXTRA>>,
     pub extra: EXTRA,
 }
 
@@ -17,6 +23,7 @@ pub struct RegexpGroupID<EXTRA> {
 pub struct Lambda<EXTRA> {
     pub args: Vec<crate::argument::Argument<EXTRA>>,
     pub body: Vec<crate::statement::Statement<EXTRA>>,
+    pub extra: EXTRA,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -24,7 +31,7 @@ pub struct FunctionCall<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,
     pub args: Vec<Expression<EXTRA>>,
     pub lambda: Option<Lambda<EXTRA>>,
-    pub accessor: Vec<Vec<Box<Expression<EXTRA>>>>,
+    pub accessor: Option<Accessor<EXTRA>>,
     pub extra: EXTRA,
 }
 
@@ -72,14 +79,21 @@ pub struct Boolean<EXTRA> {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Parens<EXTRA> {
     pub value: Box<Expression<EXTRA>>,
-    pub accessor: Vec<Vec<Box<Expression<EXTRA>>>>,
+    pub accessor: Option<Accessor<EXTRA>>,
     pub extra: EXTRA,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Map<EXTRA> {
     pub value: Vec<(Expression<EXTRA>, Expression<EXTRA>)>,
-    pub accessor: Vec<Vec<Box<Expression<EXTRA>>>>,
+    pub accessor: Option<Accessor<EXTRA>>,
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Array<EXTRA> {
+    pub value: Vec<Expression<EXTRA>>,
+    pub accessor: Option<Accessor<EXTRA>>,
     pub extra: EXTRA,
 }
 
@@ -89,7 +103,7 @@ pub enum TermVariant<EXTRA> {
     Float(Float<EXTRA>),
     Integer(Integer<EXTRA>),
     Boolean(Boolean<EXTRA>),
-    Array(Vec<Expression<EXTRA>>),
+    Array(Array<EXTRA>),
     Identifier(LowerIdentifier<EXTRA>),
     Parens(Parens<EXTRA>),
     Map(Map<EXTRA>),
@@ -116,6 +130,15 @@ pub struct Default<EXTRA> {
 pub enum CaseVariant<EXTRA> {
     Term(Term<EXTRA>),
     Default(Default<EXTRA>),
+}
+
+impl<EXTRA> crate::ExtraGetter<EXTRA> for CaseVariant<EXTRA> {
+    fn extra<'a>(&'a self) -> &'a EXTRA {
+        match self {
+            Self::Term(v) => &v.extra,
+            Self::Default(v) => &v.extra,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]

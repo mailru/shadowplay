@@ -56,6 +56,16 @@ pub enum RelationElt<EXTRA> {
     ResourceCollection(Vec<crate::resource_collection::ResourceCollection<EXTRA>>),
 }
 
+impl<EXTRA> crate::ExtraGetter<EXTRA> for RelationElt<EXTRA> {
+    fn extra<'a>(&'a self) -> &'a EXTRA {
+        match self {
+            RelationElt::ResourceSet(v) => &v.extra,
+            // FIXME Currently parser guarantees at least one element exists in the list
+            RelationElt::ResourceCollection(v) => &v.first().unwrap().extra,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Relation<EXTRA> {
     pub relation_type: RelationType<EXTRA>,
@@ -66,6 +76,7 @@ pub struct Relation<EXTRA> {
 pub struct RelationList<EXTRA> {
     pub head: RelationElt<EXTRA>,
     pub tail: Option<Relation<EXTRA>>,
+    pub extra: EXTRA,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -90,14 +101,16 @@ pub struct CreateResources<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct BuiltinFunction<EXTRA> {
+    pub name: String,
+    pub args: Vec<Expression<EXTRA>>,
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum StatementVariant<EXTRA> {
-    Fail(crate::expression::Expression<EXTRA>),
-    Include(Vec<crate::expression::Term<EXTRA>>),
-    Require(Vec<crate::expression::Term<EXTRA>>),
-    Contain(Vec<crate::expression::Term<EXTRA>>),
-    Realize(Vec<crate::typing::TypeSpecification<EXTRA>>),
+    BuiltinFunction(BuiltinFunction<EXTRA>),
     CreateResources(CreateResources<EXTRA>),
-    Tag(Vec<crate::string::StringExpr<EXTRA>>),
     Expression(crate::expression::Expression<EXTRA>),
     RelationList(RelationList<EXTRA>),
     IfElse(IfElse<EXTRA>),
@@ -109,5 +122,19 @@ pub enum StatementVariant<EXTRA> {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Statement<EXTRA> {
     pub value: StatementVariant<EXTRA>,
-    pub extra: EXTRA,
+}
+
+impl<EXTRA> crate::ExtraGetter<EXTRA> for Statement<EXTRA> {
+    fn extra<'a>(&'a self) -> &'a EXTRA {
+        match &self.value {
+            StatementVariant::BuiltinFunction(v) => &v.extra,
+            StatementVariant::CreateResources(v) => &v.extra,
+            StatementVariant::Expression(v) => &v.extra,
+            StatementVariant::RelationList(v) => &v.extra,
+            StatementVariant::IfElse(v) => &v.extra,
+            StatementVariant::Unless(v) => &v.extra,
+            StatementVariant::Case(v) => &v.extra,
+            StatementVariant::Toplevel(v) => v.extra(),
+        }
+    }
 }

@@ -6,159 +6,174 @@ use nom::{
     sequence::{pair, preceded, terminated, tuple},
 };
 use puppet_lang::statement::{Statement, StatementVariant};
+use puppet_lang::ExtraGetter;
 
 use crate::{
     common::{
-        comma_separator, curly_brackets_delimimited, round_brackets_comma_separated1,
-        round_brackets_delimimited, separator0, separator1, space0_delimimited, spaced0_separator,
+        comma_separator, curly_brackets_delimimited, space0_delimimited, spaced0_separator,
         spaced_word, square_brackets_comma_separated1,
     },
     term::parse_string_variant,
-    {IResult, Location, ParseError, Span},
+    {range::Range, IResult, ParseError, Span},
 };
 
-fn parse_class_reference(input: Span) -> IResult<puppet_lang::expression::Term<Location>> {
-    alt((
-        map(crate::identifier::identifier_with_toplevel, |elt| {
-            puppet_lang::expression::Term {
-                extra: elt.extra.clone(),
-                value: puppet_lang::expression::TermVariant::Identifier(elt),
-            }
-        }),
-        crate::term::parse_term,
-    ))(input)
-}
-
-fn parse_classes_reference_list(
-    input: Span,
-) -> IResult<Vec<puppet_lang::expression::Term<Location>>> {
-    ParseError::protect(
-        |_| "Class names as an arguments are expected".to_string(),
+fn parse_builtin_function(input: Span) -> IResult<puppet_lang::statement::BuiltinFunction<Range>> {
+    let (input, name) = alt((
         alt((
-            round_brackets_comma_separated1(parse_class_reference),
-            separated_list1(comma_separator, parse_class_reference),
+            spaced_word("undef"),
+            spaced_word("undef"),
+            spaced_word("abs"),
+            spaced_word("alert"),
+            spaced_word("all"),
+            spaced_word("annotate"),
+            spaced_word("any"),
+            spaced_word("assert_type"),
+            spaced_word("binary_file"),
+            spaced_word("break"),
+            spaced_word("call"),
+            spaced_word("camelcase"),
+            spaced_word("capitalize"),
+            spaced_word("ceiling"),
+            spaced_word("chomp"),
+            spaced_word("chop"),
+            spaced_word("compare"),
+            spaced_word("contain"),
+            spaced_word("convert_to"),
+            spaced_word("create_resources"),
+            spaced_word("crit"),
         )),
-    )(input)
-}
+        alt((
+            spaced_word("debug"),
+            spaced_word("defined"),
+            spaced_word("dig"),
+            spaced_word("digest"),
+            spaced_word("downcase"),
+            spaced_word("each"),
+            spaced_word("emerg"),
+            spaced_word("empty"),
+            spaced_word("epp"),
+            spaced_word("err"),
+            spaced_word("eyaml_lookup_key"),
+            spaced_word("fail"),
+            spaced_word("file"),
+            spaced_word("filter"),
+            spaced_word("find_file"),
+            spaced_word("find_template"),
+            spaced_word("flatten"),
+            spaced_word("floor"),
+            spaced_word("fqdn_rand"),
+            spaced_word("generate"),
+        )),
+        alt((
+            spaced_word("get"),
+            spaced_word("getvar"),
+            spaced_word("group_by"),
+            spaced_word("hiera"),
+            spaced_word("hiera_array"),
+            spaced_word("hiera_hash"),
+            spaced_word("hiera_include"),
+            spaced_word("hocon_data"),
+            spaced_word("import"),
+            spaced_word("include"),
+            spaced_word("index"),
+            spaced_word("info"),
+            spaced_word("inline_epp"),
+            spaced_word("inline_template"),
+            spaced_word("join"),
+            spaced_word("json_data"),
+            spaced_word("keys"),
+            spaced_word("length"),
+            spaced_word("lest"),
+            spaced_word("lookup"),
+            spaced_word("lstrip"),
+        )),
+        alt((
+            spaced_word("map"),
+            spaced_word("match"),
+            spaced_word("max"),
+            spaced_word("md5"),
+            spaced_word("min"),
+            spaced_word("module_directory"),
+            spaced_word("new"),
+            spaced_word("next"),
+            spaced_word("notice"),
+            spaced_word("partition"),
+            spaced_word("realize"),
+            spaced_word("reduce"),
+            spaced_word("regsubst"),
+            spaced_word("require"),
+            spaced_word("return"),
+            spaced_word("reverse_each"),
+            spaced_word("round"),
+            spaced_word("rstrip"),
+            spaced_word("scanf"),
+            spaced_word("sha1"),
+            spaced_word("sha256"),
+        )),
+        alt((
+            spaced_word("shellquote"),
+            spaced_word("size"),
+            spaced_word("slice"),
+            spaced_word("sort"),
+            spaced_word("split"),
+            spaced_word("sprintf"),
+            spaced_word("step"),
+            spaced_word("strftime"),
+            spaced_word("strip"),
+            spaced_word("tag"),
+            spaced_word("tagged"),
+            spaced_word("template"),
+            spaced_word("then"),
+            spaced_word("tree_each"),
+            spaced_word("type"),
+            spaced_word("unique"),
+            spaced_word("unwrap"),
+            spaced_word("upcase"),
+            spaced_word("values"),
+            spaced_word("versioncmp"),
+        )),
+        alt((
+            spaced_word("warning"),
+            spaced_word("with"),
+            spaced_word("yaml_data"),
+        )),
+    ))(input)?;
 
-fn parse_require(input: Span) -> IResult<StatementVariant<Location>> {
-    let parser = preceded(spaced_word("require"), parse_classes_reference_list);
-
-    map(parser, StatementVariant::Require)(input)
-}
-
-fn parse_include(input: Span) -> IResult<StatementVariant<Location>> {
-    let parser = preceded(spaced_word("include"), parse_classes_reference_list);
-
-    map(parser, StatementVariant::Include)(input)
-}
-
-fn parse_fail(input: Span) -> IResult<StatementVariant<Location>> {
-    let parser = preceded(
-        spaced_word("fail"),
-        ParseError::protect(
-            |_| "Argument for 'fail' is expected".to_string(),
-            alt((
-                preceded(
-                    separator0,
-                    round_brackets_delimimited(crate::expression::parse_expression),
-                ),
-                crate::expression::parse_expression,
-            )),
-        ),
-    );
-
-    map(parser, StatementVariant::Fail)(input)
-}
-
-fn parse_contain(input: Span) -> IResult<StatementVariant<Location>> {
-    let parser = preceded(spaced_word("contain"), parse_classes_reference_list);
-
-    map(parser, StatementVariant::Contain)(input)
-}
-
-fn parse_tag(input: Span) -> IResult<StatementVariant<Location>> {
-    let parser = preceded(
-        spaced_word("tag"),
-        ParseError::protect(
-            |_| "Arguments for 'tag' are expected".to_string(),
-            alt((
-                round_brackets_delimimited(separated_list1(comma_separator, parse_string_variant)),
-                separated_list1(comma_separator, parse_string_variant),
-            )),
-        ),
-    );
-
-    map(parser, StatementVariant::Tag)(input)
-}
-
-fn parse_create_resources(input: Span) -> IResult<StatementVariant<Location>> {
-    let parser_args = || {
-        tuple((
-            ParseError::protect(
-                |_| {
-                    "Class name as the first argument for 'create_resources' is expected"
-                        .to_string()
+    let parser = ParseError::protect(
+        |_| "Arguments list or () expected".to_string(),
+        alt((
+            map(
+                crate::common::round_brackets_comma_separated0(crate::expression::parse_expression),
+                |(_, list, end_tag)| (list, Range::from((end_tag, end_tag))),
+            ),
+            map(
+                separated_list1(comma_separator, crate::expression::parse_expression),
+                |list| {
+                    let end_range =
+                        Range::from((&list.last().unwrap().extra, &list.last().unwrap().extra));
+                    (list, end_range)
                 },
-                space0_delimimited(parse_class_reference),
             ),
-            comma_separator,
-            ParseError::protect(
-                |_| "List of resources for 'create_resources' is expected".to_string(),
-                separated_list1(
-                    comma_separator,
-                    space0_delimimited(crate::expression::parse_expression),
-                ),
-            ),
-        ))
-    };
-
-    let parser = pair(
-        spaced_word("create_resources"),
-        ParseError::protect(
-            |_| "Arguments for 'create_resources' is expected".to_string(),
-            alt((
-                preceded(separator0, round_brackets_delimimited(parser_args())),
-                preceded(separator1, parser_args()),
-            )),
-        ),
+        )),
     );
 
-    map(parser, |(tag, (resource, _, args))| {
-        StatementVariant::CreateResources(puppet_lang::statement::CreateResources {
-            resource,
+    map(parser, move |(args, end_range)| {
+        puppet_lang::statement::BuiltinFunction {
             args,
-            extra: Location::from(tag),
-        })
+            extra: Range::from((name, &end_range)),
+            name: String::from(*name),
+        }
     })(input)
 }
 
-fn parse_realize(input: Span) -> IResult<StatementVariant<Location>> {
-    let parser = preceded(
-        spaced_word("realize"),
-        ParseError::protect(
-            |_| "Arguments for 'realize' are expected".to_string(),
-            alt((
-                round_brackets_delimimited(separated_list1(
-                    comma_separator,
-                    crate::typing::parse_type_specification,
-                )),
-                separated_list1(comma_separator, crate::typing::parse_type_specification),
-            )),
-        ),
-    );
-
-    map(parser, StatementVariant::Realize)(input)
-}
-
-fn parse_expression(input: Span) -> IResult<StatementVariant<Location>> {
+fn parse_expression(input: Span) -> IResult<StatementVariant<Range>> {
     map(
         crate::expression::parse_expression,
         StatementVariant::Expression,
     )(input)
 }
 
-fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Location>> {
+fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Range>> {
     let parse_attribute = map(
         pair(
             space0_delimimited(parse_string_variant),
@@ -201,17 +216,29 @@ fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Locat
             ),
             opt(tag(",")),
         )),
-        |(title, arguments, _)| puppet_lang::statement::Resource {
-            attributes: arguments,
-            extra: title.extra.clone(),
-            title,
+        |(title, arguments, opt_comma)| {
+            let last_range = match opt_comma {
+                Some(v) => Range::from((v, v)),
+                None => match arguments.last() {
+                    Some(puppet_lang::statement::ResourceAttribute::Name((_, v))) => {
+                        v.extra.clone()
+                    }
+                    Some(puppet_lang::statement::ResourceAttribute::Group(v)) => v.extra.clone(),
+                    None => title.extra.clone(),
+                },
+            };
+            puppet_lang::statement::Resource {
+                attributes: arguments,
+                extra: (&title.extra, &last_range).into(),
+                title,
+            }
         },
     );
 
     parser(input)
 }
 
-fn parse_resource_set(input: Span) -> IResult<puppet_lang::statement::ResourceSet<Location>> {
+fn parse_resource_set(input: Span) -> IResult<puppet_lang::statement::ResourceSet<Range>> {
     let parser = tuple((
         space0_delimimited(pair(
             opt(tag("@")),
@@ -223,46 +250,53 @@ fn parse_resource_set(input: Span) -> IResult<puppet_lang::statement::ResourceSe
         ))),
     ));
 
-    map(parser, |((is_virutal, name), list)| {
-        puppet_lang::statement::ResourceSet {
-            is_virtual: is_virutal.is_some(),
-            extra: name.extra.clone(),
-            name,
-            list,
-        }
-    })(input)
+    map(
+        parser,
+        |((virtual_tag, name), (_left_curly, list, right_curly))| {
+            let start_range = match virtual_tag {
+                Some(v) => Range::from((v, v)),
+                None => name.extra.clone(),
+            };
+            puppet_lang::statement::ResourceSet {
+                is_virtual: virtual_tag.is_some(),
+                extra: Range::from((&start_range, right_curly)),
+                name,
+                list,
+            }
+        },
+    )(input)
 }
 
-fn parse_relation_type(input: Span) -> IResult<puppet_lang::statement::RelationType<Location>> {
+fn parse_relation_type(input: Span) -> IResult<puppet_lang::statement::RelationType<Range>> {
     alt((
         map(tag("->"), |tag: Span| {
             puppet_lang::statement::RelationType {
                 variant: puppet_lang::statement::RelationVariant::ExecOrderRight,
-                extra: Location::from(tag),
+                extra: (tag, tag).into(),
             }
         }),
         map(tag("~>"), |tag: Span| {
             puppet_lang::statement::RelationType {
                 variant: puppet_lang::statement::RelationVariant::NotifyRight,
-                extra: Location::from(tag),
+                extra: (tag, tag).into(),
             }
         }),
         map(tag("<-"), |tag: Span| {
             puppet_lang::statement::RelationType {
                 variant: puppet_lang::statement::RelationVariant::ExecOrderLeft,
-                extra: Location::from(tag),
+                extra: (tag, tag).into(),
             }
         }),
         map(tag("<~"), |tag: Span| {
             puppet_lang::statement::RelationType {
                 variant: puppet_lang::statement::RelationVariant::NotifyLeft,
-                extra: Location::from(tag),
+                extra: (tag, tag).into(),
             }
         }),
     ))(input)
 }
 
-fn parse_relation(input: Span) -> IResult<puppet_lang::statement::RelationList<Location>> {
+fn parse_relation(input: Span) -> IResult<puppet_lang::statement::RelationList<Range>> {
     let head_parser = alt((
         map(
             parse_resource_set,
@@ -274,7 +308,9 @@ fn parse_relation(input: Span) -> IResult<puppet_lang::statement::RelationList<L
         ),
         map(
             square_brackets_comma_separated1(crate::resource_collection::parse_resource_collection),
-            puppet_lang::statement::RelationElt::ResourceCollection,
+            |(_left_curly, collection, _right_curly)| {
+                puppet_lang::statement::RelationElt::ResourceCollection(collection)
+            },
         ),
     ));
 
@@ -293,11 +329,19 @@ fn parse_relation(input: Span) -> IResult<puppet_lang::statement::RelationList<L
     ));
 
     map(pair(head_parser, tail_parser), |(head, tail)| {
-        puppet_lang::statement::RelationList { head, tail }
+        let end_range = match &tail {
+            Some(v) => v.relation_to.extra.clone(),
+            None => head.extra().clone(),
+        };
+        puppet_lang::statement::RelationList {
+            extra: Range::from((head.extra(), &end_range)),
+            head,
+            tail,
+        }
     })(input)
 }
 
-fn parse_if_else(input: Span) -> IResult<StatementVariant<Location>> {
+fn parse_if_else(input: Span) -> IResult<StatementVariant<Range>> {
     let parser_if = tuple((
         spaced_word("if"),
         space0_delimimited(ParseError::protect(
@@ -333,37 +377,45 @@ fn parse_if_else(input: Span) -> IResult<StatementVariant<Location>> {
     let parser = tuple((parser_if, opt(parser_elsif), opt(parser_else)));
 
     let parser = map(parser, |(first, middle, else_block)| {
-        let (tag, condition, body) = first;
+        let (tag, condition, (_left_curly, body, right_curly)) = first;
         let if_block = puppet_lang::statement::ConditionAndStatement {
             condition,
             body: Box::new(body),
-            extra: Location::from(tag),
+            extra: (tag, right_curly).into(),
         };
 
-        let elsif_list = middle
+        let elsif_list: Vec<_> = middle
             .unwrap_or_default()
             .into_iter()
-            .map(
-                |(tag, condition, body)| puppet_lang::statement::ConditionAndStatement {
+            .map(|(tag, condition, (_left_curly, body, right_curly))| {
+                puppet_lang::statement::ConditionAndStatement {
                     condition,
                     body: Box::new(body),
-                    extra: Location::from(tag),
-                },
-            )
+                    extra: (tag, right_curly).into(),
+                }
+            })
             .collect();
 
+        let end_range = match else_block {
+            Some((_, _, right_curly)) => Range::from((right_curly, right_curly)),
+            None => match &elsif_list.last() {
+                Some(v) => v.extra.clone(),
+                None => if_block.extra.clone(),
+            },
+        };
+
         puppet_lang::statement::IfElse {
+            extra: (&if_block.extra, &end_range).into(),
             condition: if_block,
             elsif_list,
-            else_block: else_block.map(Box::new),
-            extra: Location::from(tag),
+            else_block: else_block.map(|body| Box::new(body.1)),
         }
     });
 
     map(parser, StatementVariant::IfElse)(input)
 }
 
-fn parse_unless(input: Span) -> IResult<StatementVariant<Location>> {
+fn parse_unless(input: Span) -> IResult<StatementVariant<Range>> {
     let parser = tuple((
         space0_delimimited(tag("unless")),
         space0_delimimited(ParseError::protect(
@@ -373,16 +425,19 @@ fn parse_unless(input: Span) -> IResult<StatementVariant<Location>> {
         parse_statement_block,
     ));
 
-    map(parser, |(op, condition, body)| {
-        StatementVariant::Unless(puppet_lang::statement::ConditionAndStatement {
-            condition,
-            body: Box::new(body),
-            extra: Location::from(op),
-        })
-    })(input)
+    map(
+        parser,
+        |(op, condition, (_left_curly, body, right_curly))| {
+            StatementVariant::Unless(puppet_lang::statement::ConditionAndStatement {
+                condition,
+                body: Box::new(body),
+                extra: (op, right_curly).into(),
+            })
+        },
+    )(input)
 }
 
-fn parse_case(input: Span) -> IResult<StatementVariant<Location>> {
+fn parse_case(input: Span) -> IResult<StatementVariant<Range>> {
     let parser_header = pair(
         space0_delimimited(tag("case")),
         space0_delimimited(ParseError::protect(
@@ -400,10 +455,10 @@ fn parse_case(input: Span) -> IResult<StatementVariant<Location>> {
             tag(":"),
             space0_delimimited(parse_statement_block),
         )),
-        |(matches, tag, body)| puppet_lang::statement::CaseElement {
+        |(matches, _tag, (_left_curly, body, right_curly))| puppet_lang::statement::CaseElement {
+            extra: (matches.first().unwrap().extra(), right_curly).into(),
             matches,
             body: Box::new(body),
-            extra: Location::from(tag),
         },
     );
 
@@ -412,60 +467,52 @@ fn parse_case(input: Span) -> IResult<StatementVariant<Location>> {
         curly_brackets_delimimited(many0(parser_element)),
     );
 
-    let parser = map(parser, |((case_tag, condition), elements)| {
-        puppet_lang::statement::Case {
-            condition,
-            elements,
-            extra: Location::from(case_tag),
-        }
-    });
+    let parser = map(
+        parser,
+        |((case_tag, condition), (_left_curly, elements, right_curly))| {
+            puppet_lang::statement::Case {
+                condition,
+                elements,
+                extra: (case_tag, right_curly).into(),
+            }
+        },
+    );
 
     map(parser, StatementVariant::Case)(input)
 }
 
-fn parse_statement_variant(input: Span) -> IResult<StatementVariant<Location>> {
+fn parse_statement_variant(input: Span) -> IResult<StatementVariant<Range>> {
     alt((
         parse_if_else,
         parse_unless,
         parse_case,
-        parse_require,
-        parse_include,
-        parse_fail,
-        parse_contain,
-        parse_tag,
-        parse_create_resources,
-        parse_realize,
+        map(parse_builtin_function, StatementVariant::BuiltinFunction),
         map(parse_relation, StatementVariant::RelationList),
         map(crate::toplevel::parse, StatementVariant::Toplevel),
         parse_expression,
     ))(input)
 }
 
-fn parse_statement(input: Span) -> IResult<Statement<Location>> {
-    map(parse_statement_variant, |value| Statement {
-        value,
-        extra: Location::from(input),
-    })(input)
+fn parse_statement(input: Span) -> IResult<Statement<Range>> {
+    map(parse_statement_variant, |value| Statement { value })(input)
 }
 
-pub fn parse_statement_list(input: Span) -> IResult<Vec<Statement<Location>>> {
+pub fn parse_statement_list(input: Span) -> IResult<Vec<Statement<Range>>> {
     many0(terminated(
         space0_delimimited(parse_statement),
         opt(space0_delimimited(tag(";"))),
     ))(input)
 }
 
-pub fn parse_statement_block(input: Span) -> IResult<Vec<Statement<Location>>> {
-    preceded(
+pub fn parse_statement_block(input: Span) -> IResult<(Span, Vec<Statement<Range>>, Span)> {
+    tuple((
         tag("{"),
-        terminated(
-            parse_statement_list,
-            ParseError::protect(
-                |_| "Closing '}' or statement is expected".to_string(),
-                space0_delimimited(tag("}")),
-            ),
+        parse_statement_list,
+        ParseError::protect(
+            |_| "Closing '}' or statement is expected".to_string(),
+            space0_delimimited(tag("}")),
         ),
-    )(input)
+    ))(input)
 }
 
 #[test]

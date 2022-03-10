@@ -1,11 +1,11 @@
-use crate::{IResult, Location, ParseError, Span};
+use crate::{range::Range, IResult, ParseError, Span};
 use nom::{
     bytes::complete::tag,
     combinator::{map, opt},
     sequence::{preceded, tuple},
 };
 
-pub fn parse(input: Span) -> IResult<puppet_lang::argument::Argument<Location>> {
+pub fn parse(input: Span) -> IResult<puppet_lang::argument::Argument<Range>> {
     let parser = tuple((
         super::common::space0_delimimited(opt(crate::typing::parse_type_specification)),
         preceded(
@@ -27,9 +27,9 @@ pub fn parse(input: Span) -> IResult<puppet_lang::argument::Argument<Location>> 
     map(parser, |(type_spec, name, default)| {
         puppet_lang::argument::Argument {
             type_spec,
+            extra: Range::from((name, name)),
             name: name.to_string(),
             default,
-            extra: Location::from(name),
         }
     })(input)
 }

@@ -4,6 +4,7 @@ pub mod common;
 pub mod double_quoted;
 pub mod expression;
 pub mod identifier;
+pub mod range;
 pub mod regex;
 pub mod resource_collection;
 pub mod single_quoted;
@@ -142,74 +143,3 @@ impl<'a> nom::error::FromExternalError<LocatedSpan<&'a str>, std::num::ParseIntE
 }
 
 pub type IResult<'a, O> = nom::IResult<Span<'a>, O, ParseError<'a>>;
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Location {
-    /// The offset represents the position of the fragment relatively to
-    /// the input of the parser. It starts at offset 0.
-    offset: usize,
-
-    /// The line number of the fragment relatively to the input of the
-    /// parser. It starts at line 1.
-    line: u32,
-
-    column: usize,
-}
-
-impl<'a> From<Span<'a>> for Location {
-    fn from(span: Span) -> Self {
-        Self {
-            offset: span.location_offset(),
-            line: span.location_line(),
-            column: span.get_utf8_column(),
-        }
-    }
-}
-
-impl Location {
-    pub fn new(offset: usize, line: u32, column: usize) -> Self {
-        Self {
-            offset,
-            line,
-            column,
-        }
-    }
-
-    pub fn offset(&self) -> usize {
-        self.offset
-    }
-
-    pub fn line(&self) -> u32 {
-        self.line
-    }
-
-    pub fn column(&self) -> usize {
-        self.column
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Range {
-    start: Location,
-    end: Location,
-}
-
-impl Range {
-    pub fn start(&self) -> &Location {
-        &self.start
-    }
-
-    pub fn end(&self) -> &Location {
-        &self.end
-    }
-}
-
-impl<'a> From<(Span<'a>, Span<'a>)> for Range {
-    fn from(pair: (Span, Span)) -> Self {
-        let (start, end) = pair;
-        Self {
-            start: start.into(),
-            end: end.into(),
-        }
-    }
-}

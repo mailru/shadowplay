@@ -55,3 +55,15 @@ pub enum Toplevel<EXTRA> {
     TypeDef(TypeDef<EXTRA>),
     FunctionDef(FunctionDef<EXTRA>),
 }
+
+impl<EXTRA> crate::ExtraGetter<EXTRA> for Toplevel<EXTRA> {
+    fn extra<'a>(&'a self) -> &'a EXTRA {
+        match self {
+            Toplevel::Class(v) => &v.extra,
+            Toplevel::Definition(v) => &v.extra,
+            Toplevel::Plan(v) => &v.extra,
+            Toplevel::TypeDef(v) => &v.extra,
+            Toplevel::FunctionDef(v) => &v.extra,
+        }
+    }
+}

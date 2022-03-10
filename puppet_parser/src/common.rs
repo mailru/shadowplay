@@ -4,7 +4,7 @@ use nom::{
     character::complete::{anychar, char, multispace1, newline},
     combinator::{opt, peek, value, verify},
     multi::{many0, many1, separated_list0, separated_list1},
-    sequence::{delimited, pair, preceded, terminated, tuple},
+    sequence::{delimited, preceded, terminated, tuple},
     Parser,
 };
 
@@ -74,81 +74,89 @@ pub fn comma_separator(input: Span) -> IResult<()> {
     spaced0_separator(",")(input)
 }
 
-pub fn round_brackets_delimimited<'a, O, F>(parser: F) -> impl FnMut(Span<'a>) -> IResult<O>
+pub fn round_brackets_delimimited<'a, O, F>(
+    parser: F,
+) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, O, Span<'a>)>
 where
     F: Parser<Span<'a>, O, ParseError<'a>>,
     O: Clone,
 {
     preceded(
         separator0,
-        delimited(
-            pair(tag("("), separator0),
+        tuple((
+            terminated(tag("("), separator0),
             parser,
             ParseError::protect(
                 |_| "Closing ')' expected".to_string(),
-                pair(separator0, tag(")")),
+                preceded(separator0, tag(")")),
             ),
-        ),
+        )),
     )
 }
 
-pub fn square_brackets_delimimited<'a, O, F>(parser: F) -> impl FnMut(Span<'a>) -> IResult<O>
+pub fn square_brackets_delimimited<'a, O, F>(
+    parser: F,
+) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, O, Span<'a>)>
 where
     F: Parser<Span<'a>, O, ParseError<'a>>,
     O: Clone,
 {
     preceded(
         separator0,
-        delimited(
-            pair(tag("["), separator0),
+        tuple((
+            terminated(tag("["), separator0),
             parser,
             ParseError::protect(
                 |_| "Closing ']' expected".to_string(),
-                pair(separator0, tag("]")),
+                preceded(separator0, tag("]")),
             ),
-        ),
+        )),
     )
 }
 
-pub fn curly_brackets_delimimited<'a, O, F>(parser: F) -> impl FnMut(Span<'a>) -> IResult<O>
+pub fn curly_brackets_delimimited<'a, O, F>(
+    parser: F,
+) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, O, Span<'a>)>
 where
     F: Parser<Span<'a>, O, ParseError<'a>>,
     O: Clone,
 {
     preceded(
-        opt(separator1),
-        delimited(
-            pair(tag("{"), separator0),
+        separator0,
+        tuple((
+            terminated(tag("{"), separator0),
             parser,
             ParseError::protect(
                 |_| "Closing '}' expected".to_string(),
-                pair(separator0, tag("}")),
+                preceded(separator0, tag("}")),
             ),
-        ),
+        )),
     )
 }
 
-pub fn pipes_delimimited<'a, O, F>(parser: F) -> impl FnMut(Span<'a>) -> IResult<O>
+pub fn pipes_delimimited<'a, O, F>(
+    parser: F,
+) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, O, Span<'a>)>
 where
     F: Parser<Span<'a>, O, ParseError<'a>>,
     O: Clone,
 {
     preceded(
-        opt(separator1),
-        delimited(
-            pair(tag("|"), separator0),
+        separator0,
+        tuple((
+            terminated(tag("|"), separator0),
             parser,
             ParseError::protect(
                 |_| "Closing '|' expected".to_string(),
-                pair(separator0, tag("|")),
+                preceded(separator0, tag("|")),
             ),
-        ),
+        )),
     )
 }
 
 pub fn round_brackets_comma_separated0<'a, O, F>(
     parser: F,
-) -> impl FnMut(Span<'a>) -> IResult<Vec<O>>
+) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, Vec<O>, Span<'a>)>
 where
     F: Parser<Span<'a>, O, ParseError<'a>>,
     O: Clone,
@@ -162,7 +170,7 @@ where
 
 pub fn round_brackets_comma_separated1<'a, O, F>(
     parser: F,
-) -> impl FnMut(Span<'a>) -> IResult<Vec<O>>
+) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, Vec<O>, Span<'a>)>
 where
     F: Parser<Span<'a>, O, ParseError<'a>>,
     O: Clone,
@@ -185,33 +193,9 @@ pub fn spaced_word<'a>(searchword: &'static str) -> impl FnMut(Span<'a>) -> IRes
     space0_delimimited(word(searchword))
 }
 
-#[test]
-fn test_round_brackets_comma_separated0() {
-    assert_eq!(
-        round_brackets_comma_separated0(tag("a"))(Span::new("( a,a ,a, a,)"))
-            .unwrap()
-            .1
-            .into_iter()
-            .map(|v| *v)
-            .collect::<Vec<_>>(),
-        vec!["a", "a", "a", "a"]
-    );
-    assert_eq!(
-        round_brackets_comma_separated0(round_brackets_comma_separated0(tag("a")))(Span::new(
-            "( (a) , (a) ,(   a   ), ( a ) )"
-        ))
-        .unwrap()
-        .1
-        .into_iter()
-        .map(|v| v.into_iter().map(|v| *v).collect::<Vec<_>>())
-        .collect::<Vec<_>>(),
-        vec![vec!["a"], vec!["a"], vec!["a"], vec!["a"]]
-    )
-}
-
 pub fn square_brackets_comma_separated0<'a, O, F>(
     parser: F,
-) -> impl FnMut(Span<'a>) -> IResult<Vec<O>>
+) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, Vec<O>, Span<'a>)>
 where
     F: Parser<Span<'a>, O, ParseError<'a>>,
     O: Clone,
@@ -225,7 +209,7 @@ where
 
 pub fn square_brackets_comma_separated1<'a, O, F>(
     parser: F,
-) -> impl FnMut(Span<'a>) -> IResult<Vec<O>>
+) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, Vec<O>, Span<'a>)>
 where
     F: Parser<Span<'a>, O, ParseError<'a>>,
     O: Clone,
@@ -237,31 +221,9 @@ where
     ))
 }
 
-#[test]
-fn test_square_brackets_comma_separated0() {
-    assert_eq!(
-        square_brackets_comma_separated0(tag("a"))(Span::new("[a]"))
-            .unwrap()
-            .1
-            .into_iter()
-            .map(|v| *v)
-            .collect::<Vec<_>>(),
-        vec!["a"]
-    );
-    assert_eq!(
-        square_brackets_comma_separated0(tag("a"))(Span::new("[a,]"))
-            .unwrap()
-            .1
-            .into_iter()
-            .map(|v| *v)
-            .collect::<Vec<_>>(),
-        vec!["a"]
-    )
-}
-
 pub fn curly_brackets_comma_separated0<'a, O, F>(
     parser: F,
-) -> impl FnMut(Span<'a>) -> IResult<Vec<O>>
+) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, Vec<O>, Span<'a>)>
 where
     F: Parser<Span<'a>, O, ParseError<'a>>,
     O: Clone,
@@ -273,7 +235,9 @@ where
     ))
 }
 
-pub fn pipes_comma_separated0<'a, O, F>(parser: F) -> impl FnMut(Span<'a>) -> IResult<Vec<O>>
+pub fn pipes_comma_separated0<'a, O, F>(
+    parser: F,
+) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, Vec<O>, Span<'a>)>
 where
     F: Parser<Span<'a>, O, ParseError<'a>>,
     O: Clone,
@@ -325,4 +289,54 @@ where
             }
         }
     }
+}
+
+#[test]
+fn test_round_brackets_comma_separated0() {
+    assert_eq!(
+        round_brackets_comma_separated0(tag("a"))(Span::new("( a,a ,a, a,)"))
+            .unwrap()
+            .1
+             .1
+            .into_iter()
+            .map(|v| *v)
+            .collect::<Vec<_>>(),
+        vec!["a", "a", "a", "a"]
+    );
+    assert_eq!(
+        round_brackets_comma_separated0(round_brackets_comma_separated0(tag("a")))(Span::new(
+            "( (a) , (a) ,(   a   ), ( a ) )"
+        ))
+        .unwrap()
+        .1
+         .1
+        .into_iter()
+        .map(|v| v.1.into_iter().map(|v| *v).collect::<Vec<_>>())
+        .collect::<Vec<_>>(),
+        vec![vec!["a"], vec!["a"], vec!["a"], vec!["a"]]
+    )
+}
+
+#[test]
+fn test_square_brackets_comma_separated0() {
+    assert_eq!(
+        square_brackets_comma_separated0(tag("a"))(Span::new("[a]"))
+            .unwrap()
+            .1
+             .1
+            .into_iter()
+            .map(|v| *v)
+            .collect::<Vec<_>>(),
+        vec!["a"]
+    );
+    assert_eq!(
+        square_brackets_comma_separated0(tag("a"))(Span::new("[a,]"))
+            .unwrap()
+            .1
+             .1
+            .into_iter()
+            .map(|v| *v)
+            .collect::<Vec<_>>(),
+        vec!["a"]
+    )
 }

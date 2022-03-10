@@ -1,6 +1,6 @@
 use crate::{
     common::{space0_delimimited, space1_delimimited},
-    {IResult, Location, ParseError, Span},
+    {range::Range, IResult, ParseError, Span},
 };
 
 use nom::{
@@ -11,7 +11,7 @@ use nom::{
 };
 use puppet_lang::toplevel::{FunctionDef, Toplevel};
 
-pub fn parse_typedef(input: Span) -> IResult<puppet_lang::toplevel::TypeDef<Location>> {
+pub fn parse_typedef(input: Span) -> IResult<puppet_lang::toplevel::TypeDef<Range>> {
     map(
         tuple((
             tag("type"),
@@ -22,14 +22,14 @@ pub fn parse_typedef(input: Span) -> IResult<puppet_lang::toplevel::TypeDef<Loca
                 space0_delimimited(crate::typing::parse_type_specification),
             ),
         )),
-        |(tag, identifier, _, value)| puppet_lang::toplevel::TypeDef {
+        |(keyword, identifier, _, value)| puppet_lang::toplevel::TypeDef {
+            extra: Range::from((keyword, &value.extra)),
             identifier,
             value,
-            extra: Location::from(tag),
         },
     )(input)
 }
-pub fn parse_functiondef(input: Span) -> IResult<FunctionDef<Location>> {
+pub fn parse_functiondef(input: Span) -> IResult<FunctionDef<Range>> {
     map(
         tuple((
             tag("function"),
@@ -48,17 +48,19 @@ pub fn parse_functiondef(input: Span) -> IResult<FunctionDef<Location>> {
                 ),
             ),
         )),
-        |(tag, (identifier, arguments), (return_type, body))| FunctionDef {
-            identifier,
-            arguments,
-            return_type,
-            body,
-            extra: Location::from(tag),
+        |(keyword, (identifier, arguments), (return_type, (_left_curly, body, right_curly)))| {
+            FunctionDef {
+                identifier,
+                arguments,
+                return_type,
+                body,
+                extra: Range::from((keyword, right_curly)),
+            }
         },
     )(input)
 }
 
-pub fn parse(input: Span) -> IResult<Toplevel<Location>> {
+pub fn parse(input: Span) -> IResult<Toplevel<Range>> {
     super::common::space0_delimimited(alt((
         map(super::class::parse_class, Toplevel::Class),
         map(super::class::parse_definition, Toplevel::Definition),

@@ -1,6 +1,6 @@
 pub fn string_fragment_content<EXTRA>(expr: &puppet_lang::string::StringFragment<EXTRA>) -> String {
     match expr {
-        puppet_lang::string::StringFragment::Literal(elt) => elt.clone(),
+        puppet_lang::string::StringFragment::Literal(elt) => elt.data.clone(),
         puppet_lang::string::StringFragment::EscapedUTF(c) => c.data.escape_unicode().to_string(),
         puppet_lang::string::StringFragment::Escaped(c) => format!("\\{}", c.data),
     }

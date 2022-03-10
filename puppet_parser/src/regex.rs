@@ -1,10 +1,10 @@
-use crate::{IResult, Location, Span};
+use crate::{range::Range, IResult, Span};
 use nom::branch::alt;
 use nom::bytes::complete::{is_not, tag};
-use nom::character::complete::{anychar, char};
+use nom::character::complete::anychar;
 use nom::combinator::{map, recognize, verify};
 use nom::multi::fold_many0;
-use nom::sequence::{delimited, pair};
+use nom::sequence::{pair, tuple};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum StringFragment<'a> {
@@ -28,7 +28,7 @@ fn parse_fragment(input: Span) -> IResult<StringFragment> {
     ))(input)
 }
 
-pub fn parse(input: Span) -> IResult<puppet_lang::expression::Regexp<Location>> {
+pub fn parse(input: Span) -> IResult<puppet_lang::expression::Regexp<Range>> {
     let build_regex = fold_many0(parse_fragment, String::new, |mut string, fragment| {
         match fragment {
             StringFragment::Literal(s) => string.push_str(&s),
@@ -37,12 +37,13 @@ pub fn parse(input: Span) -> IResult<puppet_lang::expression::Regexp<Location>> 
         string
     });
 
-    map(delimited(char('/'), build_regex, char('/')), |data| {
-        puppet_lang::expression::Regexp {
+    map(
+        tuple((tag("/"), build_regex, tag("/"))),
+        |(left_tag, data, right_tag)| puppet_lang::expression::Regexp {
             data,
-            extra: Location::from(input),
-        }
-    })(input)
+            extra: Range::from((left_tag, right_tag)),
+        },
+    )(input)
 }
 
 #[test]
@@ -51,28 +52,28 @@ fn test() {
         parse(Span::new("//")).unwrap().1,
         puppet_lang::expression::Regexp {
             data: "".to_owned(),
-            extra: Location::new(0, 1, 1)
+            extra: Range::new(0, 1, 1, 1, 1, 1)
         }
     );
     assert_eq!(
         parse(Span::new("/aaa/")).unwrap().1,
         puppet_lang::expression::Regexp {
             data: "aaa".to_owned(),
-            extra: Location::new(0, 1, 1)
+            extra: Range::new(0, 1, 1, 1, 1, 1)
         }
     );
     assert_eq!(
         parse(Span::new("/\\//")).unwrap().1,
         puppet_lang::expression::Regexp {
             data: "\\/".to_owned(),
-            extra: Location::new(0, 1, 1)
+            extra: Range::new(0, 1, 1, 1, 1, 1)
         }
     );
     assert_eq!(
         parse(Span::new("/\\d/")).unwrap().1,
         puppet_lang::expression::Regexp {
             data: "\\d".to_owned(),
-            extra: Location::new(0, 1, 1)
+            extra: Range::new(0, 1, 1, 1, 1, 1)
         }
     );
 }

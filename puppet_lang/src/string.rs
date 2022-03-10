@@ -5,8 +5,19 @@ pub struct Escaped<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct Literal<EXTRA> {
+    pub data: String,
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Expression<EXTRA> {
+    pub data: crate::expression::Expression<EXTRA>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum StringFragment<EXTRA> {
-    Literal(String),
+    Literal(Literal<EXTRA>),
     EscapedUTF(Escaped<EXTRA>),
     Escaped(Escaped<EXTRA>),
 }
@@ -14,7 +25,7 @@ pub enum StringFragment<EXTRA> {
 #[derive(Clone, Debug, PartialEq)]
 pub enum DoubleQuotedFragment<EXTRA> {
     StringFragment(StringFragment<EXTRA>),
-    Expression(crate::expression::Expression<EXTRA>),
+    Expression(Expression<EXTRA>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -26,6 +37,6 @@ pub enum StringVariant<EXTRA> {
 #[derive(Clone, Debug, PartialEq)]
 pub struct StringExpr<EXTRA> {
     pub data: StringVariant<EXTRA>,
-    pub accessor: Vec<Vec<Box<crate::expression::Expression<EXTRA>>>>,
+    pub accessor: Option<crate::expression::Accessor<EXTRA>>,
     pub extra: EXTRA,
 }

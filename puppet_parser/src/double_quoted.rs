@@ -1,21 +1,28 @@
-use crate::{IResult, Location, ParseError, Span};
+use crate::{range::Range, IResult, ParseError, Span};
 use nom::branch::alt;
 use nom::bytes::complete::{is_not, tag};
 use nom::character::complete::{anychar, char};
-use nom::combinator::{map, peek, verify};
+use nom::combinator::{map, peek, recognize, verify};
 use nom::multi::fold_many0;
-use nom::sequence::{delimited, pair, preceded, terminated};
-use puppet_lang::string::{DoubleQuotedFragment, StringExpr, StringFragment, StringVariant};
+use nom::sequence::{pair, tuple};
+use puppet_lang::string::{
+    DoubleQuotedFragment, Literal, StringExpr, StringFragment, StringVariant,
+};
 
-fn parse_literal(input: Span) -> IResult<StringFragment<Location>> {
+fn parse_literal(input: Span) -> IResult<StringFragment<Range>> {
     let not_quote_slash = is_not("\"\\$");
     map(
-        verify(map(not_quote_slash, |s: Span| *s), |s: &str| !s.is_empty()),
-        |data| StringFragment::Literal(data.to_string()),
+        verify(not_quote_slash, |s: &Span| !(*s).is_empty()),
+        |data: Span| {
+            StringFragment::Literal(Literal {
+                extra: Range::from((data, data)),
+                data: data.to_string(),
+            })
+        },
     )(input)
 }
 
-fn parse_interpolation(input: Span) -> IResult<DoubleQuotedFragment<Location>> {
+fn parse_interpolation(input: Span) -> IResult<DoubleQuotedFragment<Range>> {
     let parser_variable = || {
         map(
             pair(
@@ -23,13 +30,13 @@ fn parse_interpolation(input: Span) -> IResult<DoubleQuotedFragment<Location>> {
                 crate::term::parse_accessor,
             ),
             |(identifier, accessor)| puppet_lang::expression::Expression {
-                extra: identifier.extra.clone(),
+                extra: (&identifier.extra, &accessor, &identifier.extra).into(),
                 value: puppet_lang::expression::ExpressionVariant::Term(
                     puppet_lang::expression::Term {
-                        extra: identifier.extra.clone(),
+                        extra: (&identifier.extra, &accessor, &identifier.extra).into(),
                         value: puppet_lang::expression::TermVariant::Variable(
                             puppet_lang::expression::Variable {
-                                extra: identifier.extra.clone(),
+                                extra: (&identifier.extra, &accessor, &identifier.extra).into(),
                                 accessor,
                                 identifier,
                             },
@@ -42,30 +49,48 @@ fn parse_interpolation(input: Span) -> IResult<DoubleQuotedFragment<Location>> {
 
     let parser_delimited = alt((parser_variable(), crate::expression::parse_expression));
 
+    let (input, dollar_tag) = tag("$")(input)?;
+
     let parser = alt((
-        delimited(
-            tag("{"),
-            parser_delimited,
-            ParseError::protect(|_| "Closing '}' expected".to_string(), tag("}")),
+        map(
+            tuple((
+                tag("{"),
+                parser_delimited,
+                ParseError::protect(|_| "Closing '}' expected".to_string(), tag("}")),
+            )),
+            |(_left_bracket, expr, _right_bracket)| {
+                DoubleQuotedFragment::Expression(puppet_lang::string::Expression { data: expr })
+            },
         ),
-        parser_variable(),
+        map(parser_variable(), |expr| {
+            DoubleQuotedFragment::Expression(puppet_lang::string::Expression { data: expr })
+        }),
     ));
 
-    preceded(
-        char('$'),
-        alt((
-            map(parser, DoubleQuotedFragment::Expression),
-            map(peek(char('"')), |_| {
-                DoubleQuotedFragment::StringFragment(StringFragment::Literal("$".to_owned()))
-            }),
-            map(anychar, |c| {
-                DoubleQuotedFragment::StringFragment(StringFragment::Literal(format!("${}", c)))
-            }),
-        )),
-    )(input)
+    let mut fragment_parser = alt((
+        parser,
+        map(peek(char('"')), |_| {
+            DoubleQuotedFragment::StringFragment(StringFragment::Literal(
+                puppet_lang::string::Literal {
+                    extra: Range::from((dollar_tag, dollar_tag)),
+                    data: (*dollar_tag).to_owned(),
+                },
+            ))
+        }),
+        map(recognize(anychar), |c: Span| {
+            DoubleQuotedFragment::StringFragment(StringFragment::Literal(
+                puppet_lang::string::Literal {
+                    extra: Range::from((dollar_tag, c)),
+                    data: c.to_string(),
+                },
+            ))
+        }),
+    ));
+
+    fragment_parser(input)
 }
 
-fn parse_fragment(input: Span) -> IResult<DoubleQuotedFragment<Location>> {
+fn parse_fragment(input: Span) -> IResult<DoubleQuotedFragment<Range>> {
     alt((
         map(parse_literal, DoubleQuotedFragment::StringFragment),
         parse_interpolation,
@@ -80,26 +105,27 @@ fn parse_fragment(input: Span) -> IResult<DoubleQuotedFragment<Location>> {
     ))(input)
 }
 
-pub fn parse(input: Span) -> IResult<StringExpr<Location>> {
+pub fn parse(input: Span) -> IResult<StringExpr<Range>> {
     let build_string = fold_many0(parse_fragment, Vec::new, |mut list, fragment| {
         list.push(fragment);
         list
     });
 
-    let double_quoted_parser = preceded(
-        char('"'),
+    let double_quoted_parser = tuple((
+        tag("\""),
+        build_string,
         ParseError::protect(
             |_| "Unterminated double quoted string".to_string(),
-            terminated(build_string, char('"')),
+            tag("\""),
         ),
-    );
+    ));
 
     map(
         pair(double_quoted_parser, crate::term::parse_accessor),
-        |(data, accessor)| StringExpr {
+        |((left_quote, data, right_quote), accessor)| StringExpr {
             data: StringVariant::DoubleQuoted(data),
+            extra: Range::from((&left_quote, &accessor, &right_quote)),
             accessor,
-            extra: Location::from(input),
         },
     )(input)
 }
@@ -110,8 +136,8 @@ fn test() {
         parse(Span::new("\"\"")).unwrap().1,
         puppet_lang::string::StringExpr {
             data: puppet_lang::string::StringVariant::DoubleQuoted(vec![]),
-            accessor: Vec::new(),
-            extra: Location::new(0, 1, 1)
+            accessor: None,
+            extra: Range::new(0, 1, 1, 1, 1, 2)
         }
     );
     assert_eq!(
@@ -119,11 +145,14 @@ fn test() {
         puppet_lang::string::StringExpr {
             data: puppet_lang::string::StringVariant::DoubleQuoted(vec![
                 DoubleQuotedFragment::StringFragment(puppet_lang::string::StringFragment::Literal(
-                    "a".to_owned()
+                    puppet_lang::string::Literal {
+                        data: "a".to_owned(),
+                        extra: Range::new(1, 1, 2, 1, 1, 2)
+                    }
                 ))
             ]),
-            accessor: Vec::new(),
-            extra: Location::new(0, 1, 1)
+            accessor: None,
+            extra: Range::new(0, 1, 1, 1, 2, 3)
         }
     );
     assert_eq!(
@@ -133,12 +162,12 @@ fn test() {
                 DoubleQuotedFragment::StringFragment(puppet_lang::string::StringFragment::Escaped(
                     puppet_lang::string::Escaped {
                         data: '"',
-                        extra: Location::new(1, 1, 2)
+                        extra: Range::new(1, 1, 2, 2, 1, 3)
                     }
                 ))
             ]),
-            accessor: Vec::new(),
-            extra: Location::new(0, 1, 1)
+            accessor: None,
+            extra: Range::new(1, 1, 2, 2, 1, 3)
         }
     );
 }

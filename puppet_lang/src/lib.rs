@@ -6,3 +6,7 @@ pub mod statement;
 pub mod string;
 pub mod toplevel;
 pub mod typing;
+
+pub trait ExtraGetter<EXTRA> {
+    fn extra<'a>(&'a self) -> &'a EXTRA;
+}
