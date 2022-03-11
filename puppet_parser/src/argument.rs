@@ -8,12 +8,10 @@ use nom::{
 pub fn parse(input: Span) -> IResult<puppet_lang::argument::Argument<Range>> {
     let parser = tuple((
         super::common::space0_delimimited(opt(crate::typing::parse_type_specification)),
-        preceded(
-            tag("$"),
-            ParseError::protect(
-                |_| "Invalid variable name".to_owned(),
-                crate::identifier::identifier,
-            ),
+        tag("$"),
+        ParseError::protect(
+            |_| "Invalid variable name".to_owned(),
+            crate::identifier::identifier,
         ),
         opt(preceded(
             crate::common::space0_delimimited(tag("=")),
@@ -24,10 +22,18 @@ pub fn parse(input: Span) -> IResult<puppet_lang::argument::Argument<Range>> {
         )),
     ));
 
-    map(parser, |(type_spec, name, default)| {
+    map(parser, |(type_spec, dollar_sign, name, default)| {
+        let start_range = match &type_spec {
+            None => Range::from((dollar_sign, dollar_sign)),
+            Some(v) => v.extra.clone(),
+        };
+        let end_range = match &default {
+            None => Range::from((name, name)),
+            Some(v) => v.extra.clone(),
+        };
         puppet_lang::argument::Argument {
             type_spec,
-            extra: Range::from((name, name)),
+            extra: Range::from((&start_range, &end_range)),
             name: name.to_string(),
             default,
         }

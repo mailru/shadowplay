@@ -101,15 +101,7 @@ pub struct CreateResources<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct BuiltinFunction<EXTRA> {
-    pub name: String,
-    pub args: Vec<Expression<EXTRA>>,
-    pub extra: EXTRA,
-}
-
-#[derive(Clone, Debug, PartialEq)]
 pub enum StatementVariant<EXTRA> {
-    BuiltinFunction(BuiltinFunction<EXTRA>),
     CreateResources(CreateResources<EXTRA>),
     Expression(crate::expression::Expression<EXTRA>),
     RelationList(RelationList<EXTRA>),
@@ -127,7 +119,6 @@ pub struct Statement<EXTRA> {
 impl<EXTRA> crate::ExtraGetter<EXTRA> for Statement<EXTRA> {
     fn extra(&self) -> &EXTRA {
         match &self.value {
-            StatementVariant::BuiltinFunction(v) => &v.extra,
             StatementVariant::CreateResources(v) => &v.extra,
             StatementVariant::Expression(v) => &v.extra,
             StatementVariant::RelationList(v) => &v.extra,

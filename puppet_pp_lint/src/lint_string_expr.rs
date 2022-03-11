@@ -109,7 +109,7 @@ impl EarlyLintPass for UselessDoubleQuotes {
         if !is_useful {
             return vec![LintError::new(
                 Box::new(self.clone()),
-                "Double quoted string with no interpolated values and no escaped single quotes",
+                "Double quoted string with no interpolated values and no escaped double quotes",
                 &elt.extra,
             )];
         }

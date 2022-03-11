@@ -36,6 +36,14 @@ pub struct FunctionCall<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct BuiltinFunction<EXTRA> {
+    pub name: String,
+    pub args: Vec<Expression<EXTRA>>,
+    pub lambda: Option<crate::expression::Lambda<EXTRA>>,
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Float<EXTRA> {
     pub value: f32,
     pub extra: EXTRA,
@@ -206,6 +214,7 @@ pub enum ExpressionVariant<EXTRA> {
     Not(Box<Expression<EXTRA>>),
     Selector(Selector<EXTRA>),
     FunctionCall(FunctionCall<EXTRA>),
+    BuiltinFunction(BuiltinFunction<EXTRA>),
     Term(Term<EXTRA>),
 }
 

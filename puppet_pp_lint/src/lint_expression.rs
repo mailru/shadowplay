@@ -232,6 +232,9 @@ impl EarlyLintPass for UselessParens {
             ExpressionVariant::FunctionCall(_) => {
                 // no inner elements available
             }
+            ExpressionVariant::BuiltinFunction(_) => {
+                // no inner elements available
+            }
             ExpressionVariant::Term(elt) => {
                 if let TermVariant::Parens(Parens { value: inner, .. }) = &elt.value {
                     if let ExpressionVariant::Term(elt) = &inner.value {

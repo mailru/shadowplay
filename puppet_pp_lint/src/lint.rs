@@ -467,6 +467,14 @@ impl AstLinter {
             ExpressionVariant::FunctionCall(elt) => {
                 errors.append(&mut self.check_funcall(storage, elt))
             }
+            ExpressionVariant::BuiltinFunction(v) => {
+                for arg in &v.args {
+                    errors.append(&mut self.check_expression(storage, true, arg));
+                }
+                if let Some(lambda) = &v.lambda {
+                    errors.append(&mut self.check_lambda(storage, lambda))
+                }
+            }
             ExpressionVariant::MatchRegex((left, _))
             | ExpressionVariant::NotMatchRegex((left, _)) => {
                 errors.append(&mut self.check_expression(storage, false, left));
@@ -705,13 +713,6 @@ impl AstLinter {
                 for arg in &elt.args {
                     errors.append(&mut self.check_expression(storage, true, arg))
                 }
-            }
-            StatementVariant::BuiltinFunction(v) => {
-                for arg in &v.args {
-                    errors.append(&mut self.check_expression(storage, true, arg));
-                }
-                // TODO
-                // errors.append(&mut self.check_accessor(storage, &v.accessor));
             }
         };
 

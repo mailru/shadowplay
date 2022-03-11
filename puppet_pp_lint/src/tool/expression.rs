@@ -67,6 +67,7 @@ pub fn has_side_effect<EXTRA>(expr: &puppet_lang::expression::Expression<EXTRA>)
         puppet_lang::expression::ExpressionVariant::ChainCall(_) => true,
         puppet_lang::expression::ExpressionVariant::Term(_) => false,
         puppet_lang::expression::ExpressionVariant::FunctionCall(_) => true, // TODO check function's side effects
+        puppet_lang::expression::ExpressionVariant::BuiltinFunction(_) => true, // TODO check function's side effects
     }
 }
 
@@ -97,6 +98,7 @@ pub fn priority<EXTRA>(expr: &puppet_lang::expression::Expression<EXTRA>) -> u32
         | puppet_lang::expression::ExpressionVariant::NotMatchType(_)
         | puppet_lang::expression::ExpressionVariant::Not(_)
         | puppet_lang::expression::ExpressionVariant::FunctionCall(_)
+        | puppet_lang::expression::ExpressionVariant::BuiltinFunction(_)
         | puppet_lang::expression::ExpressionVariant::Term(_) => 4,
     }
 }

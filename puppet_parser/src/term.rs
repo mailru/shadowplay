@@ -214,7 +214,7 @@ pub fn parse_parens(input: Span) -> IResult<puppet_lang::expression::Parens<Rang
 pub fn parse_resource_identifier(
     input: Span,
 ) -> IResult<puppet_lang::expression::TermVariant<Range>> {
-    map(
+    let multi_parser = map(
         tuple((
             opt(tag("::")),
             crate::identifier::lowercase_identifier,
@@ -232,7 +232,22 @@ pub fn parse_resource_identifier(
                 },
             )
         },
-    )(input)
+    );
+
+    let single_with_toplevel_parser = map(
+        tuple((tag("::"), crate::identifier::lower_identifier_with_ns)),
+        |(toplevel_tag, name)| {
+            puppet_lang::expression::TermVariant::Identifier(
+                puppet_lang::identifier::LowerIdentifier {
+                    extra: Range::from((&toplevel_tag, name.last().unwrap())),
+                    name: name.iter().map(|v| v.to_string()).collect(),
+                    is_toplevel: true,
+                },
+            )
+        },
+    );
+
+    alt((multi_parser, single_with_toplevel_parser))(input)
 }
 
 pub fn parse_term(input: Span) -> IResult<puppet_lang::expression::Term<Range>> {
