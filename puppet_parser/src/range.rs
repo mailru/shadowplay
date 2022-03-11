@@ -96,9 +96,10 @@ impl<'a> From<(&Range, &Range)> for Range {
 impl<'a> From<(Span<'a>, Span<'a>)> for Range {
     fn from(pair: (Span, Span)) -> Self {
         let (start, end) = pair;
+        let last_char_pos = end.char_indices().last().unwrap().0;
         Self {
             start: start.into(),
-            end: end.slice(end.len() - 1..end.len()).into(),
+            end: end.slice(last_char_pos..end.len()).into(),
         }
     }
 }
