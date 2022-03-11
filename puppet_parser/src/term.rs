@@ -211,6 +211,30 @@ pub fn parse_parens(input: Span) -> IResult<puppet_lang::expression::Parens<Rang
     )(input)
 }
 
+pub fn parse_resource_identifier(
+    input: Span,
+) -> IResult<puppet_lang::expression::TermVariant<Range>> {
+    map(
+        tuple((
+            opt(tag("::")),
+            crate::identifier::lowercase_identifier,
+            tag("::"),
+            crate::identifier::lower_identifier_with_ns,
+        )),
+        |(toplevel_tag, head, _, mut name)| {
+            let first = toplevel_tag.as_ref().unwrap_or_else(|| &head);
+            name.insert(0, head);
+            puppet_lang::expression::TermVariant::Identifier(
+                puppet_lang::identifier::LowerIdentifier {
+                    extra: Range::from((first, name.last().unwrap())),
+                    name: name.iter().map(|v| v.to_string()).collect(),
+                    is_toplevel: toplevel_tag.is_some(),
+                },
+            )
+        },
+    )(input)
+}
+
 pub fn parse_term(input: Span) -> IResult<puppet_lang::expression::Term<Range>> {
     let parse_undef = map(tag("undef"), |kw: Span| {
         puppet_lang::expression::TermVariant::Undef(puppet_lang::expression::Undef {
@@ -250,6 +274,7 @@ pub fn parse_term(input: Span) -> IResult<puppet_lang::expression::Term<Range>> 
             puppet_lang::expression::TermVariant::Integer,
         ),
         parse_type_specification,
+        parse_resource_identifier,
         map(
             parse_string_variant,
             puppet_lang::expression::TermVariant::String,

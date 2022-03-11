@@ -79,7 +79,7 @@ pub fn parse_float(input: Span) -> IResult<puppet_lang::typing::TypeSpecificatio
 
 pub fn parse_integer(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVariant<Range>> {
     map(
-        parse_min_max_args("Float", crate::term::parse_integer_term),
+        parse_min_max_args("Integer", crate::term::parse_integer_term),
         |(min, max, start_range, end_range)| {
             puppet_lang::typing::TypeSpecificationVariant::Integer(
                 puppet_lang::typing::TypeInteger {
@@ -116,24 +116,24 @@ fn parse_array(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVar
 
     let (input, keyword) = tag("Array")(input)?;
 
-    let parser = map(parser, move |(inner, min_max)| {
-        let (min, max) = min_max.unwrap_or((None, None));
-        puppet_lang::typing::TypeArray {
-            inner: Some(Box::new(inner)),
-            min,
-            max,
-            extra: Range::from((keyword, keyword)),
-        }
-    });
     let parser = map(
         opt(crate::common::square_brackets_delimimited(parser)),
-        move |v| {
-            v.map(|v| v.1).unwrap_or(puppet_lang::typing::TypeArray {
+        move |args| match args {
+            None => puppet_lang::typing::TypeArray {
                 inner: None,
                 min: None,
                 max: None,
                 extra: Range::from((keyword, keyword)),
-            })
+            },
+            Some((_left_bracket, (inner, min_max), right_bracket)) => {
+                let (min, max) = min_max.unwrap_or((None, None));
+                puppet_lang::typing::TypeArray {
+                    inner: Some(Box::new(inner)),
+                    min,
+                    max,
+                    extra: Range::from((keyword, right_bracket)),
+                }
+            }
         },
     );
 
@@ -494,7 +494,7 @@ fn test_array() {
     assert_eq!(
         parse_array(Span::new("Array")).unwrap().1,
         puppet_lang::typing::TypeSpecificationVariant::Array(puppet_lang::typing::TypeArray {
-            extra: Range::new(0, 1, 1, 1, 1, 1),
+            extra: Range::new(0, 1, 1, 4, 1, 5),
             inner: None,
             min: None,
             max: None
@@ -505,26 +505,26 @@ fn test_array() {
             .unwrap()
             .1,
         puppet_lang::typing::TypeSpecificationVariant::Array(puppet_lang::typing::TypeArray {
-            extra: Range::new(0, 1, 1, 1, 1, 1),
+            extra: Range::new(0, 1, 1, 24, 1, 25),
             inner: Some(Box::new(puppet_lang::typing::TypeSpecification {
                 data: puppet_lang::typing::TypeSpecificationVariant::String(
                     puppet_lang::typing::TypeString {
                         min: Some(puppet_lang::expression::Usize {
                             value: 1,
-                            extra: Range::new(15, 1, 16, 1, 1, 1)
+                            extra: Range::new(15, 1, 16, 15, 1, 16)
                         }),
                         max: Some(puppet_lang::expression::Usize {
                             value: 2,
-                            extra: Range::new(17, 1, 18, 1, 1, 1)
+                            extra: Range::new(17, 1, 18, 17, 1, 18)
                         }),
-                        extra: Range::new(7, 1, 8, 1, 1, 1)
+                        extra: Range::new(7, 1, 8, 18, 1, 19)
                     }
                 ),
-                extra: Range::new(7, 1, 8, 1, 1, 1)
+                extra: Range::new(7, 1, 8, 18, 1, 19)
             })),
             min: Some(puppet_lang::expression::Usize {
                 value: 10,
-                extra: Range::new(21, 1, 22, 1, 1, 1)
+                extra: Range::new(21, 1, 22, 22, 1, 23)
             }),
             max: None
         })
@@ -538,30 +538,30 @@ fn test_hash() {
             .unwrap()
             .1,
         puppet_lang::typing::TypeSpecificationVariant::Hash(puppet_lang::typing::TypeHash {
-            extra: Range::new(0, 1, 1, 1, 1, 1),
+            extra: Range::new(0, 1, 1, 27, 1, 28),
             key: Some(Box::new(puppet_lang::typing::TypeSpecification {
                 data: puppet_lang::typing::TypeSpecificationVariant::String(
                     puppet_lang::typing::TypeString {
                         min: Some(puppet_lang::expression::Usize {
                             value: 1,
-                            extra: Range::new(13, 1, 14, 1, 1, 1)
+                            extra: Range::new(13, 1, 14, 13, 1, 14)
                         }),
                         max: Some(puppet_lang::expression::Usize {
                             value: 2,
-                            extra: Range::new(15, 1, 16, 1, 1, 1)
+                            extra: Range::new(15, 1, 16, 15, 1, 16)
                         }),
-                        extra: Range::new(6, 1, 7, 1, 1, 1)
+                        extra: Range::new(6, 1, 7, 17, 1, 18)
                     }
                 ),
-                extra: Range::new(6, 1, 7, 1, 1, 1)
+                extra: Range::new(6, 1, 7, 17, 1, 18)
             })),
             value: Some(Box::new(puppet_lang::typing::TypeSpecification {
                 data: puppet_lang::typing::TypeSpecificationVariant::Boolean(
                     puppet_lang::typing::Boolean {
-                        extra: Range::new(20, 1, 21, 1, 1, 1)
+                        extra: Range::new(20, 1, 21, 26, 1, 27)
                     }
                 ),
-                extra: Range::new(20, 1, 21, 1, 1, 1)
+                extra: Range::new(20, 1, 21, 26, 1, 27)
             })),
             min: None,
             max: None
@@ -578,23 +578,23 @@ fn test_optional() {
             .1,
         puppet_lang::typing::TypeSpecificationVariant::Optional(
             puppet_lang::typing::TypeOptional {
-                extra: Range::new(0, 1, 1, 1, 1, 1),
+                extra: Range::new(0, 1, 1, 23, 1, 24),
                 value: puppet_lang::typing::TypeOptionalVariant::TypeSpecification(Box::new(
                     puppet_lang::typing::TypeSpecification {
                         data: puppet_lang::typing::TypeSpecificationVariant::String(
                             puppet_lang::typing::TypeString {
                                 min: Some(puppet_lang::expression::Usize {
                                     value: 1,
-                                    extra: Range::new(17, 1, 18, 1, 1, 1)
+                                    extra: Range::new(17, 1, 18, 17, 1, 18)
                                 }),
                                 max: Some(puppet_lang::expression::Usize {
                                     value: 2,
-                                    extra: Range::new(19, 1, 20, 1, 1, 1)
+                                    extra: Range::new(19, 1, 20, 19, 1, 20)
                                 }),
-                                extra: Range::new(10, 1, 11, 1, 1, 1)
+                                extra: Range::new(10, 1, 11, 21, 1, 22)
                             }
                         ),
-                        extra: Range::new(10, 1, 11, 1, 1, 1)
+                        extra: Range::new(10, 1, 11, 21, 1, 22)
                     }
                 ))
             }
@@ -609,27 +609,27 @@ fn test_struct() {
             .unwrap()
             .1,
         puppet_lang::typing::TypeSpecificationVariant::Struct(puppet_lang::typing::TypeStruct {
-            extra: Range::new(0, 1, 1, 1, 1, 1),
+            extra: Range::new(0, 1, 1, 31, 1, 32),
             keys: vec![(
                 puppet_lang::typing::TypeStructKey::String(puppet_lang::string::StringExpr {
                     data: puppet_lang::string::StringVariant::SingleQuoted(vec![
                         puppet_lang::string::StringFragment::Literal(
                             puppet_lang::string::Literal {
                                 data: "some_key".to_owned(),
-                                extra: Range::new(9, 1, 10, 1, 1, 1)
+                                extra: Range::new(9, 1, 10, 16, 1, 17)
                             }
                         )
                     ]),
                     accessor: None,
-                    extra: Range::new(9, 1, 10, 1, 1, 1)
+                    extra: Range::new(9, 1, 10, 16, 1, 17)
                 }),
                 puppet_lang::typing::TypeSpecification {
                     data: puppet_lang::typing::TypeSpecificationVariant::Boolean(
                         puppet_lang::typing::Boolean {
-                            extra: Range::new(21, 1, 22, 1, 1, 1)
+                            extra: Range::new(21, 1, 22, 27, 1, 28)
                         }
                     ),
-                    extra: Range::new(21, 1, 22, 1, 1, 1)
+                    extra: Range::new(21, 1, 22, 27, 1, 28)
                 }
             )]
         })
@@ -643,30 +643,30 @@ fn test_tuple() {
             .unwrap()
             .1,
         puppet_lang::typing::TypeSpecificationVariant::Tuple(puppet_lang::typing::TypeTuple {
-            extra: Range::new(0, 1, 1, 1, 1, 1),
+            extra: Range::new(0, 1, 1, 29, 1, 30),
             list: vec![puppet_lang::typing::TypeSpecification {
                 data: puppet_lang::typing::TypeSpecificationVariant::Integer(
                     puppet_lang::typing::TypeInteger {
                         min: Some(puppet_lang::expression::Integer {
                             value: 1,
-                            extra: Range::new(15, 1, 16, 1, 1, 1)
+                            extra: Range::new(15, 1, 16, 15, 1, 16)
                         }),
                         max: Some(puppet_lang::expression::Integer {
                             value: 2,
-                            extra: Range::new(17, 1, 18, 1, 1, 1)
+                            extra: Range::new(17, 1, 18, 17, 1, 18)
                         }),
-                        extra: Range::new(7, 1, 8, 1, 1, 1)
+                        extra: Range::new(7, 1, 8, 18, 1, 19)
                     }
                 ),
-                extra: Range::new(7, 1, 8, 1, 1, 1)
+                extra: Range::new(7, 1, 8, 18, 1, 19)
             }],
             min: Some(puppet_lang::expression::Usize {
                 value: 10,
-                extra: Range::new(21, 1, 22, 1, 1, 1)
+                extra: Range::new(21, 1, 22, 22, 1, 23)
             }),
             max: Some(puppet_lang::expression::Usize {
                 value: 100,
-                extra: Range::new(25, 1, 26, 1, 1, 1)
+                extra: Range::new(25, 1, 26, 27, 1, 28)
             }),
         })
     );
@@ -675,39 +675,39 @@ fn test_tuple() {
             .unwrap()
             .1,
         puppet_lang::typing::TypeSpecificationVariant::Tuple(puppet_lang::typing::TypeTuple {
-            extra: Range::new(0, 1, 1, 1, 1, 1),
+            extra: Range::new(0, 1, 1, 34, 1, 35),
             list: vec![
                 puppet_lang::typing::TypeSpecification {
                     data: puppet_lang::typing::TypeSpecificationVariant::Integer(
                         puppet_lang::typing::TypeInteger {
                             min: Some(puppet_lang::expression::Integer {
                                 value: 1,
-                                extra: Range::new(15, 1, 16, 1, 1, 1)
+                                extra: Range::new(15, 1, 16, 15, 1, 16)
                             }),
                             max: Some(puppet_lang::expression::Integer {
                                 value: 2,
-                                extra: Range::new(17, 1, 18, 1, 1, 1)
+                                extra: Range::new(17, 1, 18, 17, 1, 18)
                             }),
-                            extra: Range::new(7, 1, 8, 1, 1, 1)
+                            extra: Range::new(7, 1, 8, 18, 1, 19)
                         }
                     ),
-                    extra: Range::new(7, 1, 8, 1, 1, 1)
+                    extra: Range::new(7, 1, 8, 18, 1, 19)
                 },
                 puppet_lang::typing::TypeSpecification {
                     data: puppet_lang::typing::TypeSpecificationVariant::Integer(
                         puppet_lang::typing::TypeInteger {
                             min: Some(puppet_lang::expression::Integer {
                                 value: 3,
-                                extra: Range::new(29, 1, 30, 1, 1, 1)
+                                extra: Range::new(29, 1, 30, 29, 1, 30)
                             }),
                             max: Some(puppet_lang::expression::Integer {
                                 value: 4,
-                                extra: Range::new(31, 1, 32, 1, 1, 1)
+                                extra: Range::new(31, 1, 32, 31, 1, 32)
                             }),
-                            extra: Range::new(21, 1, 22, 1, 1, 1)
+                            extra: Range::new(21, 1, 22, 32, 1, 33)
                         }
                     ),
-                    extra: Range::new(21, 1, 22, 1, 1, 1)
+                    extra: Range::new(21, 1, 22, 32, 1, 33)
                 }
             ],
             min: None,
@@ -728,10 +728,10 @@ fn test_type_specification() {
                 puppet_lang::typing::ExternalType {
                     name: vec!["Stdlib".to_owned(), "Unixpath".to_owned()],
                     arguments: Vec::new(),
-                    extra: Range::new(0, 1, 1, 1, 1, 1)
+                    extra: Range::new(0, 1, 1, 15, 1, 16)
                 }
             ),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 15, 1, 16)
         }
     );
     assert_eq!(
@@ -751,23 +751,23 @@ fn test_type_specification() {
                                             vec![puppet_lang::string::StringFragment::Literal(
                                                 puppet_lang::string::Literal {
                                                     data: "hello".to_owned(),
-                                                    extra: Range::new(9, 1, 10, 1, 1, 1)
+                                                    extra: Range::new(7, 1, 8, 11, 1, 12)
                                                 }
                                             )]
                                         ),
                                         accessor: None,
-                                        extra: Range::new(6, 1, 7, 1, 1, 1),
+                                        extra: Range::new(6, 1, 7, 12, 1, 13),
                                     }
                                 ),
-                                extra: Range::new(6, 1, 7, 1, 1, 1),
+                                extra: Range::new(6, 1, 7, 12, 1, 13),
                             }
                         ),
-                        extra: Range::new(6, 1, 7, 1, 1, 1),
+                        extra: Range::new(6, 1, 7, 12, 1, 13),
                     }],
-                    extra: Range::new(0, 1, 1, 1, 1, 1)
+                    extra: Range::new(0, 1, 1, 13, 1, 14)
                 }
             ),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 13, 1, 14)
         }
     );
     assert_eq!(
@@ -775,10 +775,10 @@ fn test_type_specification() {
         puppet_lang::typing::TypeSpecification {
             data: puppet_lang::typing::TypeSpecificationVariant::Numeric(
                 puppet_lang::typing::Numeric {
-                    extra: Range::new(0, 1, 1, 1, 1, 1)
+                    extra: Range::new(0, 1, 1, 6, 1, 7)
                 }
             ),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 6, 1, 7)
         }
     );
     assert!(parse_type_specification(Span::new("Pattern[//, /sdfsdf/]")).is_ok());

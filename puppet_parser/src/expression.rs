@@ -141,11 +141,18 @@ fn parse_funcall(input: Span) -> IResult<puppet_lang::expression::Expression<Ran
             parse_accessor,
         )),
         |(identifier, (_left_paren, args, right_paren), lambda, accessor)| {
+            let end_range = match &accessor {
+                Some(v) => v.extra.clone(),
+                None => match &lambda {
+                    Some(v) => v.extra.clone(),
+                    None => Range::from((right_paren, right_paren)),
+                },
+            };
             puppet_lang::expression::Expression {
-                extra: identifier.extra.clone(),
+                extra: (&identifier.extra, &end_range).into(),
                 value: puppet_lang::expression::ExpressionVariant::FunctionCall(
                     puppet_lang::expression::FunctionCall {
-                        extra: (&identifier.extra, &accessor, &right_paren).into(),
+                        extra: (&identifier.extra, &end_range).into(),
                         identifier,
                         args,
                         lambda,
@@ -547,31 +554,31 @@ fn test_multiply() {
                         puppet_lang::expression::Term {
                             value: puppet_lang::expression::TermVariant::Integer(
                                 puppet_lang::expression::Integer {
-                                    extra: Range::new(0, 1, 1, 1, 1, 1),
+                                    extra: Range::new(0, 1, 1, 0, 1, 1),
                                     value: 2,
                                 }
                             ),
-                            extra: Range::new(0, 1, 1, 1, 1, 1)
+                            extra: Range::new(0, 1, 1, 0, 1, 1)
                         }
                     ),
-                    extra: Range::new(0, 1, 1, 1, 1, 1)
+                    extra: Range::new(0, 1, 1, 0, 1, 1)
                 }),
                 Box::new(puppet_lang::expression::Expression {
                     value: puppet_lang::expression::ExpressionVariant::Term(
                         puppet_lang::expression::Term {
                             value: puppet_lang::expression::TermVariant::Integer(
                                 puppet_lang::expression::Integer {
-                                    extra: Range::new(2, 1, 3, 1, 1, 1),
+                                    extra: Range::new(2, 1, 3, 2, 1, 3),
                                     value: 3,
                                 }
                             ),
-                            extra: Range::new(2, 1, 3, 1, 1, 1)
+                            extra: Range::new(2, 1, 3, 2, 1, 3)
                         }
                     ),
-                    extra: Range::new(2, 1, 3, 1, 1, 1)
+                    extra: Range::new(2, 1, 3, 2, 1, 3)
                 }),
             )),
-            extra: Range::new(1, 1, 2, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 2, 1, 3)
         }
     );
 }
@@ -598,31 +605,31 @@ fn test_operators_precendence() {
                                                 value: ExpressionVariant::Term(Term {
                                                     value: TermVariant::Integer(Integer {
                                                         value: 1,
-                                                        extra: Range::new(1, 1, 2, 1, 1, 1)
+                                                        extra: Range::new(1, 1, 2, 1, 1, 2)
                                                     }),
-                                                    extra: Range::new(1, 1, 2, 1, 1, 1)
+                                                    extra: Range::new(1, 1, 2, 1, 1, 2)
                                                 }),
-                                                extra: Range::new(1, 1, 2, 1, 1, 1)
+                                                extra: Range::new(1, 1, 2, 1, 1, 2)
                                             }),
                                             Box::new(Expression {
                                                 value: ExpressionVariant::Term(Term {
                                                     value: TermVariant::Integer(Integer {
                                                         value: 2,
-                                                        extra: Range::new(4, 1, 5, 1, 1, 1)
+                                                        extra: Range::new(4, 1, 5, 4, 1, 5)
                                                     }),
-                                                    extra: Range::new(4, 1, 5, 1, 1, 1)
+                                                    extra: Range::new(4, 1, 5, 4, 1, 5)
                                                 }),
-                                                extra: Range::new(4, 1, 5, 1, 1, 1)
+                                                extra: Range::new(4, 1, 5, 4, 1, 5)
                                             })
                                         )),
-                                        extra: Range::new(3, 1, 4, 1, 1, 1)
+                                        extra: Range::new(1, 1, 2, 4, 1, 5)
                                     }),
                                     accessor: None,
-                                    extra: Range::new(0, 1, 1, 1, 1, 1)
+                                    extra: Range::new(0, 1, 1, 5, 1, 6)
                                 }),
-                                extra: Range::new(0, 1, 1, 1, 1, 1)
+                                extra: Range::new(0, 1, 1, 5, 1, 6)
                             }),
-                            extra: Range::new(0, 1, 1, 1, 1, 1)
+                            extra: Range::new(0, 1, 1, 5, 1, 6)
                         }),
                         Box::new(Expression {
                             value: ExpressionVariant::Multiply((
@@ -630,40 +637,40 @@ fn test_operators_precendence() {
                                     value: ExpressionVariant::Term(Term {
                                         value: TermVariant::Integer(Integer {
                                             value: 3,
-                                            extra: Range::new(9, 1, 10, 1, 1, 1)
+                                            extra: Range::new(9, 1, 10, 9, 1, 10)
                                         }),
-                                        extra: Range::new(9, 1, 10, 1, 1, 1)
+                                        extra: Range::new(9, 1, 10, 9, 1, 10)
                                     }),
-                                    extra: Range::new(9, 1, 10, 1, 1, 1)
+                                    extra: Range::new(9, 1, 10, 9, 1, 10)
                                 }),
                                 Box::new(Expression {
                                     value: ExpressionVariant::Term(Term {
                                         value: TermVariant::Integer(Integer {
                                             value: 4,
-                                            extra: Range::new(12, 1, 13, 1, 1, 1)
+                                            extra: Range::new(12, 1, 13, 12, 1, 13)
                                         }),
-                                        extra: Range::new(12, 1, 13, 1, 1, 1)
+                                        extra: Range::new(12, 1, 13, 12, 1, 13)
                                     }),
-                                    extra: Range::new(12, 1, 13, 1, 1, 1)
+                                    extra: Range::new(12, 1, 13, 12, 1, 13)
                                 })
                             )),
-                            extra: Range::new(10, 1, 11, 1, 1, 1)
+                            extra: Range::new(9, 1, 10, 12, 1, 13)
                         })
                     )),
-                    extra: Range::new(7, 1, 8, 1, 1, 1)
+                    extra: Range::new(0, 1, 1, 12, 1, 13)
                 }),
                 Box::new(Expression {
                     value: ExpressionVariant::Term(Term {
                         value: TermVariant::Integer(Integer {
                             value: 10,
-                            extra: Range::new(16, 1, 17, 1, 1, 1)
+                            extra: Range::new(16, 1, 17, 17, 1, 18)
                         }),
-                        extra: Range::new(16, 1, 17, 1, 1, 1)
+                        extra: Range::new(16, 1, 17, 17, 1, 18)
                     }),
-                    extra: Range::new(16, 1, 17, 1, 1, 1)
+                    extra: Range::new(16, 1, 17, 17, 1, 18)
                 })
             )),
-            extra: Range::new(14, 1, 15, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 17, 1, 18)
         }
     );
 }
@@ -680,7 +687,7 @@ fn test_function_call() {
                     identifier: puppet_lang::identifier::LowerIdentifier {
                         name: vec!["lookup".to_owned()],
                         is_toplevel: false,
-                        extra: Range::new(0, 1, 1, 1, 1, 1)
+                        extra: Range::new(0, 1, 1, 5, 1, 6)
                     },
                     args: vec![puppet_lang::expression::Expression {
                         value: puppet_lang::expression::ExpressionVariant::Term(
@@ -691,25 +698,25 @@ fn test_function_call() {
                                             vec![puppet_lang::string::StringFragment::Literal(
                                                 puppet_lang::string::Literal {
                                                     data: "ask8s::docker::gpu_nvidia".to_owned(),
-                                                    extra: Range::new(7, 1, 8, 1, 1, 1)
+                                                    extra: Range::new(8, 1, 9, 32, 1, 33)
                                                 }
                                             )]
                                         ),
-                                        extra: Range::new(7, 1, 8, 1, 1, 1),
+                                        extra: Range::new(7, 1, 8, 33, 1, 34),
                                         accessor: None,
                                     }
                                 ),
-                                extra: Range::new(7, 1, 8, 1, 1, 1)
+                                extra: Range::new(7, 1, 8, 33, 1, 34)
                             }
                         ),
-                        extra: Range::new(7, 1, 8, 1, 1, 1)
+                        extra: Range::new(7, 1, 8, 33, 1, 34)
                     },],
                     lambda: None,
-                    extra: Range::new(0, 1, 1, 1, 1, 1),
+                    extra: Range::new(0, 1, 1, 34, 1, 35),
                     accessor: None,
                 }
             ),
-            extra: Range::new(0, 1, 1, 1, 1, 1)
+            extra: Range::new(0, 1, 1, 34, 1, 35)
         }
     );
 }
@@ -730,13 +737,13 @@ fn test_in_with_parens() {
                                             value: puppet_lang::expression::TermVariant::Integer(
                                                 puppet_lang::expression::Integer {
                                                     value: 1,
-                                                    extra: Range::new(1,1,2, 1, 1, 1)
+                                                    extra: Range::new(1,1,2, 1, 1, 2)
                                                 }
                                             ),
-                                            extra: Range::new(1,1,2, 1, 1, 1)
+                                            extra: Range::new(1,1,2, 1, 1, 2)
                                         }
                                     ),
-                                    extra: Range::new(1,1,2, 1, 1, 1)
+                                    extra: Range::new(1,1,2, 1, 1, 2)
                                 }),
                                 Box::new(puppet_lang::expression::Expression {
                                     value: puppet_lang::expression::ExpressionVariant::Term(
@@ -747,27 +754,27 @@ fn test_in_with_parens() {
                                                         puppet_lang::identifier::LowerIdentifier {
                                                             name: vec!["a".to_owned()],
                                                             is_toplevel: false,
-                                                            extra: Range::new(7,1,8, 1, 1, 1)
+                                                            extra: Range::new(7,1,8, 7, 1, 8)
                                                         },
                                                     accessor: None,
-                                                    extra: Range::new(7,1,8, 1, 1, 1)
+                                                    extra: Range::new(6,1,7, 7, 1, 8)
                                                 }
                                             ),
-                                            extra: Range::new(6,1,7, 1, 1, 1)
+                                            extra: Range::new(6,1,7, 7, 1, 8)
                                         }
                                     ),
-                                    extra: Range::new(6,1,7, 1, 1, 1)
+                                    extra: Range::new(6,1,7, 7, 1, 8)
                                 })
                             )),
-                            extra: Range::new(3,1,4, 1, 1, 1)
+                            extra: Range::new(1,1,2, 7, 1, 8)
                         }),
                         accessor: None,
-                        extra: Range::new(0,1,1, 1, 1, 1)
+                        extra: Range::new(0,1,1, 8, 1, 9)
                     }),
-                    extra: Range::new(0,1,1, 1, 1, 1)
+                    extra: Range::new(0,1,1, 8, 1, 9)
                 }
             ),
-            extra: Range::new(0,1,1, 1, 1, 1)
+            extra: Range::new(0,1,1, 8, 1, 9)
         }
     );
 }
