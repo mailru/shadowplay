@@ -57,7 +57,7 @@ pub enum RelationElt<EXTRA> {
 }
 
 impl<EXTRA> crate::ExtraGetter<EXTRA> for RelationElt<EXTRA> {
-    fn extra<'a>(&'a self) -> &'a EXTRA {
+    fn extra(&self) -> &EXTRA {
         match self {
             RelationElt::ResourceSet(v) => &v.extra,
             // FIXME Currently parser guarantees at least one element exists in the list
@@ -125,7 +125,7 @@ pub struct Statement<EXTRA> {
 }
 
 impl<EXTRA> crate::ExtraGetter<EXTRA> for Statement<EXTRA> {
-    fn extra<'a>(&'a self) -> &'a EXTRA {
+    fn extra(&self) -> &EXTRA {
         match &self.value {
             StatementVariant::BuiltinFunction(v) => &v.extra,
             StatementVariant::CreateResources(v) => &v.extra,

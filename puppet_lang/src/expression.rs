@@ -133,7 +133,7 @@ pub enum CaseVariant<EXTRA> {
 }
 
 impl<EXTRA> crate::ExtraGetter<EXTRA> for CaseVariant<EXTRA> {
-    fn extra<'a>(&'a self) -> &'a EXTRA {
+    fn extra(&self) -> &EXTRA {
         match self {
             Self::Term(v) => &v.extra,
             Self::Default(v) => &v.extra,

@@ -24,7 +24,7 @@ impl EarlyLintPass for StatementWithNoEffect {
                 return vec![LintError::new(
                     Box::new(self.clone()),
                     "Statement without effect which is not a return value. Can be safely removed.",
-                    &elt.extra(),
+                    elt.extra(),
                 )];
             }
         }

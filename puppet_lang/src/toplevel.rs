@@ -57,7 +57,7 @@ pub enum Toplevel<EXTRA> {
 }
 
 impl<EXTRA> crate::ExtraGetter<EXTRA> for Toplevel<EXTRA> {
-    fn extra<'a>(&'a self) -> &'a EXTRA {
+    fn extra(&self) -> &EXTRA {
         match self {
             Toplevel::Class(v) => &v.extra,
             Toplevel::Definition(v) => &v.extra,

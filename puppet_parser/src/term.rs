@@ -222,7 +222,7 @@ pub fn parse_resource_identifier(
             crate::identifier::lower_identifier_with_ns,
         )),
         |(toplevel_tag, head, _, mut name)| {
-            let first = toplevel_tag.as_ref().unwrap_or_else(|| &head);
+            let first = toplevel_tag.as_ref().unwrap_or(&head);
             name.insert(0, head);
             puppet_lang::expression::TermVariant::Identifier(
                 puppet_lang::identifier::LowerIdentifier {
