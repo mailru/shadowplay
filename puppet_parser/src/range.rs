@@ -63,16 +63,6 @@ impl Range {
     }
 }
 
-// TODO for refactoring in the future
-// impl<'a> From<Span<'a>> for Range {
-//     fn from(span: Span) -> Self {
-//         Self {
-//             start: span.into(),
-//             end: span.slice(span.len() - 1..span.len()).into(),
-//         }
-//     }
-// }
-
 impl<'a> From<(Span<'a>, &Range)> for Range {
     fn from(pair: (Span, &Range)) -> Self {
         let (start, end) = pair;
