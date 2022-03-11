@@ -1,5 +1,5 @@
 use puppet_lang::expression::{Expression, ExpressionVariant, Parens, Term, TermVariant};
-use puppet_parser::Location;
+use puppet_parser::range::Range;
 
 use crate::lint::LintError;
 
@@ -19,7 +19,7 @@ impl UselessParens {
         &self,
         outer_priority: u32,
         errors: &mut Vec<super::lint::LintError>,
-        elt: &Expression<Location>,
+        elt: &Expression<Range>,
     ) {
         let (inner, parens_extra) = match &elt.value {
             ExpressionVariant::Term(puppet_lang::expression::Term {
@@ -51,9 +51,9 @@ impl UselessParens {
         }
     }
 
-    fn inner_check<C>(&self, elt: &Expression<Location>, checker: C) -> bool
+    fn inner_check<C>(&self, elt: &Expression<Range>, checker: C) -> bool
     where
-        C: Fn(&ExpressionVariant<Location>) -> bool,
+        C: Fn(&ExpressionVariant<Range>) -> bool,
     {
         match &elt.value {
             ExpressionVariant::Term(Term {
@@ -69,7 +69,7 @@ impl EarlyLintPass for UselessParens {
     fn check_expression(
         &self,
         is_toplevel_expr: bool,
-        elt: &Expression<Location>,
+        elt: &Expression<Range>,
     ) -> Vec<super::lint::LintError> {
         let outer_priority = crate::tool::expression::priority(elt);
 
@@ -276,7 +276,7 @@ impl EarlyLintPass for AssignmentToInvalidExpression {
     fn check_expression(
         &self,
         _is_toplevel_expr: bool,
-        elt: &Expression<Location>,
+        elt: &Expression<Range>,
     ) -> Vec<super::lint::LintError> {
         if let ExpressionVariant::Assign((left, _)) = &elt.value {
             if !matches!(
@@ -311,7 +311,7 @@ impl EarlyLintPass for DoubleNegation {
     fn check_expression(
         &self,
         _is_toplevel_expr: bool,
-        elt: &Expression<Location>,
+        elt: &Expression<Range>,
     ) -> Vec<super::lint::LintError> {
         let inner = match &elt.value {
             ExpressionVariant::Not(inner) => inner,
@@ -343,7 +343,7 @@ impl EarlyLintPass for NegationOfEquation {
     fn check_expression(
         &self,
         _is_toplevel_expr: bool,
-        elt: &Expression<Location>,
+        elt: &Expression<Range>,
     ) -> Vec<super::lint::LintError> {
         let inner = match &elt.value {
             ExpressionVariant::Not(inner) => inner,

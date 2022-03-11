@@ -1,4 +1,4 @@
-use puppet_parser::Location;
+use puppet_parser::range::Range;
 
 use crate::lint::{EarlyLintPass, LintError, LintPass};
 
@@ -12,7 +12,7 @@ impl LintPass for EmptyCasesList {
 }
 
 impl EarlyLintPass for EmptyCasesList {
-    fn check_case_statement(&self, elt: &puppet_lang::statement::Case<Location>) -> Vec<LintError> {
+    fn check_case_statement(&self, elt: &puppet_lang::statement::Case<Range>) -> Vec<LintError> {
         if elt.elements.is_empty() {
             return vec![LintError::new(
                 Box::new(self.clone()),
@@ -35,7 +35,7 @@ impl LintPass for DefaultCaseIsNotLast {
 }
 
 impl EarlyLintPass for DefaultCaseIsNotLast {
-    fn check_case_statement(&self, elt: &puppet_lang::statement::Case<Location>) -> Vec<LintError> {
+    fn check_case_statement(&self, elt: &puppet_lang::statement::Case<Range>) -> Vec<LintError> {
         let mut default = None;
         let mut errors = Vec::new();
         for case in &elt.elements {
@@ -50,7 +50,7 @@ impl EarlyLintPass for DefaultCaseIsNotLast {
                     Box::new(self.clone()),
                     &format!(
                         "Match case after default match which is defined earlier at line {}",
-                        default.extra.line()
+                        default.extra.start().line()
                     ),
                     &elt.extra,
                 ))
@@ -71,8 +71,8 @@ impl LintPass for MultipleDefaultCase {
 }
 
 impl EarlyLintPass for MultipleDefaultCase {
-    fn check_case_statement(&self, elt: &puppet_lang::statement::Case<Location>) -> Vec<LintError> {
-        let mut default: Option<&puppet_lang::statement::CaseElement<Location>> = None;
+    fn check_case_statement(&self, elt: &puppet_lang::statement::Case<Range>) -> Vec<LintError> {
+        let mut default: Option<&puppet_lang::statement::CaseElement<Range>> = None;
         let mut errors = Vec::new();
         for case in &elt.elements {
             if case
@@ -85,7 +85,7 @@ impl EarlyLintPass for MultipleDefaultCase {
                         Box::new(self.clone()),
                         &format!(
                             "Default match case is already defined at line {}",
-                            default.extra.line()
+                            default.extra.start().line()
                         ),
                         &elt.extra,
                     ))
@@ -108,7 +108,7 @@ impl LintPass for NoDefaultCase {
 }
 
 impl EarlyLintPass for NoDefaultCase {
-    fn check_case_statement(&self, elt: &puppet_lang::statement::Case<Location>) -> Vec<LintError> {
+    fn check_case_statement(&self, elt: &puppet_lang::statement::Case<Range>) -> Vec<LintError> {
         let mut has_default = false;
         for case in &elt.elements {
             for case_elt in &case.matches {

@@ -1,4 +1,4 @@
-use puppet_parser::Location;
+use puppet_parser::range::Range;
 
 use crate::lint::{EarlyLintPass, LintError, LintPass};
 
@@ -14,7 +14,7 @@ impl LintPass for LowerCaseVariable {
 impl EarlyLintPass for LowerCaseVariable {
     fn check_term(
         &self,
-        elt: &puppet_lang::expression::Term<Location>,
+        elt: &puppet_lang::expression::Term<Range>,
     ) -> Vec<super::lint::LintError> {
         if let puppet_lang::expression::TermVariant::Variable(var) = &elt.value {
             if var

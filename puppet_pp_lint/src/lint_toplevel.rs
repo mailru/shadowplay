@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use puppet_parser::Location;
+use puppet_parser::range::Range;
 
 use super::lint::{EarlyLintPass, LintError, LintPass};
 
@@ -14,7 +14,7 @@ impl LintPass for OptionalArgumentsGoesFirst {
 }
 
 impl OptionalArgumentsGoesFirst {
-    fn check_order(&self, args: &[puppet_lang::argument::Argument<Location>]) -> Vec<LintError> {
+    fn check_order(&self, args: &[puppet_lang::argument::Argument<Range>]) -> Vec<LintError> {
         let mut errors = Vec::new();
         let mut found_optional = false;
         for arg in args {
@@ -34,18 +34,15 @@ impl OptionalArgumentsGoesFirst {
 }
 
 impl EarlyLintPass for OptionalArgumentsGoesFirst {
-    fn check_class(&self, elt: &puppet_lang::toplevel::Class<Location>) -> Vec<LintError> {
+    fn check_class(&self, elt: &puppet_lang::toplevel::Class<Range>) -> Vec<LintError> {
         self.check_order(&elt.arguments)
     }
 
-    fn check_definition(
-        &self,
-        elt: &puppet_lang::toplevel::Definition<Location>,
-    ) -> Vec<LintError> {
+    fn check_definition(&self, elt: &puppet_lang::toplevel::Definition<Range>) -> Vec<LintError> {
         self.check_order(&elt.arguments)
     }
 
-    fn check_plan(&self, elt: &puppet_lang::toplevel::Plan<Location>) -> Vec<LintError> {
+    fn check_plan(&self, elt: &puppet_lang::toplevel::Plan<Range>) -> Vec<LintError> {
         self.check_order(&elt.arguments)
     }
 }
@@ -60,9 +57,9 @@ impl LintPass for UniqueArgumentsNames {
 }
 
 impl UniqueArgumentsNames {
-    fn check(&self, args: &[puppet_lang::argument::Argument<Location>]) -> Vec<LintError> {
+    fn check(&self, args: &[puppet_lang::argument::Argument<Range>]) -> Vec<LintError> {
         let mut errors = Vec::new();
-        let mut names: HashMap<String, &puppet_lang::argument::Argument<Location>> = HashMap::new();
+        let mut names: HashMap<String, &puppet_lang::argument::Argument<Range>> = HashMap::new();
         for arg in args {
             match names.get(&arg.name) {
                 Some(prev) => errors.push(LintError::new(
@@ -70,7 +67,7 @@ impl UniqueArgumentsNames {
                     &format!(
                         "Argument '{}' was already defined earlier at line {}",
                         arg.name,
-                        prev.extra.line()
+                        prev.extra.start().line()
                     ),
                     &arg.extra,
                 )),
@@ -85,18 +82,15 @@ impl UniqueArgumentsNames {
 }
 
 impl EarlyLintPass for UniqueArgumentsNames {
-    fn check_class(&self, elt: &puppet_lang::toplevel::Class<Location>) -> Vec<LintError> {
+    fn check_class(&self, elt: &puppet_lang::toplevel::Class<Range>) -> Vec<LintError> {
         self.check(&elt.arguments)
     }
 
-    fn check_definition(
-        &self,
-        elt: &puppet_lang::toplevel::Definition<Location>,
-    ) -> Vec<LintError> {
+    fn check_definition(&self, elt: &puppet_lang::toplevel::Definition<Range>) -> Vec<LintError> {
         self.check(&elt.arguments)
     }
 
-    fn check_plan(&self, elt: &puppet_lang::toplevel::Plan<Location>) -> Vec<LintError> {
+    fn check_plan(&self, elt: &puppet_lang::toplevel::Plan<Range>) -> Vec<LintError> {
         self.check(&elt.arguments)
     }
 }

@@ -1,4 +1,4 @@
-use puppet_parser::Location;
+use puppet_parser::range::Range;
 
 use crate::lint::{EarlyLintPass, LintError, LintPass};
 
@@ -14,7 +14,7 @@ impl LintPass for InvalidStringEscape {
 impl EarlyLintPass for InvalidStringEscape {
     fn check_string_expression(
         &self,
-        elt: &puppet_lang::string::StringExpr<Location>,
+        elt: &puppet_lang::string::StringExpr<Range>,
     ) -> Vec<super::lint::LintError> {
         let list = match &elt.data {
             puppet_lang::string::StringVariant::SingleQuoted(list) => list.clone(),
@@ -82,7 +82,7 @@ impl LintPass for UselessDoubleQuotes {
 impl EarlyLintPass for UselessDoubleQuotes {
     fn check_string_expression(
         &self,
-        elt: &puppet_lang::string::StringExpr<Location>,
+        elt: &puppet_lang::string::StringExpr<Range>,
     ) -> Vec<super::lint::LintError> {
         let s = match &elt.data {
             puppet_lang::string::StringVariant::SingleQuoted(_) => return Vec::new(),

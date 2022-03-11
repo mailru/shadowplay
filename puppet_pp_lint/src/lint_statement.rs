@@ -1,6 +1,7 @@
-use puppet_parser::Location;
+use puppet_parser::range::Range;
 
 use crate::lint::{EarlyLintPass, LintError, LintPass};
+use puppet_lang::ExtraGetter;
 
 #[derive(Clone)]
 pub struct StatementWithNoEffect;
@@ -15,7 +16,7 @@ impl EarlyLintPass for StatementWithNoEffect {
     // TODO сделать менее наивную реализацию, с сохранением в EXTRA состояния
     fn check_statement_set(
         &self,
-        list: &[puppet_lang::statement::Statement<Location>],
+        list: &[puppet_lang::statement::Statement<Range>],
     ) -> Vec<LintError> {
         let list_len = list.len();
         for (idx, elt) in list.iter().enumerate() {
@@ -23,7 +24,7 @@ impl EarlyLintPass for StatementWithNoEffect {
                 return vec![LintError::new(
                     Box::new(self.clone()),
                     "Statement without effect which is not a return value. Can be safely removed.",
-                    &elt.extra,
+                    &elt.extra(),
                 )];
             }
         }
@@ -44,8 +45,8 @@ impl LintPass for RelationToTheLeft {
 impl EarlyLintPass for RelationToTheLeft {
     fn check_relation(
         &self,
-        _left: &puppet_lang::statement::RelationElt<Location>,
-        elt: &puppet_lang::statement::Relation<Location>,
+        _left: &puppet_lang::statement::RelationElt<Range>,
+        elt: &puppet_lang::statement::Relation<Range>,
     ) -> Vec<LintError> {
         match elt.relation_type.variant {
             puppet_lang::statement::RelationVariant::ExecOrderRight => (),

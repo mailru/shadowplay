@@ -6,7 +6,7 @@ pub mod yaml;
 #[derive(Debug, Clone)]
 pub struct PuppetAst {
     pub input: String,
-    pub data: Vec<puppet_lang::statement::Statement<puppet_parser::Location>>,
+    pub data: Vec<puppet_lang::statement::Statement<puppet_parser::range::Range>>,
 }
 
 impl PuppetAst {

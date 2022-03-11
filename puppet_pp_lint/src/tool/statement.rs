@@ -1,12 +1,10 @@
 pub fn has_side_effect<EXTRA>(statement: &puppet_lang::statement::Statement<EXTRA>) -> bool {
     match &statement.value {
-        puppet_lang::statement::StatementVariant::Include(_) => true,
-        puppet_lang::statement::StatementVariant::Fail(_) => true,
-        puppet_lang::statement::StatementVariant::Require(_) => true,
-        puppet_lang::statement::StatementVariant::Contain(_) => true,
-        puppet_lang::statement::StatementVariant::Realize(_) => true,
+        puppet_lang::statement::StatementVariant::BuiltinFunction(_) => {
+            // TODO
+            true
+        }
         puppet_lang::statement::StatementVariant::CreateResources(_) => true,
-        puppet_lang::statement::StatementVariant::Tag(_) => false,
         puppet_lang::statement::StatementVariant::Expression(expr) => {
             crate::tool::expression::has_side_effect(expr)
         }

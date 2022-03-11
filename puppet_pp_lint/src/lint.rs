@@ -1,4 +1,4 @@
-use puppet_parser::Location;
+use puppet_parser::range::Range;
 
 pub trait LintPass {
     fn name(&self) -> &str;
@@ -9,11 +9,11 @@ pub struct LintError {
     pub linter: Box<dyn LintPass>,
     pub message: String,
     pub url: Option<String>,
-    pub location: Location,
+    pub location: Range,
 }
 
 impl LintError {
-    pub fn new(linter: Box<dyn LintPass>, message: &str, location: &Location) -> Self {
+    pub fn new(linter: Box<dyn LintPass>, message: &str, location: &Range) -> Self {
         Self {
             linter,
             message: message.to_owned(),
@@ -25,7 +25,7 @@ impl LintError {
         linter: Box<dyn LintPass>,
         message: &str,
         url: &str,
-        location: &Location,
+        location: &Range,
     ) -> Self {
         Self {
             linter,
@@ -37,96 +37,87 @@ impl LintError {
 }
 
 pub trait EarlyLintPass: LintPass {
-    fn check_toplevel(&self, _: &puppet_lang::toplevel::Toplevel<Location>) -> Vec<LintError> {
+    fn check_toplevel(&self, _: &puppet_lang::toplevel::Toplevel<Range>) -> Vec<LintError> {
         Vec::new()
     }
-    fn check_class(&self, _: &puppet_lang::toplevel::Class<Location>) -> Vec<LintError> {
+    fn check_class(&self, _: &puppet_lang::toplevel::Class<Range>) -> Vec<LintError> {
         Vec::new()
     }
-    fn check_definition(&self, _: &puppet_lang::toplevel::Definition<Location>) -> Vec<LintError> {
+    fn check_definition(&self, _: &puppet_lang::toplevel::Definition<Range>) -> Vec<LintError> {
         Vec::new()
     }
-    fn check_plan(&self, _: &puppet_lang::toplevel::Plan<Location>) -> Vec<LintError> {
+    fn check_plan(&self, _: &puppet_lang::toplevel::Plan<Range>) -> Vec<LintError> {
         Vec::new()
     }
-    fn check_typedef(&self, _: &puppet_lang::toplevel::TypeDef<Location>) -> Vec<LintError> {
+    fn check_typedef(&self, _: &puppet_lang::toplevel::TypeDef<Range>) -> Vec<LintError> {
         Vec::new()
     }
-    fn check_functiondef(
-        &self,
-        _: &puppet_lang::toplevel::FunctionDef<Location>,
-    ) -> Vec<LintError> {
+    fn check_functiondef(&self, _: &puppet_lang::toplevel::FunctionDef<Range>) -> Vec<LintError> {
         Vec::new()
     }
-    fn check_argument(&self, _: &puppet_lang::argument::Argument<Location>) -> Vec<LintError> {
+    fn check_argument(&self, _: &puppet_lang::argument::Argument<Range>) -> Vec<LintError> {
         Vec::new()
     }
-    fn check_statement(&self, _: &puppet_lang::statement::Statement<Location>) -> Vec<LintError> {
+    fn check_statement(&self, _: &puppet_lang::statement::Statement<Range>) -> Vec<LintError> {
         Vec::new()
     }
     fn check_statement_set(
         &self,
-        _: &[puppet_lang::statement::Statement<Location>],
+        _: &[puppet_lang::statement::Statement<Range>],
     ) -> Vec<LintError> {
         Vec::new()
     }
     fn check_unless(
         &self,
-        _: &puppet_lang::statement::ConditionAndStatement<Location>,
+        _: &puppet_lang::statement::ConditionAndStatement<Range>,
     ) -> Vec<LintError> {
         Vec::new()
     }
-    fn check_if_else(&self, _: &puppet_lang::statement::IfElse<Location>) -> Vec<LintError> {
+    fn check_if_else(&self, _: &puppet_lang::statement::IfElse<Range>) -> Vec<LintError> {
         Vec::new()
     }
     fn check_expression(
         &self,
         _is_toplevel_expr: bool,
-        _: &puppet_lang::expression::Expression<Location>,
+        _: &puppet_lang::expression::Expression<Range>,
     ) -> Vec<LintError> {
         Vec::new()
     }
-    fn check_term(&self, _: &puppet_lang::expression::Term<Location>) -> Vec<LintError> {
+    fn check_term(&self, _: &puppet_lang::expression::Term<Range>) -> Vec<LintError> {
         Vec::new()
     }
     fn check_string_expression(
         &self,
-        _: &puppet_lang::string::StringExpr<Location>,
+        _: &puppet_lang::string::StringExpr<Range>,
     ) -> Vec<LintError> {
         Vec::new()
     }
     fn check_relation_list(
         &self,
-        _: &puppet_lang::statement::RelationList<Location>,
+        _: &puppet_lang::statement::RelationList<Range>,
     ) -> Vec<LintError> {
         Vec::new()
     }
     fn check_relation(
         &self,
-        _: &puppet_lang::statement::RelationElt<Location>,
-        _: &puppet_lang::statement::Relation<Location>,
+        _: &puppet_lang::statement::RelationElt<Range>,
+        _: &puppet_lang::statement::Relation<Range>,
     ) -> Vec<LintError> {
         Vec::new()
     }
-    fn check_relation_elt(
-        &self,
-        _: &puppet_lang::statement::RelationElt<Location>,
-    ) -> Vec<LintError> {
+    fn check_relation_elt(&self, _: &puppet_lang::statement::RelationElt<Range>) -> Vec<LintError> {
         Vec::new()
     }
-    fn check_resource_set(
-        &self,
-        _: &puppet_lang::statement::ResourceSet<Location>,
-    ) -> Vec<LintError> {
+    fn check_resource_set(&self, _: &puppet_lang::statement::ResourceSet<Range>) -> Vec<LintError> {
         Vec::new()
     }
     fn check_resource_collection(
         &self,
-        _: &puppet_lang::resource_collection::ResourceCollection<Location>,
+        _: &puppet_lang::resource_collection::ResourceCollection<Range>,
     ) -> Vec<LintError> {
         Vec::new()
     }
-    fn check_case_statement(&self, _: &puppet_lang::statement::Case<Location>) -> Vec<LintError> {
+    fn check_case_statement(&self, _: &puppet_lang::statement::Case<Range>) -> Vec<LintError> {
         Vec::new()
     }
 }
@@ -200,7 +191,7 @@ impl AstLinter {
     pub fn check_string_expression(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::string::StringExpr<Location>,
+        elt: &puppet_lang::string::StringExpr<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -212,7 +203,7 @@ impl AstLinter {
                 match fragment {
                     puppet_lang::string::DoubleQuotedFragment::StringFragment(_) => {}
                     puppet_lang::string::DoubleQuotedFragment::Expression(elt) => {
-                        errors.append(&mut self.check_expression(storage, true, elt))
+                        errors.append(&mut self.check_expression(storage, true, &elt.data))
                     }
                 }
             }
@@ -224,12 +215,13 @@ impl AstLinter {
     pub fn check_array(
         &self,
         storage: &Storage,
-        elts: &[puppet_lang::expression::Expression<Location>],
+        array: &puppet_lang::expression::Array<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
-        for expr in elts {
+        for expr in &array.value {
             errors.append(&mut self.check_expression(storage, true, expr))
         }
+        errors.append(&mut self.check_accessor(storage, &array.accessor));
 
         errors
     }
@@ -237,10 +229,15 @@ impl AstLinter {
     pub fn check_accessor(
         &self,
         storage: &Storage,
-        list: &[Vec<Box<puppet_lang::expression::Expression<Location>>>],
+        accessor: &Option<puppet_lang::expression::Accessor<Range>>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
-        for l1 in list {
+        let accessor = match accessor {
+            Some(v) => v,
+            None => return errors,
+        };
+
+        for l1 in &accessor.list {
             for l2 in l1 {
                 errors.append(&mut self.check_expression(storage, true, l2));
             }
@@ -252,7 +249,7 @@ impl AstLinter {
     pub fn check_map(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::expression::Map<Location>,
+        elt: &puppet_lang::expression::Map<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for (left, right) in &elt.value {
@@ -267,7 +264,7 @@ impl AstLinter {
     pub fn check_variable(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::expression::Variable<Location>,
+        elt: &puppet_lang::expression::Variable<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         errors.append(&mut self.check_accessor(storage, &elt.accessor));
@@ -278,7 +275,7 @@ impl AstLinter {
     pub fn check_type_specification(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::typing::TypeSpecification<Location>,
+        elt: &puppet_lang::typing::TypeSpecification<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
 
@@ -314,7 +311,7 @@ impl AstLinter {
     pub fn check_term(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::expression::Term<Location>,
+        elt: &puppet_lang::expression::Term<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -359,7 +356,7 @@ impl AstLinter {
     pub fn check_funcall(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::expression::FunctionCall<Location>,
+        elt: &puppet_lang::expression::FunctionCall<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
 
@@ -378,7 +375,7 @@ impl AstLinter {
         &self,
         storage: &Storage,
         is_toplevel_expr: bool,
-        elt: &puppet_lang::expression::Expression<Location>,
+        elt: &puppet_lang::expression::Expression<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -495,7 +492,7 @@ impl AstLinter {
     pub fn check_unless(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::statement::ConditionAndStatement<Location>,
+        elt: &puppet_lang::statement::ConditionAndStatement<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -514,7 +511,7 @@ impl AstLinter {
     pub fn check_if_else(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::statement::IfElse<Location>,
+        elt: &puppet_lang::statement::IfElse<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -548,7 +545,7 @@ impl AstLinter {
     pub fn check_resource_set(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::statement::ResourceSet<Location>,
+        elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -576,7 +573,7 @@ impl AstLinter {
     pub fn check_resource_collection(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::resource_collection::ResourceCollection<Location>,
+        elt: &puppet_lang::resource_collection::ResourceCollection<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -589,7 +586,7 @@ impl AstLinter {
     pub fn check_relation_elt(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::statement::RelationElt<Location>,
+        elt: &puppet_lang::statement::RelationElt<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -613,8 +610,8 @@ impl AstLinter {
     pub fn check_relation(
         &self,
         storage: &Storage,
-        prev: &puppet_lang::statement::RelationElt<Location>,
-        elt: &puppet_lang::statement::Relation<Location>,
+        prev: &puppet_lang::statement::RelationElt<Range>,
+        elt: &puppet_lang::statement::Relation<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -629,7 +626,7 @@ impl AstLinter {
     pub fn check_relation_list(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::statement::RelationList<Location>,
+        elt: &puppet_lang::statement::RelationList<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -648,7 +645,7 @@ impl AstLinter {
     pub fn check_case(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::statement::Case<Location>,
+        elt: &puppet_lang::statement::Case<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -670,7 +667,7 @@ impl AstLinter {
     pub fn check_statement_set(
         &self,
         storage: &Storage,
-        list: &[puppet_lang::statement::Statement<Location>],
+        list: &[puppet_lang::statement::Statement<Range>],
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -683,7 +680,7 @@ impl AstLinter {
     pub fn check_statement(
         &self,
         storage: &Storage,
-        statement: &puppet_lang::statement::Statement<Location>,
+        statement: &puppet_lang::statement::Statement<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -709,15 +706,12 @@ impl AstLinter {
                     errors.append(&mut self.check_expression(storage, true, arg))
                 }
             }
-            StatementVariant::Fail(arg) => {
-                errors.append(&mut self.check_expression(storage, true, arg))
-            }
-            StatementVariant::Include(_)
-            | StatementVariant::Require(_)
-            | StatementVariant::Contain(_)
-            | StatementVariant::Realize(_)
-            | StatementVariant::Tag(_) => {
+            StatementVariant::BuiltinFunction(v) => {
+                for arg in &v.args {
+                    errors.append(&mut self.check_expression(storage, true, arg));
+                }
                 // TODO
+                // errors.append(&mut self.check_accessor(storage, &v.accessor));
             }
         };
 
@@ -727,8 +721,8 @@ impl AstLinter {
     pub fn check_toplevel_variant(
         &self,
         storage: &Storage,
-        arguments: &[puppet_lang::argument::Argument<Location>],
-        body: &[puppet_lang::statement::Statement<Location>],
+        arguments: &[puppet_lang::argument::Argument<Range>],
+        body: &[puppet_lang::statement::Statement<Range>],
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for arg in arguments {
@@ -746,7 +740,7 @@ impl AstLinter {
     pub fn check_class(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::toplevel::Class<Location>,
+        elt: &puppet_lang::toplevel::Class<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -760,7 +754,7 @@ impl AstLinter {
     pub fn check_argument(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::argument::Argument<Location>,
+        elt: &puppet_lang::argument::Argument<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -775,7 +769,7 @@ impl AstLinter {
     pub fn check_lambda(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::expression::Lambda<Location>,
+        elt: &puppet_lang::expression::Lambda<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for arg in &elt.args {
@@ -792,7 +786,7 @@ impl AstLinter {
     pub fn check_definition(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::toplevel::Definition<Location>,
+        elt: &puppet_lang::toplevel::Definition<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -807,7 +801,7 @@ impl AstLinter {
     pub fn check_plan(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::toplevel::Plan<Location>,
+        elt: &puppet_lang::toplevel::Plan<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -822,7 +816,7 @@ impl AstLinter {
     pub fn check_typedef(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::toplevel::TypeDef<Location>,
+        elt: &puppet_lang::toplevel::TypeDef<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -835,7 +829,7 @@ impl AstLinter {
     pub fn check_functiondef(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::toplevel::FunctionDef<Location>,
+        elt: &puppet_lang::toplevel::FunctionDef<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
@@ -850,7 +844,7 @@ impl AstLinter {
     pub fn check_toplevel(
         &self,
         storage: &Storage,
-        elt: &puppet_lang::toplevel::Toplevel<Location>,
+        elt: &puppet_lang::toplevel::Toplevel<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
 

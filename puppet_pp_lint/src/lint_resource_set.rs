@@ -1,4 +1,4 @@
-use puppet_parser::Location;
+use puppet_parser::range::Range;
 
 use crate::lint::{EarlyLintPass, LintError, LintPass};
 
@@ -14,7 +14,7 @@ impl LintPass for UpperCaseName {
 impl EarlyLintPass for UpperCaseName {
     fn check_resource_set(
         &self,
-        elt: &puppet_lang::statement::ResourceSet<Location>,
+        elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         if elt
             .name
@@ -44,7 +44,7 @@ impl LintPass for UniqueAttributeName {
 impl EarlyLintPass for UniqueAttributeName {
     fn check_resource_set(
         &self,
-        elt: &puppet_lang::statement::ResourceSet<Location>,
+        elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for resource in &elt.list {
@@ -80,7 +80,7 @@ impl LintPass for EnsureAttributeIsNotTheFirst {
 impl EarlyLintPass for EnsureAttributeIsNotTheFirst {
     fn check_resource_set(
         &self,
-        elt: &puppet_lang::statement::ResourceSet<Location>,
+        elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for resource in &elt.list {
@@ -113,7 +113,7 @@ impl LintPass for FileModeAttributeIsString {
 }
 
 impl FileModeAttributeIsString {
-    fn check_expr(&self, expr: &puppet_lang::string::StringExpr<Location>) -> Vec<LintError> {
+    fn check_expr(&self, expr: &puppet_lang::string::StringExpr<Range>) -> Vec<LintError> {
         let list = match &expr.data {
             puppet_lang::string::StringVariant::SingleQuoted(list) => list.clone(),
             puppet_lang::string::StringVariant::DoubleQuoted(list) => {
@@ -136,7 +136,7 @@ impl FileModeAttributeIsString {
         for elt in list {
             match elt {
                 puppet_lang::string::StringFragment::Literal(v) => {
-                    if !v.chars().all(|v| v.is_digit(10)) {
+                    if !v.data.chars().all(|v| v.is_digit(10)) {
                         errors.push(LintError::new_with_url(
                                             Box::new(self.clone()),
                                             "Mode attribute is a string which is not all of digits.",
@@ -144,7 +144,7 @@ impl FileModeAttributeIsString {
                                             &expr.extra,
                                         ));
                     }
-                    if v.len() != 4 {
+                    if v.data.len() != 4 {
                         errors.push(LintError::new_with_url(
                                             Box::new(self.clone()),
                                             "Mode attribute is a string which length != 4.",
@@ -171,7 +171,7 @@ impl FileModeAttributeIsString {
 impl EarlyLintPass for FileModeAttributeIsString {
     fn check_resource_set(
         &self,
-        elt: &puppet_lang::statement::ResourceSet<Location>,
+        elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         if elt.name.name.len() != 1 || elt.name.name[0] != "file" {
             return vec![];
@@ -221,7 +221,7 @@ impl LintPass for MultipleResourcesWithoutDefault {
 impl EarlyLintPass for MultipleResourcesWithoutDefault {
     fn check_resource_set(
         &self,
-        elt: &puppet_lang::statement::ResourceSet<Location>,
+        elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut has_default = false;
         for resource in &elt.list {
@@ -268,7 +268,7 @@ impl LintPass for SelectorInAttributeValue {
 impl EarlyLintPass for SelectorInAttributeValue {
     fn check_resource_set(
         &self,
-        elt: &puppet_lang::statement::ResourceSet<Location>,
+        elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for resource in &elt.list {

@@ -59,7 +59,6 @@ impl Display for Type {
 
 #[derive(Debug, Serialize)]
 pub struct Location {
-    path: std::path::PathBuf,
     #[serde(skip_serializing_if = "Option::is_none")]
     line: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -68,9 +67,15 @@ pub struct Location {
     index: Option<usize>,
 }
 
+#[derive(Debug, Serialize)]
+pub struct Range {
+    path: std::path::PathBuf,
+    start: Location,
+    end: Location,
+}
+
 impl Display for Location {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.path)?;
         if self.line.is_some() || self.column.is_some() {
             write!(f, " at")?;
             if let Some(line) = self.line {
@@ -84,61 +89,104 @@ impl Display for Location {
     }
 }
 
-impl<'a> From<(&std::path::Path, &puppet_parser::Span<'a>)> for Location {
+impl Display for Range {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.path)?;
+        write!(f, "{}", self.start)?;
+        Ok(())
+    }
+}
+
+impl<'a> From<(&std::path::Path, &puppet_parser::Span<'a>)> for Range {
     fn from(pair: (&std::path::Path, &puppet_parser::Span)) -> Self {
         let (path, span) = pair;
-        Location {
+        Range {
             path: std::path::PathBuf::from(path),
-            line: Some(span.location_line() as usize),
-            column: Some(span.get_utf8_column()),
-            index: Some(span.location_offset()),
+            start: Location {
+                line: Some(span.location_line() as usize),
+                column: Some(span.get_utf8_column()),
+                index: Some(span.location_offset()),
+            },
+            end: Location {
+                line: None,
+                column: None,
+                index: None,
+            },
         }
     }
 }
 
-impl<'a> From<(&std::path::Path, &puppet_parser::Location)> for Location {
-    fn from(pair: (&std::path::Path, &puppet_parser::Location)) -> Self {
-        let (path, location) = pair;
-        Location {
+impl<'a> From<(&std::path::Path, &puppet_parser::range::Range)> for Range {
+    fn from(pair: (&std::path::Path, &puppet_parser::range::Range)) -> Self {
+        let (path, range) = pair;
+        Range {
             path: std::path::PathBuf::from(path),
-            line: Some(location.line() as usize),
-            column: Some(location.column() as usize),
-            index: Some(location.offset() as usize),
+            start: Location {
+                line: Some(range.start().line() as usize),
+                column: Some(range.start().column() as usize),
+                index: Some(range.start().offset() as usize),
+            },
+            end: Location {
+                line: Some(range.end().line() as usize),
+                column: Some(range.end().column() as usize),
+                index: Some(range.end().offset() as usize),
+            },
         }
     }
 }
 
-impl<'a> From<(&std::path::Path, &located_yaml::Marker)> for Location {
+impl<'a> From<(&std::path::Path, &located_yaml::Marker)> for Range {
     fn from(pair: (&std::path::Path, &located_yaml::Marker)) -> Self {
         let (path, location) = pair;
-        Location {
+        Range {
             path: std::path::PathBuf::from(path),
-            line: Some(location.line as usize),
-            column: Some(location.col as usize),
-            index: Some(location.index as usize),
+            start: Location {
+                line: Some(location.line as usize),
+                column: Some(location.col as usize),
+                index: Some(location.index as usize),
+            },
+            end: Location {
+                line: None,
+                column: None,
+                index: None,
+            },
         }
     }
 }
 
-impl<'a> From<(&std::path::Path, &yaml_rust::scanner::Marker)> for Location {
+impl<'a> From<(&std::path::Path, &yaml_rust::scanner::Marker)> for Range {
     fn from(pair: (&std::path::Path, &yaml_rust::scanner::Marker)) -> Self {
         let (path, location) = pair;
-        Location {
+        Range {
             path: std::path::PathBuf::from(path),
-            line: Some(location.line() as usize),
-            column: Some(location.col() as usize),
-            index: Some(location.index() as usize),
+            start: Location {
+                line: Some(location.line() as usize),
+                column: Some(location.col() as usize),
+                index: Some(location.index() as usize),
+            },
+            end: Location {
+                line: None,
+                column: None,
+                index: None,
+            },
         }
     }
 }
 
-impl<'a> From<&std::path::Path> for Location {
+impl<'a> From<&std::path::Path> for Range {
     fn from(path: &std::path::Path) -> Self {
-        Location {
+        Range {
             path: std::path::PathBuf::from(path),
-            line: None,
-            column: None,
-            index: None,
+            start: Location {
+                line: None,
+                column: None,
+                index: None,
+            },
+            end: Location {
+                line: None,
+                column: None,
+                index: None,
+            },
         }
     }
 }
@@ -150,7 +198,7 @@ pub struct Error {
     pub message: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
-    pub location: Location,
+    pub range: Range,
 }
 
 impl<'a> From<(&std::path::Path, &puppet_parser::ParseError<'a>)> for Error {
@@ -160,7 +208,7 @@ impl<'a> From<(&std::path::Path, &puppet_parser::ParseError<'a>)> for Error {
             error_type: Type::ManifestSyntax,
             message: parse_error.message().clone(),
             url: parse_error.url().clone(),
-            location: Location::from((path, parse_error.span())),
+            range: Range::from((path, parse_error.span())),
         }
     }
 }
@@ -172,7 +220,7 @@ impl From<(&std::path::Path, &puppet_pp_lint::lint::LintError)> for Error {
             error_type: Type::ManifestLint,
             message: Some(lint_error.message.clone()),
             url: lint_error.url.clone(),
-            location: Location::from((path, &lint_error.location)),
+            range: Range::from((path, &lint_error.location)),
         }
     }
 }
@@ -184,7 +232,7 @@ impl From<(&std::path::Path, &located_yaml::error::Error)> for Error {
             error_type: Type::Yaml,
             message: Some(yaml_error.to_string()),
             url: None,
-            location: Location::from((path, &yaml_error.mark())),
+            range: Range::from((path, &yaml_error.mark())),
         }
     }
 }
@@ -196,7 +244,7 @@ impl From<(&std::path::Path, Type, &str, &located_yaml::Marker)> for Error {
             error_type,
             message: Some(message.to_string()),
             url: None,
-            location: Location::from((path, marker)),
+            range: Range::from((path, marker)),
         }
     }
 }
@@ -208,7 +256,7 @@ impl From<(&std::path::Path, &yaml_rust::scanner::ScanError)> for Error {
             error_type: Type::Yaml,
             message: Some(yaml_error.to_string()),
             url: None,
-            location: Location::from((path, yaml_error.marker())),
+            range: Range::from((path, yaml_error.marker())),
         }
     }
 }
@@ -219,7 +267,7 @@ impl Error {
             error_type,
             message: Some(message.to_string()),
             url: None,
-            location: Location::from(path),
+            range: Range::from(path),
         }
     }
 
@@ -234,7 +282,7 @@ impl Error {
         };
         format!(
             "{} error in {}: {}{}",
-            self.error_type, self.location, message, url
+            self.error_type, self.range, message, url
         )
     }
 

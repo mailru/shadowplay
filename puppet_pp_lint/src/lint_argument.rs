@@ -1,4 +1,4 @@
-use puppet_parser::Location;
+use puppet_parser::range::Range;
 
 use crate::lint::{EarlyLintPass, LintError, LintPass};
 
@@ -14,7 +14,7 @@ impl LintPass for ArgumentLooksSensitive {
 impl EarlyLintPass for ArgumentLooksSensitive {
     fn check_argument(
         &self,
-        arg: &puppet_lang::argument::Argument<Location>,
+        arg: &puppet_lang::argument::Argument<Range>,
     ) -> Vec<super::lint::LintError> {
         let lc_name = arg.name.to_lowercase();
         if lc_name.contains("passw") || lc_name.ends_with("secret") || lc_name.ends_with("token") {
@@ -56,7 +56,7 @@ impl LintPass for SensitiveArgumentWithDefault {
 impl EarlyLintPass for SensitiveArgumentWithDefault {
     fn check_argument(
         &self,
-        arg: &puppet_lang::argument::Argument<Location>,
+        arg: &puppet_lang::argument::Argument<Range>,
     ) -> Vec<super::lint::LintError> {
         if let Some(t) = &arg.type_spec {
             if matches!(
@@ -87,7 +87,7 @@ impl LintPass for ArgumentTyped {
 impl EarlyLintPass for ArgumentTyped {
     fn check_argument(
         &self,
-        arg: &puppet_lang::argument::Argument<Location>,
+        arg: &puppet_lang::argument::Argument<Range>,
     ) -> Vec<super::lint::LintError> {
         if arg.type_spec.is_none() {
             return vec![LintError::new(
@@ -112,7 +112,7 @@ impl LintPass for ReadableArgumentsName {
 impl EarlyLintPass for ReadableArgumentsName {
     fn check_argument(
         &self,
-        arg: &puppet_lang::argument::Argument<Location>,
+        arg: &puppet_lang::argument::Argument<Range>,
     ) -> Vec<super::lint::LintError> {
         if arg.name.len() < 2 {
             return vec![LintError::new(
@@ -137,7 +137,7 @@ impl LintPass for LowerCaseArgumentName {
 impl EarlyLintPass for LowerCaseArgumentName {
     fn check_argument(
         &self,
-        arg: &puppet_lang::argument::Argument<Location>,
+        arg: &puppet_lang::argument::Argument<Range>,
     ) -> Vec<super::lint::LintError> {
         if arg.name.chars().any(|c| c.is_uppercase()) {
             return vec![LintError::new_with_url(

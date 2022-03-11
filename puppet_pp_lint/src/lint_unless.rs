@@ -1,4 +1,4 @@
-use puppet_parser::Location;
+use puppet_parser::range::Range;
 
 use crate::lint::{EarlyLintPass, LintError, LintPass};
 
@@ -14,7 +14,7 @@ impl LintPass for DoNotUseUnless {
 impl EarlyLintPass for DoNotUseUnless {
     fn check_unless(
         &self,
-        elt: &puppet_lang::statement::ConditionAndStatement<Location>,
+        elt: &puppet_lang::statement::ConditionAndStatement<Range>,
     ) -> Vec<super::lint::LintError> {
         vec![LintError::new(
             Box::new(self.clone()),
