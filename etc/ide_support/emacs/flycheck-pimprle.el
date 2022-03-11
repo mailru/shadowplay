@@ -18,19 +18,21 @@
   "Parse JSON OUTPUT of CHECKER on BUFFER as Pimprle errors."
   (mapcar (lambda (err)
             (let-alist err
-              (flycheck-error-new-at
-               .location.line
-               .location.column
-               (pcase .error_type
+              (flycheck-error-new
+               :line .range.start.line
+               :column .range.start.column
+               :level (pcase .error_type
                  ("ManifestSyntax" 'error)
                  ("ManifestLint" 'warning)
                  ("Hiera" 'warning)
                  ("YAML" 'warning)
                  (_ 'error))
-               .message
+               :message .message
+               :end-line (and .range.end.line .range.end.line)
+               :end-column (and .range.end.column (+ .range.end.column 1))
                :checker checker
                :buffer buffer
-               :filename .location.path)))
+               :filename .range.path)))
           (flycheck-parse-json output)))
 
 (flycheck-define-checker puppet-pimprle
