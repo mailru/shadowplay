@@ -253,7 +253,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for (left, right) in &elt.value {
-            errors.append(&mut self.check_expression(storage, true, left));
+            errors.append(&mut self.check_term(storage, left));
             errors.append(&mut self.check_expression(storage, true, right));
         }
         errors.append(&mut self.check_accessor(storage, &elt.accessor));
@@ -341,7 +341,6 @@ impl AstLinter {
             puppet_lang::expression::TermVariant::Float(_)
             | puppet_lang::expression::TermVariant::Integer(_)
             | puppet_lang::expression::TermVariant::Boolean(_)
-            | puppet_lang::expression::TermVariant::Undef(_)
             | puppet_lang::expression::TermVariant::RegexpGroupID(_)
             | puppet_lang::expression::TermVariant::Sensitive(_)
             | puppet_lang::expression::TermVariant::Identifier(_)
@@ -367,6 +366,31 @@ impl AstLinter {
             errors.append(&mut self.check_lambda(storage, lambda))
         }
         errors.append(&mut self.check_accessor(storage, &elt.accessor));
+
+        errors
+    }
+
+    pub fn check_builtin(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::builtin::BuiltinVariant<Range>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+
+        match elt {
+            puppet_lang::builtin::BuiltinVariant::Undef => {}
+            puppet_lang::builtin::BuiltinVariant::Tag(v)
+            | puppet_lang::builtin::BuiltinVariant::Require(v)
+            | puppet_lang::builtin::BuiltinVariant::Realize(v)
+            | puppet_lang::builtin::BuiltinVariant::Include(v) => {
+                for arg in &v.args {
+                    errors.append(&mut self.check_expression(storage, true, arg));
+                }
+                if let Some(lambda) = &v.lambda {
+                    errors.append(&mut self.check_lambda(storage, lambda))
+                }
+            }
+        }
 
         errors
     }
@@ -467,13 +491,8 @@ impl AstLinter {
             ExpressionVariant::FunctionCall(elt) => {
                 errors.append(&mut self.check_funcall(storage, elt))
             }
-            ExpressionVariant::BuiltinFunction(v) => {
-                for arg in &v.args {
-                    errors.append(&mut self.check_expression(storage, true, arg));
-                }
-                if let Some(lambda) = &v.lambda {
-                    errors.append(&mut self.check_lambda(storage, lambda))
-                }
+            ExpressionVariant::BuiltinFunction(elt) => {
+                errors.append(&mut self.check_builtin(storage, elt));
             }
             ExpressionVariant::MatchRegex((left, _))
             | ExpressionVariant::NotMatchRegex((left, _)) => {

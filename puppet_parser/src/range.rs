@@ -233,7 +233,6 @@ impl<'a> From<&puppet_lang::expression::TermVariant<Range>> for Range {
             puppet_lang::expression::TermVariant::Identifier(v) => v.extra.clone(),
             puppet_lang::expression::TermVariant::Parens(v) => v.extra.clone(),
             puppet_lang::expression::TermVariant::Map(v) => v.extra.clone(),
-            puppet_lang::expression::TermVariant::Undef(v) => v.extra.clone(),
             puppet_lang::expression::TermVariant::Variable(v) => v.extra.clone(),
             puppet_lang::expression::TermVariant::RegexpGroupID(v) => v.extra.clone(),
             puppet_lang::expression::TermVariant::Sensitive(v) => v.extra.clone(),

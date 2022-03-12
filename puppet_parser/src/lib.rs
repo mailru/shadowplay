@@ -1,4 +1,5 @@
 pub mod argument;
+pub mod builtin;
 pub mod class;
 pub mod common;
 pub mod double_quoted;

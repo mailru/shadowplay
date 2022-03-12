@@ -144,7 +144,7 @@ pub fn parse_sensitive(input: Span) -> IResult<puppet_lang::expression::TermVari
 
 fn parse_map(input: Span) -> IResult<puppet_lang::expression::TermVariant<Range>> {
     let kv_parser = pair(
-        space0_delimimited(crate::expression::parse_expression),
+        space0_delimimited(parse_term),
         preceded(
             tag("=>"),
             space0_delimimited(ParseError::protect(
@@ -251,12 +251,6 @@ pub fn parse_resource_identifier(
 }
 
 pub fn parse_term(input: Span) -> IResult<puppet_lang::expression::Term<Range>> {
-    let parse_undef = map(tag("undef"), |kw: Span| {
-        puppet_lang::expression::TermVariant::Undef(puppet_lang::expression::Undef {
-            extra: (kw, kw).into(),
-        })
-    });
-
     let parse_true = map(tag("true"), |kw| {
         puppet_lang::expression::TermVariant::Boolean(puppet_lang::expression::Boolean {
             value: true,
@@ -276,7 +270,6 @@ pub fn parse_term(input: Span) -> IResult<puppet_lang::expression::Term<Range>> 
     });
 
     let parser = alt((
-        parse_undef,
         parse_true,
         parse_false,
         parse_sensitive,
@@ -495,15 +488,10 @@ fn test_map() {
         puppet_lang::expression::Term {
             value: puppet_lang::expression::TermVariant::Map(puppet_lang::expression::Map {
                 value: vec![(
-                    puppet_lang::expression::Expression {
-                        value: puppet_lang::expression::ExpressionVariant::Term(
-                            puppet_lang::expression::Term {
-                                value: puppet_lang::expression::TermVariant::Boolean(
-                                    puppet_lang::expression::Boolean {
-                                        value: false,
-                                        extra: Range::new(1, 1, 2, 5, 1, 6)
-                                    }
-                                ),
+                    puppet_lang::expression::Term {
+                        value: puppet_lang::expression::TermVariant::Boolean(
+                            puppet_lang::expression::Boolean {
+                                value: false,
                                 extra: Range::new(1, 1, 2, 5, 1, 6)
                             }
                         ),

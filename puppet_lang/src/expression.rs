@@ -36,14 +36,6 @@ pub struct FunctionCall<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct BuiltinFunction<EXTRA> {
-    pub name: String,
-    pub args: Vec<Expression<EXTRA>>,
-    pub lambda: Option<crate::expression::Lambda<EXTRA>>,
-    pub extra: EXTRA,
-}
-
-#[derive(Clone, Debug, PartialEq)]
 pub struct Float<EXTRA> {
     pub value: f32,
     pub extra: EXTRA,
@@ -68,11 +60,6 @@ pub struct Sensitive<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Undef<EXTRA> {
-    pub extra: EXTRA,
-}
-
-#[derive(Clone, Debug, PartialEq)]
 pub struct Regexp<EXTRA> {
     pub data: String,
     pub extra: EXTRA,
@@ -93,7 +80,7 @@ pub struct Parens<EXTRA> {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Map<EXTRA> {
-    pub value: Vec<(Expression<EXTRA>, Expression<EXTRA>)>,
+    pub value: Vec<(Term<EXTRA>, Expression<EXTRA>)>,
     pub accessor: Option<Accessor<EXTRA>>,
     pub extra: EXTRA,
 }
@@ -115,7 +102,6 @@ pub enum TermVariant<EXTRA> {
     Identifier(LowerIdentifier<EXTRA>),
     Parens(Parens<EXTRA>),
     Map(Map<EXTRA>),
-    Undef(Undef<EXTRA>),
     Variable(Variable<EXTRA>),
     RegexpGroupID(RegexpGroupID<EXTRA>),
     Sensitive(Sensitive<EXTRA>),
@@ -214,7 +200,7 @@ pub enum ExpressionVariant<EXTRA> {
     Not(Box<Expression<EXTRA>>),
     Selector(Selector<EXTRA>),
     FunctionCall(FunctionCall<EXTRA>),
-    BuiltinFunction(BuiltinFunction<EXTRA>),
+    BuiltinFunction(crate::builtin::BuiltinVariant<EXTRA>),
     Term(Term<EXTRA>),
 }
 

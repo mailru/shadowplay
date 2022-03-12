@@ -164,177 +164,180 @@ fn parse_funcall(input: Span) -> IResult<puppet_lang::expression::Expression<Ran
     )(input)
 }
 
-fn parse_builtin_function(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> {
-    let (input, name) = alt((
-        alt((
-            spaced_word("undef"),
-            spaced_word("undef"),
-            spaced_word("abs"),
-            spaced_word("alert"),
-            spaced_word("all"),
-            spaced_word("annotate"),
-            spaced_word("any"),
-            spaced_word("assert_type"),
-            spaced_word("binary_file"),
-            spaced_word("break"),
-            spaced_word("call"),
-            spaced_word("camelcase"),
-            spaced_word("capitalize"),
-            spaced_word("ceiling"),
-            spaced_word("chomp"),
-            spaced_word("chop"),
-            spaced_word("compare"),
-            spaced_word("contain"),
-            spaced_word("convert_to"),
-            spaced_word("create_resources"),
-            spaced_word("crit"),
-        )),
-        alt((
-            spaced_word("debug"),
-            spaced_word("defined"),
-            spaced_word("dig"),
-            spaced_word("digest"),
-            spaced_word("downcase"),
-            spaced_word("each"),
-            spaced_word("emerg"),
-            spaced_word("empty"),
-            spaced_word("epp"),
-            spaced_word("err"),
-            spaced_word("eyaml_lookup_key"),
-            spaced_word("fail"),
-            spaced_word("file"),
-            spaced_word("filter"),
-            spaced_word("find_file"),
-            spaced_word("find_template"),
-            spaced_word("flatten"),
-            spaced_word("floor"),
-            spaced_word("fqdn_rand"),
-            spaced_word("generate"),
-        )),
-        alt((
-            spaced_word("get"),
-            spaced_word("getvar"),
-            spaced_word("group_by"),
-            spaced_word("hiera"),
-            spaced_word("hiera_array"),
-            spaced_word("hiera_hash"),
-            spaced_word("hiera_include"),
-            spaced_word("hocon_data"),
-            spaced_word("import"),
-            spaced_word("include"),
-            spaced_word("index"),
-            spaced_word("info"),
-            spaced_word("inline_epp"),
-            spaced_word("inline_template"),
-            spaced_word("join"),
-            spaced_word("json_data"),
-            spaced_word("keys"),
-            spaced_word("length"),
-            spaced_word("lest"),
-            spaced_word("lookup"),
-            spaced_word("lstrip"),
-        )),
-        alt((
-            spaced_word("map"),
-            spaced_word("match"),
-            spaced_word("max"),
-            spaced_word("md5"),
-            spaced_word("min"),
-            spaced_word("module_directory"),
-            spaced_word("new"),
-            spaced_word("next"),
-            spaced_word("notice"),
-            spaced_word("partition"),
-            spaced_word("realize"),
-            spaced_word("reduce"),
-            spaced_word("regsubst"),
-            spaced_word("require"),
-            spaced_word("return"),
-            spaced_word("reverse_each"),
-            spaced_word("round"),
-            spaced_word("rstrip"),
-            spaced_word("scanf"),
-            spaced_word("sha1"),
-            spaced_word("sha256"),
-        )),
-        alt((
-            spaced_word("shellquote"),
-            spaced_word("size"),
-            spaced_word("slice"),
-            spaced_word("sort"),
-            spaced_word("split"),
-            spaced_word("sprintf"),
-            spaced_word("step"),
-            spaced_word("strftime"),
-            spaced_word("strip"),
-            spaced_word("tag"),
-            spaced_word("tagged"),
-            spaced_word("template"),
-            spaced_word("then"),
-            spaced_word("tree_each"),
-            spaced_word("type"),
-            spaced_word("unique"),
-            spaced_word("unwrap"),
-            spaced_word("upcase"),
-            spaced_word("values"),
-            spaced_word("versioncmp"),
-        )),
-        alt((
-            spaced_word("warning"),
-            spaced_word("with"),
-            spaced_word("yaml_data"),
-        )),
-    ))(input)?;
+// fn parse_builtin_function(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> {
+//     let (input, name) = alt((
+//         alt((
+//             spaced_word("undef"),
+//             spaced_word("abs"),
+//             spaced_word("alert"),
+//             spaced_word("all"),
+//             spaced_word("annotate"),
+//             spaced_word("any"),
+//             spaced_word("assert_type"),
+//             spaced_word("binary_file"),
+//             spaced_word("break"),
+//             spaced_word("call"),
+//             spaced_word("camelcase"),
+//             spaced_word("capitalize"),
+//             spaced_word("ceiling"),
+//             spaced_word("chomp"),
+//             spaced_word("chop"),
+//             spaced_word("compare"),
+//             spaced_word("contain"),
+//             spaced_word("convert_to"),
+//             spaced_word("create_resources"),
+//             spaced_word("crit"),
+//         )),
+//         alt((
+//             spaced_word("debug"),
+//             spaced_word("defined"),
+//             spaced_word("dig"),
+//             spaced_word("digest"),
+//             spaced_word("downcase"),
+//             spaced_word("each"),
+//             spaced_word("emerg"),
+//             spaced_word("empty"),
+//             spaced_word("epp"),
+//             spaced_word("err"),
+//             spaced_word("eyaml_lookup_key"),
+//             spaced_word("fail"),
+//             spaced_word("file"),
+//             spaced_word("filter"),
+//             spaced_word("find_file"),
+//             spaced_word("find_template"),
+//             spaced_word("flatten"),
+//             spaced_word("floor"),
+//             spaced_word("fqdn_rand"),
+//             spaced_word("generate"),
+//         )),
+//         alt((
+//             spaced_word("get"),
+//             spaced_word("getvar"),
+//             spaced_word("group_by"),
+//             spaced_word("hiera"),
+//             spaced_word("hiera_array"),
+//             spaced_word("hiera_hash"),
+//             spaced_word("hiera_include"),
+//             spaced_word("hocon_data"),
+//             spaced_word("import"),
+//             spaced_word("include"),
+//             spaced_word("index"),
+//             spaced_word("info"),
+//             spaced_word("inline_epp"),
+//             spaced_word("inline_template"),
+//             spaced_word("join"),
+//             spaced_word("json_data"),
+//             spaced_word("keys"),
+//             spaced_word("length"),
+//             spaced_word("lest"),
+//             spaced_word("lookup"),
+//             spaced_word("lstrip"),
+//         )),
+//         alt((
+//             spaced_word("map"),
+//             spaced_word("match"),
+//             spaced_word("max"),
+//             spaced_word("md5"),
+//             spaced_word("min"),
+//             spaced_word("module_directory"),
+//             spaced_word("new"),
+//             spaced_word("next"),
+//             spaced_word("notice"),
+//             spaced_word("partition"),
+//             spaced_word("realize"),
+//             spaced_word("reduce"),
+//             spaced_word("regsubst"),
+//             spaced_word("require"),
+//             spaced_word("return"),
+//             spaced_word("reverse_each"),
+//             spaced_word("round"),
+//             spaced_word("rstrip"),
+//             spaced_word("scanf"),
+//             spaced_word("sha1"),
+//             spaced_word("sha256"),
+//         )),
+//         alt((
+//             spaced_word("shellquote"),
+//             spaced_word("size"),
+//             spaced_word("slice"),
+//             spaced_word("sort"),
+//             spaced_word("split"),
+//             spaced_word("sprintf"),
+//             spaced_word("step"),
+//             spaced_word("strftime"),
+//             spaced_word("strip"),
+//             spaced_word("tag"),
+//             spaced_word("tagged"),
+//             spaced_word("template"),
+//             spaced_word("then"),
+//             spaced_word("tree_each"),
+//             spaced_word("type"),
+//             spaced_word("unique"),
+//             spaced_word("unwrap"),
+//             spaced_word("upcase"),
+//             spaced_word("values"),
+//             spaced_word("versioncmp"),
+//         )),
+//         alt((
+//             spaced_word("warning"),
+//             spaced_word("with"),
+//             spaced_word("yaml_data"),
+//         )),
+//     ))(input)?;
 
-    let parser = ParseError::protect(
-        |_| "Arguments list or () expected".to_string(),
-        alt((
-            map(
-                pair(
-                    crate::common::round_brackets_comma_separated0(
-                        crate::expression::parse_expression,
-                    ),
-                    opt(space0_delimimited(crate::expression::parse_lambda)),
-                ),
-                |((_, list, end_tag), lambda)| (list, Range::from((end_tag, end_tag)), lambda),
-            ),
-            map(
-                separated_list1(comma_separator, crate::expression::parse_expression),
-                |list| {
-                    let end_range =
-                        Range::from((&list.last().unwrap().extra, &list.last().unwrap().extra));
-                    (list, end_range, None)
-                },
-            ),
-        )),
-    );
+//     let parser = ParseError::protect(
+//         |_| "Arguments list or () expected".to_string(),
+//         alt((
+//             map(
+//                 pair(
+//                     crate::common::round_brackets_comma_separated0(
+//                         crate::expression::parse_expression,
+//                     ),
+//                     opt(space0_delimimited(crate::expression::parse_lambda)),
+//                 ),
+//                 |((_, list, end_tag), lambda)| {
+//                     (list, Some(Range::from((end_tag, end_tag))), lambda)
+//                 },
+//             ),
+//             map(
+//                 nom::multi::separated_list0(comma_separator, crate::expression::parse_expression),
+//                 |list| {
+//                     let end_range = list.last().map(|v| Range::from((&v.extra, &v.extra)));
+//                     (list, end_range, None)
+//                 },
+//             ),
+//         )),
+//     );
 
-    map(parser, move |(args, end_range, lambda)| {
-        let end_range = match &lambda {
-            None => end_range,
-            Some(v) => v.extra.clone(),
-        };
-        puppet_lang::expression::Expression {
-            extra: Range::from((name, &end_range)),
-            value: puppet_lang::expression::ExpressionVariant::BuiltinFunction(
-                puppet_lang::expression::BuiltinFunction {
-                    args,
-                    extra: Range::from((name, &end_range)),
-                    name: String::from(*name),
-                    lambda,
-                },
-            ),
-        }
-    })(input)
-}
+//     map(parser, move |(args, end_range, lambda)| {
+//         let end_range = match &lambda {
+//             None => match end_range {
+//                 Some(v) => v,
+//                 None => Range::from((name, name)),
+//             },
+//             Some(v) => v.extra.clone(),
+//         };
+//         puppet_lang::expression::Expression {
+//             extra: Range::from((name, &end_range)),
+//             value: puppet_lang::expression::ExpressionVariant::BuiltinFunction(
+//                 puppet_lang::expression::BuiltinFunction {
+//                     args,
+//                     extra: Range::from((name, &end_range)),
+//                     name: String::from(*name),
+//                     lambda,
+//                 },
+//             ),
+//         }
+//     })(input)
+// }
 
 fn parse_l0(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> {
     space0_delimimited(alt((
         parse_not,
         parse_match_variant,
+        crate::builtin::parse_builtin,
         parse_funcall,
         parse_term_expr,
-        parse_builtin_function,
     )))(input)
 }
 
