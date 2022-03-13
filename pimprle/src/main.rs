@@ -314,23 +314,19 @@ impl Get {
 
                 let new_extgrpbase1 = yaml.docs[0]
                     .get_string_key("extgrpbase1")
-                    .map(|v| v.get_string())
-                    .flatten();
+                    .and_then(|v| v.get_string());
 
                 let new_extgrpbase2 = yaml.docs[0]
                     .get_string_key("extgrpbase2")
-                    .map(|v| v.get_string())
-                    .flatten();
+                    .and_then(|v| v.get_string());
 
                 let new_inventory_group_name = yaml.docs[0]
                     .get_string_key("group_name")
-                    .map(|v| v.get_string())
-                    .flatten();
+                    .and_then(|v| v.get_string());
 
                 let new_ext_slave_group = yaml.docs[0]
                     .get_string_key("ext_slave_group")
-                    .map(|v| v.get_string())
-                    .flatten();
+                    .and_then(|v| v.get_string());
 
                 if new_extgrpbase1 > *extgrpbase1
                     || new_extgrpbase2 > *extgrpbase2
