@@ -53,11 +53,7 @@ fn parse_interpolation(input: Span) -> IResult<DoubleQuotedFragment<Range>> {
 
     let parser = alt((
         map(
-            tuple((
-                tag("{"),
-                parser_delimited,
-                ParseError::protect(|_| "Closing '}' expected".to_string(), tag("}")),
-            )),
+            tuple((tag("{"), parser_delimited, tag("}"))),
             |(_left_bracket, expr, _right_bracket)| {
                 DoubleQuotedFragment::Expression(puppet_lang::string::Expression { data: expr })
             },
