@@ -126,10 +126,7 @@ where
         tuple((
             terminated(tag("{"), separator0),
             parser,
-            ParseError::protect(
-                |_| "Closing '}' expected".to_string(),
-                preceded(separator0, tag("}")),
-            ),
+            preceded(separator0, tag("}")),
         )),
     )
 }

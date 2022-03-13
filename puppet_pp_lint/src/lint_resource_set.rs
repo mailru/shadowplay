@@ -292,3 +292,26 @@ impl EarlyLintPass for SelectorInAttributeValue {
         errors
     }
 }
+
+#[derive(Clone)]
+pub struct PerExpressionResourceDefaults;
+
+impl LintPass for PerExpressionResourceDefaults {
+    fn name(&self) -> &str {
+        "per_expression_resource_defaults"
+    }
+}
+
+impl EarlyLintPass for PerExpressionResourceDefaults {
+    fn check_deprecated_resource_defaults(
+        &self,
+        elt: &puppet_lang::statement::ResourceDefaults<Range>,
+    ) -> Vec<LintError> {
+        vec![LintError::new_with_url(
+            Box::new(self.clone()),
+            "Whenever possible, use resource declaration defaults, also known as per-expression defaults",
+            "https://puppet.com/docs/puppet/7/lang_resources.html#lang_resource_syntax-local-resource-defaults",
+            &elt.extra,
+        )]
+    }
+}

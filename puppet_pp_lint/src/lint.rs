@@ -120,6 +120,12 @@ pub trait EarlyLintPass: LintPass {
     fn check_case_statement(&self, _: &puppet_lang::statement::Case<Range>) -> Vec<LintError> {
         Vec::new()
     }
+    fn check_deprecated_resource_defaults(
+        &self,
+        _: &puppet_lang::statement::ResourceDefaults<Range>,
+    ) -> Vec<LintError> {
+        Vec::new()
+    }
 }
 
 #[derive(Default)]
@@ -168,6 +174,9 @@ impl Storage {
         ));
         v.register_early_pass(Box::new(
             super::lint_resource_set::MultipleResourcesWithoutDefault,
+        ));
+        v.register_early_pass(Box::new(
+            super::lint_resource_set::PerExpressionResourceDefaults,
         ));
         v.register_early_pass(Box::new(super::lint_resource_set::SelectorInAttributeValue));
         v.register_early_pass(Box::new(super::lint_case_statement::EmptyCasesList));
@@ -705,6 +714,23 @@ impl AstLinter {
         errors
     }
 
+    pub fn check_deprecated_resource_defaults(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::statement::ResourceDefaults<Range>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_deprecated_resource_defaults(elt));
+            for (k, v) in &elt.args {
+                errors.append(&mut self.check_term(storage, k));
+                errors.append(&mut self.check_expression(storage, true, v));
+            }
+        }
+
+        errors
+    }
+
     pub fn check_statement(
         &self,
         storage: &Storage,
@@ -729,6 +755,9 @@ impl AstLinter {
                 errors.append(&mut self.check_relation_list(storage, elt))
             }
             StatementVariant::Case(elt) => errors.append(&mut self.check_case(storage, elt)),
+            StatementVariant::ResourceDefaults(elt) => {
+                errors.append(&mut self.check_deprecated_resource_defaults(storage, elt))
+            }
         };
 
         errors

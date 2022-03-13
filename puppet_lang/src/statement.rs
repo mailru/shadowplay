@@ -99,6 +99,13 @@ pub struct Case<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct ResourceDefaults<EXTRA> {
+    pub name: String,
+    pub args: Vec<(crate::expression::Term<EXTRA>, Expression<EXTRA>)>,
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum StatementVariant<EXTRA> {
     Expression(crate::expression::Expression<EXTRA>),
     RelationList(RelationList<EXTRA>),
@@ -106,6 +113,7 @@ pub enum StatementVariant<EXTRA> {
     Unless(ConditionAndStatement<EXTRA>),
     Case(Case<EXTRA>),
     Toplevel(crate::toplevel::Toplevel<EXTRA>),
+    ResourceDefaults(ResourceDefaults<EXTRA>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -122,6 +130,7 @@ impl<EXTRA> crate::ExtraGetter<EXTRA> for Statement<EXTRA> {
             StatementVariant::Unless(v) => &v.extra,
             StatementVariant::Case(v) => &v.extra,
             StatementVariant::Toplevel(v) => v.extra(),
+            StatementVariant::ResourceDefaults(v) => &v.extra,
         }
     }
 }

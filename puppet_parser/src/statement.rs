@@ -61,10 +61,7 @@ fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Range
     let mut parser = map(
         tuple((
             space0_delimimited(crate::expression::parse_expression),
-            preceded(
-                ParseError::protect(|_| "':' is expected".to_string(), tag(":")),
-                space0_delimimited(parse_arguments),
-            ),
+            preceded(tag(":"), space0_delimimited(parse_arguments)),
             opt(tag(",")),
         )),
         |(title, arguments, opt_comma)| {
@@ -350,11 +347,42 @@ fn parse_case(input: Span) -> IResult<StatementVariant<Range>> {
     map(parser, StatementVariant::Case)(input)
 }
 
+fn parse_resource_defaults(
+    input: Span,
+) -> IResult<puppet_lang::statement::ResourceDefaults<Range>> {
+    let kv_parser = pair(
+        space0_delimimited(crate::term::parse_term),
+        preceded(
+            tag("=>"),
+            space0_delimimited(ParseError::protect(
+                |_| "Expression expected after '=>'".to_string(),
+                crate::expression::parse_expression,
+            )),
+        ),
+    );
+
+    map(
+        pair(
+            crate::identifier::camel_case_identifier,
+            space0_delimimited(curly_brackets_delimimited(terminated(
+                separated_list0(comma_separator, kv_parser),
+                opt(space0_delimimited(tag(","))),
+            ))),
+        ),
+        |(name, (_left_curly, args, right_curly))| puppet_lang::statement::ResourceDefaults {
+            name: name.to_string(),
+            args,
+            extra: Range::from((name, right_curly)),
+        },
+    )(input)
+}
+
 fn parse_statement_variant(input: Span) -> IResult<StatementVariant<Range>> {
     alt((
         parse_if_else,
         parse_unless,
         parse_case,
+        map(parse_resource_defaults, StatementVariant::ResourceDefaults),
         map(parse_relation, StatementVariant::RelationList),
         map(crate::toplevel::parse, StatementVariant::Toplevel),
         parse_expression,
