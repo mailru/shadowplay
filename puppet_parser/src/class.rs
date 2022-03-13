@@ -1,4 +1,4 @@
-use crate::common::space0_delimimited;
+use crate::common::{space0_delimimited, spaced_word};
 use crate::{range::Range, IResult, ParseError, Span};
 use nom::{
     bytes::complete::tag,
@@ -31,7 +31,7 @@ pub fn parse_header(input: Span) -> IResult<(LowerIdentifier<Range>, Vec<Argumen
 pub fn parse_class(input: Span) -> IResult<Class<Range>> {
     let mut parser = map(
         tuple((
-            tag("class"),
+            spaced_word("class"),
             preceded(
                 super::common::separator1,
                 ParseError::protect(|_| "Failed to parse class header".to_owned(), parse_header),
@@ -65,7 +65,7 @@ pub fn parse_class(input: Span) -> IResult<Class<Range>> {
 pub fn parse_definition(input: Span) -> IResult<Definition<Range>> {
     map(
         tuple((
-            tag("define"),
+            spaced_word("define"),
             preceded(super::common::separator1, parse_header),
             space0_delimimited(ParseError::protect(
                 |_| "'{' expected".to_string(),
@@ -84,9 +84,12 @@ pub fn parse_definition(input: Span) -> IResult<Definition<Range>> {
 pub fn parse_plan(input: Span) -> IResult<Plan<Range>> {
     map(
         tuple((
-            tag("plan"),
-            preceded(super::common::separator1, parse_header),
-            crate::statement::parse_statement_block,
+            spaced_word("plan"),
+            parse_header,
+            space0_delimimited(ParseError::protect(
+                |_| "'{' expected".to_string(),
+                crate::statement::parse_statement_block,
+            )),
         )),
         |(kw, (identifier, arguments), (_left_bracket, body, right_bracket))| Plan {
             identifier,
