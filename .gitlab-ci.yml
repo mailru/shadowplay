@@ -6,12 +6,18 @@ build_hammer_el7:
       prepare_stages:
         - cache: 30days
           operations:
-            - Exec: yum  install -y autoconf automake libtool llvm-devel clang lxc-devel openssl-devel rpmdevtools yum-utils gcc git autoconf
+            - Exec: yum  install -y autoconf automake libtool llvm-devel clang lxc-devel openssl-devel rpmdevtools yum-utils gcc git autoconf alien
             - Exec: curl -s https://rust.devmail.ru/rustup.sh | sh /dev/stdin -y
     build:
       builder:
         Rpm:
           spec_path: etc/centos.spec
+          scripts:
+            - rpmbuild -bb etc/centos.spec
+            - alien --to-deb /root/rpmbuild/RPMS/x86_64/*.rpm
+    artifacts:
+      - path_glob: /root/rpmbuild/BUILD/*.deb
+        artifact_type: Generic
     environment_variables:
       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
       PATH: "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin:/sbin"
