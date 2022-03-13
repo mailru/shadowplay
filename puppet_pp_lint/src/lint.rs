@@ -896,12 +896,16 @@ impl AstLinter {
         for lint in storage.early_pass() {
             errors.append(&mut lint.check_toplevel(elt))
         }
-        let mut res = match elt {
-            puppet_lang::toplevel::Toplevel::Class(elt) => self.check_class(storage, elt),
-            puppet_lang::toplevel::Toplevel::Definition(elt) => self.check_definition(storage, elt),
-            puppet_lang::toplevel::Toplevel::Plan(elt) => self.check_plan(storage, elt),
-            puppet_lang::toplevel::Toplevel::TypeDef(elt) => self.check_typedef(storage, elt),
-            puppet_lang::toplevel::Toplevel::FunctionDef(elt) => {
+        let mut res = match &elt.data {
+            puppet_lang::toplevel::ToplevelVariant::Class(elt) => self.check_class(storage, elt),
+            puppet_lang::toplevel::ToplevelVariant::Definition(elt) => {
+                self.check_definition(storage, elt)
+            }
+            puppet_lang::toplevel::ToplevelVariant::Plan(elt) => self.check_plan(storage, elt),
+            puppet_lang::toplevel::ToplevelVariant::TypeDef(elt) => {
+                self.check_typedef(storage, elt)
+            }
+            puppet_lang::toplevel::ToplevelVariant::FunctionDef(elt) => {
                 self.check_functiondef(storage, elt)
             }
         };

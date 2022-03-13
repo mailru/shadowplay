@@ -129,7 +129,7 @@ impl<EXTRA> crate::ExtraGetter<EXTRA> for Statement<EXTRA> {
             StatementVariant::IfElse(v) => &v.extra,
             StatementVariant::Unless(v) => &v.extra,
             StatementVariant::Case(v) => &v.extra,
-            StatementVariant::Toplevel(v) => v.extra(),
+            StatementVariant::Toplevel(v) => &v.extra,
             StatementVariant::ResourceDefaults(v) => &v.extra,
         }
     }

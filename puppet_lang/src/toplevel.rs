@@ -48,7 +48,7 @@ pub struct FunctionDef<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Toplevel<EXTRA> {
+pub enum ToplevelVariant<EXTRA> {
     Class(Class<EXTRA>),
     Definition(Definition<EXTRA>),
     Plan(Plan<EXTRA>),
@@ -56,14 +56,8 @@ pub enum Toplevel<EXTRA> {
     FunctionDef(FunctionDef<EXTRA>),
 }
 
-impl<EXTRA> crate::ExtraGetter<EXTRA> for Toplevel<EXTRA> {
-    fn extra(&self) -> &EXTRA {
-        match self {
-            Toplevel::Class(v) => &v.extra,
-            Toplevel::Definition(v) => &v.extra,
-            Toplevel::Plan(v) => &v.extra,
-            Toplevel::TypeDef(v) => &v.extra,
-            Toplevel::FunctionDef(v) => &v.extra,
-        }
-    }
+#[derive(Clone, Debug, PartialEq)]
+pub struct Toplevel<EXTRA> {
+    pub data: ToplevelVariant<EXTRA>,
+    pub extra: EXTRA,
 }

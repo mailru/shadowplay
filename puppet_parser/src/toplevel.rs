@@ -9,7 +9,7 @@ use nom::{
     combinator::{map, opt},
     sequence::{pair, preceded, tuple},
 };
-use puppet_lang::toplevel::{FunctionDef, Toplevel};
+use puppet_lang::toplevel::{FunctionDef, Toplevel, ToplevelVariant};
 
 pub fn parse_typedef(input: Span) -> IResult<puppet_lang::toplevel::TypeDef<Range>> {
     map(
@@ -62,11 +62,26 @@ pub fn parse_functiondef(input: Span) -> IResult<FunctionDef<Range>> {
 
 pub fn parse(input: Span) -> IResult<Toplevel<Range>> {
     super::common::space0_delimimited(alt((
-        map(super::class::parse_class, Toplevel::Class),
-        map(super::class::parse_definition, Toplevel::Definition),
-        map(super::class::parse_plan, Toplevel::Plan),
-        map(parse_typedef, Toplevel::TypeDef),
-        map(parse_functiondef, Toplevel::FunctionDef),
+        map(crate::class::parse_class, |v| Toplevel {
+            extra: v.extra.clone(),
+            data: ToplevelVariant::Class(v),
+        }),
+        map(crate::class::parse_definition, |v| Toplevel {
+            extra: v.extra.clone(),
+            data: ToplevelVariant::Definition(v),
+        }),
+        map(crate::class::parse_plan, |v| Toplevel {
+            extra: v.extra.clone(),
+            data: ToplevelVariant::Plan(v),
+        }),
+        map(parse_typedef, |v| Toplevel {
+            extra: v.extra.clone(),
+            data: ToplevelVariant::TypeDef(v),
+        }),
+        map(parse_functiondef, |v| Toplevel {
+            extra: v.extra.clone(),
+            data: ToplevelVariant::FunctionDef(v),
+        }),
     )))(input)
 }
 

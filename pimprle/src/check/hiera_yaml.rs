@@ -2,7 +2,7 @@ use crate::check::error;
 use anyhow::Result;
 use structopt::StructOpt;
 
-use puppet_lang::toplevel::Toplevel;
+use puppet_lang::toplevel::ToplevelVariant;
 
 #[derive(Default)]
 pub struct State {
@@ -93,7 +93,12 @@ impl Check {
 
         if let Some(elt) = ast.data.into_iter().next() {
             match elt.value {
-                puppet_lang::statement::StatementVariant::Toplevel(Toplevel::Class(v)) => {
+                puppet_lang::statement::StatementVariant::Toplevel(
+                    puppet_lang::toplevel::Toplevel {
+                        data: ToplevelVariant::Class(v),
+                        ..
+                    },
+                ) => {
                     if v.identifier.name != puppet_module.identifier() {
                         return vec![error::Error::from((
                             yaml_path,
