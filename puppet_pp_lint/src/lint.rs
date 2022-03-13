@@ -382,6 +382,7 @@ impl AstLinter {
             puppet_lang::builtin::BuiltinVariant::Tag(v)
             | puppet_lang::builtin::BuiltinVariant::Require(v)
             | puppet_lang::builtin::BuiltinVariant::Realize(v)
+            | puppet_lang::builtin::BuiltinVariant::CreateResources(v)
             | puppet_lang::builtin::BuiltinVariant::Include(v) => {
                 for arg in &v.args {
                     errors.append(&mut self.check_expression(storage, true, arg));
@@ -620,12 +621,12 @@ impl AstLinter {
             errors.append(&mut lint.check_relation_elt(elt));
         }
 
-        match elt {
-            puppet_lang::statement::RelationElt::ResourceSet(elt) => {
-                errors.append(&mut self.check_resource_set(storage, elt))
-            }
-            puppet_lang::statement::RelationElt::ResourceCollection(list) => {
-                for elt in list {
+        for elt in &elt.data {
+            match elt {
+                puppet_lang::statement::RelationEltVariant::ResourceSet(elt) => {
+                    errors.append(&mut self.check_resource_set(storage, elt))
+                }
+                puppet_lang::statement::RelationEltVariant::ResourceCollection(elt) => {
                     errors.append(&mut self.check_resource_collection(storage, elt))
                 }
             }
@@ -728,11 +729,6 @@ impl AstLinter {
                 errors.append(&mut self.check_relation_list(storage, elt))
             }
             StatementVariant::Case(elt) => errors.append(&mut self.check_case(storage, elt)),
-            StatementVariant::CreateResources(elt) => {
-                for arg in &elt.args {
-                    errors.append(&mut self.check_expression(storage, true, arg))
-                }
-            }
         };
 
         errors

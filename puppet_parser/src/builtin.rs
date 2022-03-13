@@ -198,6 +198,18 @@ fn parse_realize(input: Span) -> IResult<Expression<Range>> {
     })(input)
 }
 
+fn parse_create_resources(input: Span) -> IResult<Expression<Range>> {
+    builtin_many1("create_resources", |(_kw, ((args, range), lambda))| {
+        Expression {
+            value: ExpressionVariant::BuiltinFunction(BuiltinVariant::Realize(builtin::Many1 {
+                lambda,
+                args,
+            })),
+            extra: range,
+        }
+    })(input)
+}
+
 pub fn parse_builtin(input: Span) -> IResult<Expression<Range>> {
     alt((
         parse_undef,
@@ -205,5 +217,6 @@ pub fn parse_builtin(input: Span) -> IResult<Expression<Range>> {
         parse_require,
         parse_include,
         parse_realize,
+        parse_create_resources,
     ))(input)
 }

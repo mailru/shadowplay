@@ -664,7 +664,7 @@ fn parse_l5(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> 
     let (input, left_expr) = space0_delimimited(parse_l4)(input)?;
     let mut parser = fold_many0_with_const_init(
         pair(
-            alt((tag("and"), tag("or"))),
+            alt((spaced_word("and"), spaced_word("or"))),
             space0_delimimited(ParseError::protect(
                 |_| "Second argument of operator is expected".to_string(),
                 parse_l4,

@@ -1,6 +1,5 @@
 pub fn has_side_effect<EXTRA>(statement: &puppet_lang::statement::Statement<EXTRA>) -> bool {
     match &statement.value {
-        puppet_lang::statement::StatementVariant::CreateResources(_) => true,
         puppet_lang::statement::StatementVariant::Expression(expr) => {
             crate::tool::expression::has_side_effect(expr)
         }

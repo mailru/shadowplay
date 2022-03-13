@@ -13,4 +13,5 @@ pub enum BuiltinVariant<EXTRA> {
     Require(Many1<EXTRA>),
     Include(Many1<EXTRA>),
     Realize(Many1<EXTRA>),
+    CreateResources(Many1<EXTRA>),
 }

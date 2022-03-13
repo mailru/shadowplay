@@ -150,17 +150,35 @@ fn parse_relation_type(input: Span) -> IResult<puppet_lang::statement::RelationT
 fn parse_relation(input: Span) -> IResult<puppet_lang::statement::RelationList<Range>> {
     let head_parser = alt((
         map(
-            parse_resource_set,
-            puppet_lang::statement::RelationElt::ResourceSet,
+            square_brackets_comma_separated1(alt((
+                map(
+                    parse_resource_set,
+                    puppet_lang::statement::RelationEltVariant::ResourceSet,
+                ),
+                map(
+                    crate::resource_collection::parse_resource_collection,
+                    puppet_lang::statement::RelationEltVariant::ResourceCollection,
+                ),
+            ))),
+            |(left_curly, data, right_curly)| puppet_lang::statement::RelationElt {
+                data,
+                extra: Range::from((left_curly, right_curly)),
+            },
         ),
         map(
-            space0_delimimited(crate::resource_collection::parse_resource_collection),
-            |elt| puppet_lang::statement::RelationElt::ResourceCollection(vec![elt]),
-        ),
-        map(
-            square_brackets_comma_separated1(crate::resource_collection::parse_resource_collection),
-            |(_left_curly, collection, _right_curly)| {
-                puppet_lang::statement::RelationElt::ResourceCollection(collection)
+            alt((
+                map(
+                    parse_resource_set,
+                    puppet_lang::statement::RelationEltVariant::ResourceSet,
+                ),
+                map(
+                    crate::resource_collection::parse_resource_collection,
+                    puppet_lang::statement::RelationEltVariant::ResourceCollection,
+                ),
+            )),
+            |elt| puppet_lang::statement::RelationElt {
+                extra: Range::from((elt.extra(), elt.extra())),
+                data: vec![elt],
             },
         ),
     ));
@@ -182,10 +200,10 @@ fn parse_relation(input: Span) -> IResult<puppet_lang::statement::RelationList<R
     map(pair(head_parser, tail_parser), |(head, tail)| {
         let end_range = match &tail {
             Some(v) => v.relation_to.extra.clone(),
-            None => head.extra().clone(),
+            None => head.extra.clone(),
         };
         puppet_lang::statement::RelationList {
-            extra: Range::from((head.extra(), &end_range)),
+            extra: Range::from((&head.extra, &end_range)),
             head,
             tail,
         }
@@ -290,7 +308,7 @@ fn parse_unless(input: Span) -> IResult<StatementVariant<Range>> {
 
 fn parse_case(input: Span) -> IResult<StatementVariant<Range>> {
     let parser_header = pair(
-        space0_delimimited(tag("case")),
+        spaced_word("case"),
         space0_delimimited(ParseError::protect(
             |_| "Condition is expected after 'case'".to_string(),
             crate::expression::parse_expression,

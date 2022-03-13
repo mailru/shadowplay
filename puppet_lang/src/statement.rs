@@ -51,19 +51,24 @@ pub struct RelationType<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum RelationElt<EXTRA> {
+pub enum RelationEltVariant<EXTRA> {
     ResourceSet(ResourceSet<EXTRA>),
-    ResourceCollection(Vec<crate::resource_collection::ResourceCollection<EXTRA>>),
+    ResourceCollection(crate::resource_collection::ResourceCollection<EXTRA>),
 }
 
-impl<EXTRA> crate::ExtraGetter<EXTRA> for RelationElt<EXTRA> {
+impl<EXTRA> crate::ExtraGetter<EXTRA> for RelationEltVariant<EXTRA> {
     fn extra(&self) -> &EXTRA {
-        match self {
-            RelationElt::ResourceSet(v) => &v.extra,
-            // FIXME Currently parser guarantees at least one element exists in the list
-            RelationElt::ResourceCollection(v) => &v.first().unwrap().extra,
+        match &self {
+            RelationEltVariant::ResourceSet(v) => &v.extra,
+            RelationEltVariant::ResourceCollection(v) => &v.extra,
         }
     }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RelationElt<EXTRA> {
+    pub data: Vec<RelationEltVariant<EXTRA>>,
+    pub extra: EXTRA,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -94,15 +99,7 @@ pub struct Case<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct CreateResources<EXTRA> {
-    pub resource: crate::expression::Term<EXTRA>,
-    pub args: Vec<Expression<EXTRA>>,
-    pub extra: EXTRA,
-}
-
-#[derive(Clone, Debug, PartialEq)]
 pub enum StatementVariant<EXTRA> {
-    CreateResources(CreateResources<EXTRA>),
     Expression(crate::expression::Expression<EXTRA>),
     RelationList(RelationList<EXTRA>),
     IfElse(IfElse<EXTRA>),
@@ -119,7 +116,6 @@ pub struct Statement<EXTRA> {
 impl<EXTRA> crate::ExtraGetter<EXTRA> for Statement<EXTRA> {
     fn extra(&self) -> &EXTRA {
         match &self.value {
-            StatementVariant::CreateResources(v) => &v.extra,
             StatementVariant::Expression(v) => &v.extra,
             StatementVariant::RelationList(v) => &v.extra,
             StatementVariant::IfElse(v) => &v.extra,
