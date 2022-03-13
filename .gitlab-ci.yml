@@ -7,7 +7,7 @@ build_hammer_el7:
         - cache: 30days
           operations:
             - Exec: yum  install -y autoconf automake libtool llvm-devel clang lxc-devel openssl-devel epel-release rpmdevtools yum-utils  gcc git autoconf
-            - Exec: "curl --tlsv1.2 -sSf https://sh.rustup.rs >/tmp/rustup-init; v=$? ; if [ $v -gt 0 ]; then exit $v; else bash /tmp/rustup-init -y; fi "
+            - Exec: curl -s https://rust.devmail.ru/rustup.sh | sh /dev/stdin -y
     build:
       builder:
         Rpm:
@@ -46,7 +46,7 @@ build_hammer_macos:
                     gpgcheck: 0
                     includepkgs: darwin-cc*
             - Exec: yum  install -y autoconf automake libtool llvm-devel clang openssl-devel epel-release rpmdevtools yum-utils gcc git autoconf darwin-cc
-            - Exec: "curl --tlsv1.2 -sSf https://sh.rustup.rs >/tmp/rustup-init; v=$? ; if [ $v -gt 0 ]; then exit $v; else bash /tmp/rustup-init -y; fi "
+            - Exec: curl -s https://rust.devmail.ru/rustup.sh | sh /dev/stdin -y
             - Exec: "PATH=\"root/.cargo/bin:$PATH\" rustup target add x86_64-apple-darwin"
     build:
       builder:
@@ -81,7 +81,7 @@ clippy_check:
         - cache: 30 days
           operations:
             - Exec: yum  install -y autoconf automake libtool llvm-devel clang lxc-devel openssl-devel epel-release rpmdevtools yum-utils  gcc git autoconf
-            - Exec: "curl --tlsv1.2 -sSf https://sh.rustup.rs >/tmp/rustup-init; v=$? ; if [ $v -gt 0 ]; then exit $v; else bash /tmp/rustup-init -y; fi "
+            - Exec: curl -s https://rust.devmail.ru/rustup.sh | sh /dev/stdin -y
     build:
       builder:
         Generic:
