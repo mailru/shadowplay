@@ -5,3 +5,4 @@ package.authors = ["Evgenii Lepikhin <e.lepikhin@corp.mail.ru>", "VK Company / m
 package.license = "MIT/Apache-2.0"
 
 [dependencies]
+serde = { version = "1.0", features = ["derive"] }

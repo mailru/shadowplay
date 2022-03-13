@@ -1,10 +1,10 @@
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag, take_until},
-    character::complete::{anychar, char, multispace1, newline},
-    combinator::{opt, peek, value, verify},
+    character::complete::{anychar, char, multispace0, multispace1, newline},
+    combinator::{map, opt, peek, recognize, value, verify},
     multi::{many0, many1, separated_list0, separated_list1},
-    sequence::{delimited, preceded, terminated, tuple},
+    sequence::{delimited, pair, preceded, terminated, tuple},
     Parser,
 };
 
@@ -20,6 +20,23 @@ pub fn comment(input: Span) -> IResult<()> {
     alt((shell_comment_extractor, c_comment_extractor))(input)
 }
 
+pub fn capture_comment(input: Span) -> IResult<Option<Vec<String>>> {
+    let shell_comment_extractor = preceded(
+        char('#'),
+        recognize(pair(many0(is_not("\n")), opt(newline))),
+    );
+
+    let c_comment_extractor = delimited(tag("/*"), take_until("*/"), tag("*/"));
+
+    opt(separated_list1(
+        multispace0,
+        map(
+            alt((shell_comment_extractor, c_comment_extractor)),
+            |v: Span| v.to_string(),
+        ),
+    ))(input)
+}
+
 #[test]
 fn test_comment() {
     let (_, res) = comment.parse(Span::new("# hello world\n")).unwrap();
@@ -27,17 +44,19 @@ fn test_comment() {
 }
 
 pub fn separator1(input: Span) -> IResult<()> {
-    value(
-        (),
-        many1(nom::branch::alt((value((), multispace1), comment))),
-    )(input)
+    value((), multispace1)(input)
+    // value(
+    //     (),
+    //     many1(nom::branch::alt((value((), multispace1), comment))),
+    // )(input)
 }
 
 pub fn separator0(input: Span) -> IResult<()> {
-    value(
-        (),
-        many0(nom::branch::alt((value((), multispace1), comment))),
-    )(input)
+    value((), multispace0)(input)
+    // value(
+    //     (),
+    //     many0(nom::branch::alt((value((), multispace1), comment))),
+    // )(input)
 }
 
 #[test]

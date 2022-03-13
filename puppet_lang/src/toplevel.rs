@@ -1,6 +1,7 @@
 use crate::identifier::LowerIdentifier;
+use serde::Serialize;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Class<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,
     pub arguments: Vec<crate::argument::Argument<EXTRA>>,
@@ -15,7 +16,7 @@ impl<EXTRA> Class<EXTRA> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Definition<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,
     pub arguments: Vec<crate::argument::Argument<EXTRA>>,
@@ -23,7 +24,7 @@ pub struct Definition<EXTRA> {
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Plan<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,
     pub arguments: Vec<crate::argument::Argument<EXTRA>>,
@@ -31,14 +32,14 @@ pub struct Plan<EXTRA> {
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct TypeDef<EXTRA> {
     pub identifier: crate::identifier::CamelIdentifier<EXTRA>,
     pub value: crate::typing::TypeSpecification<EXTRA>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct FunctionDef<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,
     pub arguments: Vec<crate::argument::Argument<EXTRA>>,
@@ -47,7 +48,7 @@ pub struct FunctionDef<EXTRA> {
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum ToplevelVariant<EXTRA> {
     Class(Class<EXTRA>),
     Definition(Definition<EXTRA>),
@@ -56,8 +57,9 @@ pub enum ToplevelVariant<EXTRA> {
     FunctionDef(FunctionDef<EXTRA>),
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Toplevel<EXTRA> {
+    pub comment: Option<Vec<String>>,
     pub data: ToplevelVariant<EXTRA>,
     pub extra: EXTRA,
 }

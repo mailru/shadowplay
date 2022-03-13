@@ -1,8 +1,9 @@
 use nom::Slice;
+use serde::Serialize;
 
 use crate::Span;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Location {
     /// The offset represents the position of the fragment relatively to
     /// the input of the parser. It starts at offset 0.
@@ -47,7 +48,7 @@ impl Location {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Range {
     start: Location,
     end: Location,

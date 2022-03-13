@@ -1,32 +1,33 @@
 use crate::identifier::LowerIdentifier;
+use serde::Serialize;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Accessor<EXTRA> {
     pub list: Vec<Vec<Box<Expression<EXTRA>>>>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Variable<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,
     pub accessor: Option<Accessor<EXTRA>>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct RegexpGroupID<EXTRA> {
     pub identifier: u64,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Lambda<EXTRA> {
     pub args: Vec<crate::argument::Argument<EXTRA>>,
     pub body: Vec<crate::statement::Statement<EXTRA>>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct FunctionCall<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,
     pub args: Vec<Expression<EXTRA>>,
@@ -35,64 +36,64 @@ pub struct FunctionCall<EXTRA> {
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Float<EXTRA> {
     pub value: f32,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Integer<EXTRA> {
     pub value: i64,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Usize<EXTRA> {
     pub value: usize,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Sensitive<EXTRA> {
     pub value: Box<Term<EXTRA>>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Regexp<EXTRA> {
     pub data: String,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Boolean<EXTRA> {
     pub value: bool,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Parens<EXTRA> {
     pub value: Box<Expression<EXTRA>>,
     pub accessor: Option<Accessor<EXTRA>>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Map<EXTRA> {
     pub value: Vec<(Term<EXTRA>, Expression<EXTRA>)>,
     pub accessor: Option<Accessor<EXTRA>>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Array<EXTRA> {
     pub value: Vec<Expression<EXTRA>>,
     pub accessor: Option<Accessor<EXTRA>>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum TermVariant<EXTRA> {
     String(crate::string::StringExpr<EXTRA>),
     Float(Float<EXTRA>),
@@ -109,18 +110,18 @@ pub enum TermVariant<EXTRA> {
     Regexp(Regexp<EXTRA>),
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Term<EXTRA> {
     pub value: TermVariant<EXTRA>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Default<EXTRA> {
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum CaseVariant<EXTRA> {
     Term(Term<EXTRA>),
     Default(Default<EXTRA>),
@@ -135,28 +136,28 @@ impl<EXTRA> crate::ExtraGetter<EXTRA> for CaseVariant<EXTRA> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct SelectorCase<EXTRA> {
     pub case: CaseVariant<EXTRA>,
     pub body: Box<Expression<EXTRA>>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Selector<EXTRA> {
     pub condition: Box<Expression<EXTRA>>,
     pub cases: Vec<SelectorCase<EXTRA>>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct ChainCall<EXTRA> {
     pub left: Box<Expression<EXTRA>>,
     pub right: Box<FunctionCall<EXTRA>>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum ExpressionVariant<EXTRA> {
     Assign((Box<Expression<EXTRA>>, Box<Expression<EXTRA>>)),
 
@@ -204,7 +205,7 @@ pub enum ExpressionVariant<EXTRA> {
     Term(Term<EXTRA>),
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Expression<EXTRA> {
     pub value: ExpressionVariant<EXTRA>,
     pub extra: EXTRA,

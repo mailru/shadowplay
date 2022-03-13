@@ -68,7 +68,6 @@ pub enum CheckVariant {
 }
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "pimprle", about = "Puppet checker, linter and explorer.")]
 pub struct Check {
     /// Output format. Possible values: "one-line", "json"
     #[structopt(short, default_value = "one-line")]
@@ -78,11 +77,43 @@ pub struct Check {
 }
 
 #[derive(Debug, StructOpt)]
+pub struct Dump {
+    /// List of *.pp files
+    pub paths: Vec<std::path::PathBuf>,
+}
+
+impl Dump {
+    pub fn dump(&self) {
+        for path in &self.paths {
+            let pp = std::fs::read_to_string(&path).expect(&format!("Cannot load {:?}", &path));
+
+            let ast = match crate::check::PuppetAst::parse(&pp) {
+                Err(err) => {
+                    let err = match err {
+                        nom::Err::Incomplete(_) => {
+                            // nom::complete doesn't generate this state
+                            unreachable!()
+                        }
+                        nom::Err::Error(v) => v,
+                        nom::Err::Failure(v) => v,
+                    };
+                    panic!("Cannot parse {:?}: {}", &path, &err)
+                }
+                Ok(v) => v,
+            };
+            println!("{}", serde_json::to_string(&ast.data).unwrap())
+        }
+    }
+}
+
+#[derive(Debug, StructOpt)]
 pub enum Query {
     /// Get value for specific host
     Get(Get),
     /// Checks subcommand
     Check(Check),
+    /// Dump *.pp files
+    Dump(Dump),
     /// Generates default config
     GenerateConfig,
 }
@@ -399,6 +430,7 @@ fn main() {
 
     match &opt.query {
         Query::Get(v) => v.get(&opt.repo_path),
+        Query::Dump(v) => v.dump(),
         Query::Check(v) => v.check(&opt.repo_path, config),
         Query::GenerateConfig => {
             print!(

@@ -1,19 +1,20 @@
 use crate::{expression::Expression, identifier::LowerIdentifier};
+use serde::Serialize;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum ResourceAttribute<EXTRA> {
     Name((crate::string::StringExpr<EXTRA>, Expression<EXTRA>)),
     Group(crate::expression::Term<EXTRA>),
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Resource<EXTRA> {
     pub title: Expression<EXTRA>,
     pub attributes: Vec<ResourceAttribute<EXTRA>>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct ResourceSet<EXTRA> {
     pub name: LowerIdentifier<EXTRA>,
     pub list: Vec<Resource<EXTRA>>,
@@ -21,14 +22,14 @@ pub struct ResourceSet<EXTRA> {
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct ConditionAndStatement<EXTRA> {
     pub condition: Expression<EXTRA>,
     pub body: Box<Vec<Statement<EXTRA>>>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct IfElse<EXTRA> {
     pub condition: ConditionAndStatement<EXTRA>,
     pub elsif_list: Vec<ConditionAndStatement<EXTRA>>,
@@ -36,7 +37,7 @@ pub struct IfElse<EXTRA> {
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum RelationVariant {
     ExecOrderRight,
     NotifyRight,
@@ -44,13 +45,13 @@ pub enum RelationVariant {
     NotifyLeft,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct RelationType<EXTRA> {
     pub variant: RelationVariant,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum RelationEltVariant<EXTRA> {
     ResourceSet(ResourceSet<EXTRA>),
     ResourceCollection(crate::resource_collection::ResourceCollection<EXTRA>),
@@ -65,47 +66,47 @@ impl<EXTRA> crate::ExtraGetter<EXTRA> for RelationEltVariant<EXTRA> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct RelationElt<EXTRA> {
     pub data: Vec<RelationEltVariant<EXTRA>>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Relation<EXTRA> {
     pub relation_type: RelationType<EXTRA>,
     pub relation_to: Box<RelationList<EXTRA>>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct RelationList<EXTRA> {
     pub head: RelationElt<EXTRA>,
     pub tail: Option<Relation<EXTRA>>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct CaseElement<EXTRA> {
     pub matches: Vec<crate::expression::CaseVariant<EXTRA>>,
     pub body: Box<Vec<Statement<EXTRA>>>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Case<EXTRA> {
     pub condition: Expression<EXTRA>,
     pub elements: Vec<CaseElement<EXTRA>>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct ResourceDefaults<EXTRA> {
     pub name: String,
     pub args: Vec<(crate::expression::Term<EXTRA>, Expression<EXTRA>)>,
     pub extra: EXTRA,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum StatementVariant<EXTRA> {
     Expression(crate::expression::Expression<EXTRA>),
     RelationList(RelationList<EXTRA>),
@@ -116,7 +117,7 @@ pub enum StatementVariant<EXTRA> {
     ResourceDefaults(ResourceDefaults<EXTRA>),
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Statement<EXTRA> {
     pub value: StatementVariant<EXTRA>,
 }

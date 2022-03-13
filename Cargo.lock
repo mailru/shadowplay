@@ -283,6 +283,9 @@ dependencies = [
 [[package]]
 name = "puppet-lang"
 version = "0.1.0"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "puppet-parser"
@@ -294,6 +297,7 @@ dependencies = [
  "puppet-ast-tool",
  "puppet-lang",
  "regex",
+ "serde",
 ]
 
 [[package]]
