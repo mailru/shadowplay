@@ -1,4 +1,72 @@
 * Changelog
+** [2022-03-13] v0.9.0
+
+*** New features
+
+ - Added resourceset defaults parser and linter (9380ae6)
+ - Endpos support for Flycheck in Emacs (867d9c9)
+ - Linter is based on Ranges now (80e2b13)
+ - [WIP] extra Location => extra Range (9cb2bd4)
+ - Init module for Emacs' Flycheck (1e69f0d)
+ - Better useless parens detection (3e331d2)
+ - Added lints DoubleNegation and NegationOfEquation (7fa00fb)
+ - Deeper lint traversing (c6daea8)
+ - Deeper lint traversing (b6112a9)
+ - Added lint AssignmentToInvalidExpression (9d371b2)
+ - Strings interpolation parser (ebf9bf5)
+ - Deeper lint traversing (73b95ce)
+ - Added lint InvalidStringEscape (b76601a)
+ - Added parser for function definitions (ca44f93)
+ - Added support for type definitions (3368ee0)
+ - Added lint RelationToTheLeft (c8c6069)
+ - Better detection of useless parens, improved AST traverse (4398f65)
+ - Save MacOS build as Generic artifact (e767f3d)
+ - Added lint StatementWithNoSideEffects, major refactoring (0d9cbdc)
+ - Added summary for human-style outputs (2e2ab60)
+ - Manifest parser errors with optional URL (9f6dc68)
+
+*** Bugfixes
+
+ - Improved error messages (569dd8a)
+ - Parser improvements (3ec46f1)
+ - Interpolations parser (1c95940)
+ - Toplevel parser (bd14df3)
+ - Issues reported by linter (a642550)
+ - Improved toplevel parser (f400c7d)
+ - Updated Rust source (5895e30)
+ - [WIP] Reimplemented builtin functions parser (f098480)
+ - Parser issues (51bb7e3)
+ - Split by character (06e8e6e)
+ - Cleanup (2fec08f)
+ - Issues reported by linter (1b9e53c)
+ - Unit tests (2f5595d)
+ - [WIP] Unit tests Location ==> Range (17be534)
+ - Expressions priorities (76fcf56)
+ - StatementWithNoEffect will never alert on last statement of the set (bb8fa9e)
+ - Improved parser (f14f325)
+ - Removed debug (700b9b4)
+ - Implemented missing match case (bc898bd)
+ - Tests (14628a4)
+ - Improved parser (c89ba78)
+ - Test (c066097)
+ - Improved parser (4fbaff1)
+ - Tests (1bb1e88)
+ - Optional comma (4589a5e)
+ - Typo (e0cd875)
+ - Improved error reporting (7bb2044)
+ - Added space to message (a927a21)
+
+*** Other changes
+
+ - Length-dependent types parser (e1183ff)
+ - Vendored deps (018f75d)
+ - Removed parser.rs (8fa0276)
+ - Lint renamed (8fba5b2)
+ - Split module (886ee9c)
+ - AST for strings internals (d8be671)
+ - Reordered expression variants in priority order (c133128)
+
+
 ** [2022-02-17] v0.8.0
 
 *** New features
