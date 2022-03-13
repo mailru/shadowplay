@@ -42,7 +42,7 @@ pub fn parse_class(input: Span) -> IResult<Class<Range>> {
                     space0_delimimited(opt(preceded(
                         tag("inherits"),
                         ParseError::protect(
-                            |_| "Failed to parse what class inherits".to_owned(),
+                            |_| "Failed to parse what class is inherited".to_owned(),
                             space0_delimimited(crate::identifier::identifier_with_toplevel),
                         ),
                     ))),

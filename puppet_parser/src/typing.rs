@@ -261,8 +261,11 @@ fn parse_struct(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVa
     let kv_parser = pair(
         crate::common::space0_delimimited(parse_struct_key),
         preceded(
-            tag("=>"),
-            crate::common::space0_delimimited(parse_type_specification),
+            ParseError::protect(|_| "Expected '=>'".to_owned(), tag("=>")),
+            ParseError::protect(
+                |_| "Expected type specification".to_owned(),
+                crate::common::space0_delimimited(parse_type_specification),
+            ),
         ),
     );
 
