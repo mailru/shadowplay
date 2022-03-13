@@ -32,10 +32,10 @@ pub fn parse_class(input: Span) -> IResult<Class<Range>> {
     let mut parser = map(
         tuple((
             spaced_word("class"),
-            preceded(
-                super::common::separator1,
-                ParseError::protect(|_| "Failed to parse class header".to_owned(), parse_header),
-            ),
+            space0_delimimited(ParseError::protect(
+                |_| "Failed to parse class header".to_owned(),
+                parse_header,
+            )),
             ParseError::protect(
                 |_| "'{' or 'inherits' expected".to_string(),
                 pair(
@@ -66,7 +66,10 @@ pub fn parse_definition(input: Span) -> IResult<Definition<Range>> {
     map(
         tuple((
             spaced_word("define"),
-            preceded(super::common::separator1, parse_header),
+            space0_delimimited(ParseError::protect(
+                |_| "Failed to parse definition header".to_owned(),
+                parse_header,
+            )),
             space0_delimimited(ParseError::protect(
                 |_| "'{' expected".to_string(),
                 crate::statement::parse_statement_block,
@@ -85,7 +88,10 @@ pub fn parse_plan(input: Span) -> IResult<Plan<Range>> {
     map(
         tuple((
             spaced_word("plan"),
-            parse_header,
+            space0_delimimited(ParseError::protect(
+                |_| "Failed to parse plan header".to_owned(),
+                parse_header,
+            )),
             space0_delimimited(ParseError::protect(
                 |_| "'{' expected".to_string(),
                 crate::statement::parse_statement_block,
