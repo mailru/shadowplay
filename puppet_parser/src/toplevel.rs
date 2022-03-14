@@ -1,5 +1,5 @@
 use crate::{
-    common::{capture_comment, space0_delimimited, space1_delimimited},
+    common::{space0_delimimited, space1_delimimited},
     {range::Range, IResult, ParseError, Span},
 };
 
@@ -61,41 +61,33 @@ pub fn parse_functiondef(input: Span) -> IResult<FunctionDef<Range>> {
 }
 
 pub fn parse(input: Span) -> IResult<Toplevel<Range>> {
-    let (input, comment) = capture_comment(input)?;
-    let r = crate::common::space0_delimimited(alt((
+    crate::common::space0_delimimited(alt((
         map(crate::class::parse_class, |v| Toplevel {
             extra: v.extra.clone(),
             data: ToplevelVariant::Class(v),
-            comment: comment.clone(),
         }),
         map(crate::class::parse_definition, |v| Toplevel {
             extra: v.extra.clone(),
             data: ToplevelVariant::Definition(v),
-            comment: comment.clone(),
         }),
         map(crate::class::parse_plan, |v| Toplevel {
             extra: v.extra.clone(),
             data: ToplevelVariant::Plan(v),
-            comment: comment.clone(),
         }),
         map(parse_typedef, |v| Toplevel {
             extra: v.extra.clone(),
             data: ToplevelVariant::TypeDef(v),
-            comment: comment.clone(),
         }),
         map(parse_functiondef, |v| Toplevel {
             extra: v.extra.clone(),
             data: ToplevelVariant::FunctionDef(v),
-            comment: comment.clone(),
         }),
-    )))(input);
-    std::mem::drop(comment);
-    r
+    )))(input)
 }
 
 #[test]
 fn test_toplevel() {
-    assert!(parse(Span::new(
+    assert!(crate::statement::parse_statement_list(Span::new(
         "# @summary Install and enroll client to freeipa cluster
 #
 # A description of what this class does

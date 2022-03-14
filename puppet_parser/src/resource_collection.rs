@@ -6,7 +6,7 @@ use nom::{
 };
 
 use crate::{
-    common::{fold_many0_with_const_init, space0_delimimited},
+    common::{capture_comment, fold_many0_with_const_init, space0_delimimited},
     {range::Range, IResult, ParseError, Span},
 };
 
@@ -97,27 +97,32 @@ fn parse_search_expression(
 pub fn parse_resource_collection(
     input: Span,
 ) -> IResult<puppet_lang::resource_collection::ResourceCollection<Range>> {
-    let parser = pair(
+    let parser = tuple((
+        capture_comment,
         crate::typing::parse_type_specification,
         opt(tuple((
             space0_delimimited(tag("<|")),
             opt(parse_search_expression),
             space0_delimimited(tag("|>")),
         ))),
-    );
+    ));
 
-    map(parser, |(type_specification, search_expression)| {
-        let (search_expression, end_range) = match search_expression {
-            Some((_left_tag, search_expression, right_tag)) => {
-                (Some(search_expression), Range::from((right_tag, right_tag)))
+    map(
+        parser,
+        |(comment, type_specification, search_expression)| {
+            let (search_expression, end_range) = match search_expression {
+                Some((_left_tag, search_expression, right_tag)) => {
+                    (Some(search_expression), Range::from((right_tag, right_tag)))
+                }
+                None => (None, type_specification.extra.clone()),
+            };
+
+            puppet_lang::resource_collection::ResourceCollection {
+                extra: Range::from((&type_specification.extra, &end_range)),
+                type_specification,
+                search_expression: search_expression.flatten(),
+                comment,
             }
-            None => (None, type_specification.extra.clone()),
-        };
-
-        puppet_lang::resource_collection::ResourceCollection {
-            extra: Range::from((&type_specification.extra, &end_range)),
-            type_specification,
-            search_expression: search_expression.flatten(),
-        }
-    })(input)
+        },
+    )(input)
 }

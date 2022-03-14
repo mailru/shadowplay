@@ -1,3 +1,5 @@
+use puppet_parser::range::Range;
+
 pub mod error;
 pub mod hiera_yaml;
 pub mod pp;
@@ -6,7 +8,7 @@ pub mod yaml;
 #[derive(Debug, Clone)]
 pub struct PuppetAst {
     pub input: String,
-    pub data: Vec<puppet_lang::statement::Statement<puppet_parser::range::Range>>,
+    pub data: puppet_lang::List<Range, puppet_lang::statement::Statement<Range>>,
 }
 
 impl PuppetAst {

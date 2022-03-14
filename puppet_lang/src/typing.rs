@@ -77,9 +77,18 @@ pub enum TypeStructKey<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct TypeStructKV<EXTRA> {
+    pub key: TypeStructKey<EXTRA>,
+    pub value: TypeSpecification<EXTRA>,
+    pub comment: Vec<crate::comment::Comment<EXTRA>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct TypeStruct<EXTRA> {
-    pub keys: Vec<(TypeStructKey<EXTRA>, TypeSpecification<EXTRA>)>,
+    pub keys: crate::List<EXTRA, TypeStructKV<EXTRA>>,
     pub extra: EXTRA,
+    pub comment_before_keys: Vec<crate::comment::Comment<EXTRA>>,
+    pub comment_after_keys: Vec<crate::comment::Comment<EXTRA>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -167,4 +176,5 @@ pub enum TypeSpecificationVariant<EXTRA> {
 pub struct TypeSpecification<EXTRA> {
     pub data: TypeSpecificationVariant<EXTRA>,
     pub extra: EXTRA,
+    pub comment: Vec<crate::comment::Comment<EXTRA>>,
 }

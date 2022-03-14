@@ -227,7 +227,7 @@ impl AstLinter {
         array: &puppet_lang::expression::Array<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
-        for expr in &array.value {
+        for expr in &array.value.value {
             errors.append(&mut self.check_expression(storage, true, expr))
         }
         errors.append(&mut self.check_accessor(storage, &array.accessor));
@@ -261,9 +261,9 @@ impl AstLinter {
         elt: &puppet_lang::expression::Map<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
-        for (left, right) in &elt.value {
-            errors.append(&mut self.check_term(storage, left));
-            errors.append(&mut self.check_expression(storage, true, right));
+        for kv in &elt.value.value {
+            errors.append(&mut self.check_term(storage, &kv.key));
+            errors.append(&mut self.check_expression(storage, true, &kv.value));
         }
         errors.append(&mut self.check_accessor(storage, &elt.accessor));
 
@@ -488,7 +488,7 @@ impl AstLinter {
             }
             ExpressionVariant::Selector(elt) => {
                 errors.append(&mut self.check_expression(storage, false, &elt.condition));
-                for case in &elt.cases {
+                for case in &elt.cases.value {
                     match &case.case {
                         puppet_lang::expression::CaseVariant::Term(term) => {
                             errors.append(&mut self.check_term(storage, term))
@@ -537,8 +537,8 @@ impl AstLinter {
         }
 
         errors.append(&mut self.check_expression(storage, true, &elt.condition));
-        errors.append(&mut self.check_statement_set(storage, elt.body.as_ref()));
-        for statement in elt.body.as_ref() {
+        errors.append(&mut self.check_statement_set(storage, elt.body.value.as_ref()));
+        for statement in &elt.body.value {
             errors.append(&mut self.check_statement(storage, statement));
         }
 
@@ -556,22 +556,22 @@ impl AstLinter {
         }
 
         errors.append(&mut self.check_expression(storage, true, &elt.condition.condition));
-        errors.append(&mut self.check_statement_set(storage, elt.condition.body.as_ref()));
-        for statement in elt.condition.body.as_ref() {
+        errors.append(&mut self.check_statement_set(storage, elt.condition.body.value.as_ref()));
+        for statement in &elt.condition.body.value {
             errors.append(&mut self.check_statement(storage, statement));
         }
 
         for elsif_block in &elt.elsif_list {
             errors.append(&mut self.check_expression(storage, true, &elsif_block.condition));
-            errors.append(&mut self.check_statement_set(storage, elsif_block.body.as_ref()));
-            for statement in elsif_block.body.as_ref() {
+            errors.append(&mut self.check_statement_set(storage, elsif_block.body.value.as_ref()));
+            for statement in &elsif_block.body.value {
                 errors.append(&mut self.check_statement(storage, statement));
             }
         }
 
         if let Some(else_block) = &elt.else_block {
-            errors.append(&mut self.check_statement_set(storage, else_block.as_ref()));
-            for statement in else_block.as_ref() {
+            errors.append(&mut self.check_statement_set(storage, else_block.value.as_ref()));
+            for statement in &else_block.value {
                 errors.append(&mut self.check_statement(storage, statement));
             }
         }
@@ -589,15 +589,15 @@ impl AstLinter {
             errors.append(&mut lint.check_resource_set(elt));
         }
 
-        for resource in &elt.list {
+        for resource in &elt.list.value {
             errors.append(&mut self.check_expression(storage, true, &resource.title));
             for attribute in &resource.attributes {
-                match attribute {
-                    puppet_lang::statement::ResourceAttribute::Name((name, value)) => {
+                match &attribute.value {
+                    puppet_lang::statement::ResourceAttributeVariant::Name((name, value)) => {
                         errors.append(&mut self.check_string_expression(storage, name));
                         errors.append(&mut self.check_expression(storage, true, value))
                     }
-                    puppet_lang::statement::ResourceAttribute::Group(term) => {
+                    puppet_lang::statement::ResourceAttributeVariant::Group(term) => {
                         errors.append(&mut self.check_term(storage, term))
                     }
                 }
@@ -691,9 +691,9 @@ impl AstLinter {
 
         errors.append(&mut self.check_expression(storage, true, &elt.condition));
 
-        for case in &elt.elements {
-            errors.append(&mut self.check_statement_set(storage, case.body.as_ref()));
-            for statement in case.body.as_ref() {
+        for case in &elt.elements.value {
+            errors.append(&mut self.check_statement_set(storage, &case.body.value));
+            for statement in &case.body.value {
                 errors.append(&mut self.check_statement(storage, statement));
             }
         }
@@ -791,7 +791,11 @@ impl AstLinter {
         for lint in storage.early_pass() {
             errors.append(&mut lint.check_class(elt));
         }
-        errors.append(&mut self.check_toplevel_variant(storage, &elt.arguments, &elt.body));
+        errors.append(&mut self.check_toplevel_variant(
+            storage,
+            &elt.arguments.value,
+            &elt.body.value,
+        ));
 
         errors
     }
@@ -820,8 +824,8 @@ impl AstLinter {
         for arg in &elt.args {
             errors.append(&mut self.check_argument(storage, arg))
         }
-        errors.append(&mut self.check_statement_set(storage, &elt.body));
-        for statement in &elt.body {
+        errors.append(&mut self.check_statement_set(storage, &elt.body.value));
+        for statement in &elt.body.value {
             errors.append(&mut self.check_statement(storage, statement));
         }
 
@@ -838,7 +842,11 @@ impl AstLinter {
             errors.append(&mut lint.check_definition(elt));
         }
 
-        errors.append(&mut self.check_toplevel_variant(storage, &elt.arguments, &elt.body));
+        errors.append(&mut self.check_toplevel_variant(
+            storage,
+            &elt.arguments.value,
+            &elt.body.value,
+        ));
 
         errors
     }
@@ -853,7 +861,11 @@ impl AstLinter {
             errors.append(&mut lint.check_plan(elt));
         }
 
-        errors.append(&mut self.check_toplevel_variant(storage, &elt.arguments, &elt.body));
+        errors.append(&mut self.check_toplevel_variant(
+            storage,
+            &elt.arguments.value,
+            &elt.body.value,
+        ));
 
         errors
     }
@@ -881,7 +893,11 @@ impl AstLinter {
             errors.append(&mut lint.check_functiondef(elt));
         }
 
-        errors.append(&mut self.check_toplevel_variant(storage, &elt.arguments, &elt.body));
+        errors.append(&mut self.check_toplevel_variant(
+            storage,
+            &elt.arguments.value,
+            &elt.body.value,
+        ));
 
         errors
     }

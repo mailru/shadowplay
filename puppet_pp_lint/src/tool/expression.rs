@@ -57,7 +57,7 @@ pub fn has_side_effect<EXTRA>(expr: &puppet_lang::expression::Expression<EXTRA>)
         puppet_lang::expression::ExpressionVariant::In(_) => false,
         puppet_lang::expression::ExpressionVariant::Not(inner) => has_side_effect(inner),
         puppet_lang::expression::ExpressionVariant::Selector(selector) => {
-            for case in &selector.cases {
+            for case in &selector.cases.value {
                 if has_side_effect(&case.body) {
                     return true;
                 }

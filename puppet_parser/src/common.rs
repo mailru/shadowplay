@@ -1,70 +1,85 @@
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag, take_until},
-    character::complete::{anychar, char, multispace0, multispace1, newline},
-    combinator::{map, opt, peek, recognize, value, verify},
-    multi::{many0, many1, separated_list0, separated_list1},
+    character::complete::{anychar, multispace0, multispace1, newline},
+    combinator::{eof, map, opt, peek, recognize, value, verify},
+    multi::{many0, separated_list0, separated_list1},
     sequence::{delimited, pair, preceded, terminated, tuple},
     Parser,
 };
 
-use crate::{IResult, ParseError, Span};
+use crate::{range::Range, IResult, ParseError, Span};
 
-pub fn comment(input: Span) -> IResult<()> {
-    let shell_comment_extractor = value(
-        (),
-        tuple((preceded(char('#'), opt(is_not("\n"))), opt(newline))),
-    );
-    let c_comment_extractor = value((), tuple((tag("/*"), take_until("*/"), tag("*/"))));
-
-    alt((shell_comment_extractor, c_comment_extractor))(input)
+pub fn shell_comment(input: Span) -> IResult<(Span, Span, Span)> {
+    tuple((
+        tag("#"),
+        recognize(many0(is_not("\n"))),
+        alt((recognize(newline), eof)),
+    ))(input)
 }
 
-pub fn capture_comment(input: Span) -> IResult<Option<Vec<String>>> {
-    let shell_comment_extractor = preceded(
-        char('#'),
-        recognize(pair(many0(is_not("\n")), opt(newline))),
-    );
+pub fn capture_comment(input: Span) -> IResult<Vec<puppet_lang::comment::Comment<Range>>> {
+    let (input, _) = multispace0(input)?;
 
-    let c_comment_extractor = delimited(tag("/*"), take_until("*/"), tag("*/"));
+    let c_comment_extractor = tuple((tag("/*"), take_until("*/"), tag("*/")));
 
-    opt(separated_list1(
-        multispace0,
-        map(
-            alt((shell_comment_extractor, c_comment_extractor)),
-            |v: Span| v.to_string(),
-        ),
-    ))(input)
+    map(
+        many0(delimited(
+            multispace0,
+            alt((shell_comment, c_comment_extractor)),
+            multispace0,
+        )),
+        |v: Vec<(Span, Span, Span)>| {
+            v.iter()
+                .map(|elt| puppet_lang::comment::Comment {
+                    extra: Range::from((elt.0, elt.2)),
+                    value: elt.1.to_string(),
+                })
+                .collect()
+        },
+    )(input)
+}
+
+pub fn list_with_last_comment<'a, O, F>(
+    parser: F,
+) -> impl FnMut(Span<'a>) -> IResult<puppet_lang::List<Range, O>>
+where
+    F: Parser<Span<'a>, Vec<O>, ParseError<'a>>,
+    O: Clone,
+{
+    map(pair(parser, capture_comment), |(value, last_comment)| {
+        puppet_lang::List {
+            value,
+            last_comment,
+        }
+    })
+}
+
+pub fn comma_separated_list_with_last_comment<'a, O, F>(
+    parser: F,
+) -> impl FnMut(Span<'a>) -> IResult<puppet_lang::List<Range, O>>
+where
+    F: Parser<Span<'a>, O, ParseError<'a>>,
+    O: Clone,
+{
+    list_with_last_comment(terminated(
+        separated_list0(comma_separator, parser),
+        opt(comma_separator),
+    ))
 }
 
 #[test]
 fn test_comment() {
-    let (_, res) = comment.parse(Span::new("# hello world\n")).unwrap();
-    assert_eq!(res, ())
+    let (_, res) = shell_comment.parse(Span::new("# hello world\n")).unwrap();
+    assert_eq!(*res.1, " hello world")
 }
 
 pub fn separator1(input: Span) -> IResult<()> {
     value((), multispace1)(input)
-    // value(
-    //     (),
-    //     many1(nom::branch::alt((value((), multispace1), comment))),
-    // )(input)
 }
 
 pub fn separator0(input: Span) -> IResult<()> {
     value((), multispace0)(input)
-    // value(
-    //     (),
-    //     many0(nom::branch::alt((value((), multispace1), comment))),
-    // )(input)
-}
-
-#[test]
-fn test_separator() {
-    let (_, res) = delimited(separator1, tag("aaa"), separator1)
-        .parse(Span::new("#sdfsdf\n#sdfsdf\naaa# hello world\n#sdfsdf"))
-        .unwrap();
-    assert_eq!(*res, "aaa")
 }
 
 pub fn space0_delimimited<'a, O, F>(parser: F) -> impl FnMut(Span<'a>) -> IResult<O>
@@ -179,7 +194,7 @@ where
 {
     round_brackets_delimimited(terminated(
         separated_list0(comma_separator, parser),
-        // В конце не обязательная запятая
+        // Optional comma at the end
         opt(comma_separator),
     ))
 }
@@ -193,7 +208,7 @@ where
 {
     round_brackets_delimimited(terminated(
         separated_list1(comma_separator, parser),
-        // В конце не обязательная запятая
+        // Optional comma at the end
         opt(comma_separator),
     ))
 }
@@ -218,7 +233,7 @@ where
 {
     square_brackets_delimimited(terminated(
         separated_list0(comma_separator, parser),
-        // В конце не обязательная запятая
+        // Optional comma at the end
         opt(comma_separator),
     ))
 }
@@ -232,7 +247,7 @@ where
 {
     square_brackets_delimimited(terminated(
         separated_list1(comma_separator, parser),
-        // В конце не обязательная запятая
+        // Optional comma at the end
         opt(comma_separator),
     ))
 }
@@ -246,7 +261,7 @@ where
 {
     curly_brackets_delimimited(terminated(
         separated_list0(comma_separator, parser),
-        // В конце не обязательная запятая
+        // Optional comma at the end
         opt(comma_separator),
     ))
 }
@@ -260,7 +275,7 @@ where
 {
     pipes_delimimited(terminated(
         separated_list0(comma_separator, parser),
-        // В конце не обязательная запятая
+        // Optional comma at the end
         opt(comma_separator),
     ))
 }

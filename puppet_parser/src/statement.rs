@@ -10,8 +10,8 @@ use puppet_lang::ExtraGetter;
 
 use crate::{
     common::{
-        comma_separator, curly_brackets_delimimited, space0_delimimited, spaced0_separator,
-        spaced_word, square_brackets_comma_separated1,
+        capture_comment, comma_separator, curly_brackets_delimimited, space0_delimimited,
+        spaced0_separator, spaced_word, square_brackets_comma_separated1,
     },
     term::parse_string_variant,
     {range::Range, IResult, ParseError, Span},
@@ -36,7 +36,7 @@ fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Range
                 )),
             ),
         ),
-        puppet_lang::statement::ResourceAttribute::Name,
+        puppet_lang::statement::ResourceAttributeVariant::Name,
     );
 
     let parse_attribute_group = map(
@@ -50,12 +50,18 @@ fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Range
                 )),
             ),
         ),
-        |(_, term)| puppet_lang::statement::ResourceAttribute::Group(term),
+        |(_, term)| puppet_lang::statement::ResourceAttributeVariant::Group(term),
     );
 
     let parse_arguments = separated_list0(
         comma_separator,
-        alt((parse_attribute, parse_attribute_group)),
+        map(
+            pair(
+                capture_comment,
+                alt((parse_attribute, parse_attribute_group)),
+            ),
+            |(comment, value)| puppet_lang::statement::ResourceAttribute { value, comment },
+        ),
     );
 
     let mut parser = map(
@@ -68,10 +74,14 @@ fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Range
             let last_range = match opt_comma {
                 Some(v) => Range::from((v, v)),
                 None => match arguments.last() {
-                    Some(puppet_lang::statement::ResourceAttribute::Name((_, v))) => {
-                        v.extra.clone()
-                    }
-                    Some(puppet_lang::statement::ResourceAttribute::Group(v)) => v.extra.clone(),
+                    Some(v) => match &v.value {
+                        puppet_lang::statement::ResourceAttributeVariant::Name((_, v)) => {
+                            v.extra.clone()
+                        }
+                        puppet_lang::statement::ResourceAttributeVariant::Group(v) => {
+                            v.extra.clone()
+                        }
+                    },
                     None => title.extra.clone(),
                 },
             };
@@ -88,19 +98,22 @@ fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Range
 
 fn parse_resource_set(input: Span) -> IResult<puppet_lang::statement::ResourceSet<Range>> {
     let parser = tuple((
+        capture_comment,
         space0_delimimited(pair(
             opt(tag("@")),
             crate::identifier::anycase_identifier_with_ns,
         )),
-        space0_delimimited(crate::common::curly_brackets_delimimited(terminated(
-            separated_list0(spaced0_separator(";"), parse_resource),
-            opt(spaced0_separator(";")),
-        ))),
+        space0_delimimited(crate::common::curly_brackets_delimimited(
+            crate::common::list_with_last_comment(terminated(
+                separated_list0(spaced0_separator(";"), parse_resource),
+                opt(spaced0_separator(";")),
+            )),
+        )),
     ));
 
     map(
         parser,
-        |((virtual_tag, name), (_left_curly, list, right_curly))| {
+        |(comment, (virtual_tag, name), (_left_curly, list, right_curly))| {
             let start_range = match virtual_tag {
                 Some(v) => Range::from((v, v)),
                 None => name.extra.clone(),
@@ -110,6 +123,7 @@ fn parse_resource_set(input: Span) -> IResult<puppet_lang::statement::ResourceSe
                 extra: Range::from((&start_range, right_curly)),
                 name,
                 list,
+                comment,
             }
         },
     )(input)
@@ -181,16 +195,18 @@ fn parse_relation(input: Span) -> IResult<puppet_lang::statement::RelationList<R
     ));
 
     let tail_parser = opt(map(
-        pair(
+        tuple((
+            capture_comment,
             space0_delimimited(parse_relation_type),
             space0_delimimited(ParseError::protect(
                 |_| "Second resource or type is expected after relation tag".to_string(),
                 parse_relation,
             )),
-        ),
-        |(relation_type, relation_to)| puppet_lang::statement::Relation {
+        )),
+        |(comment, relation_type, relation_to)| puppet_lang::statement::Relation {
             relation_type,
             relation_to: Box::new(relation_to),
+            comment,
         },
     ));
 
@@ -214,6 +230,7 @@ fn parse_if_else(input: Span) -> IResult<StatementVariant<Range>> {
             |_| "Condition is expected after 'if'".to_string(),
             crate::expression::parse_expression,
         )),
+        capture_comment,
         ParseError::protect(
             |_| "Statement block expected 'if' condition".to_string(),
             parse_statement_block,
@@ -221,60 +238,87 @@ fn parse_if_else(input: Span) -> IResult<StatementVariant<Range>> {
     ));
 
     let parser_elsif = many0(tuple((
+        capture_comment,
         spaced_word("elsif"),
         space0_delimimited(ParseError::protect(
             |_| "Condition is expected after 'elsif'".to_string(),
             crate::expression::parse_expression,
         )),
+        capture_comment,
         ParseError::protect(
             |_| "Statement block expected 'elsif' condition".to_string(),
             parse_statement_block,
         ),
     )));
 
-    let parser_else = preceded(
+    let parser_else = tuple((
+        capture_comment,
         spaced_word("else"),
+        capture_comment,
         ParseError::protect(
             |_| "Statement block expected 'else'".to_string(),
             parse_statement_block,
         ),
-    );
+    ));
 
     let parser = tuple((parser_if, opt(parser_elsif), opt(parser_else)));
 
     let parser = map(parser, |(first, middle, else_block)| {
-        let (tag, condition, (_left_curly, body, right_curly)) = first;
+        let (tag, condition, comment_before_body, (_left_curly, body, right_curly)) = first;
         let if_block = puppet_lang::statement::ConditionAndStatement {
             condition,
             body: Box::new(body),
             extra: (tag, right_curly).into(),
+            comment_before_body,
+            // this is 'if' block
+            comment_before_elsif_word: vec![],
         };
 
         let elsif_list: Vec<_> = middle
             .unwrap_or_default()
             .into_iter()
-            .map(|(tag, condition, (_left_curly, body, right_curly))| {
-                puppet_lang::statement::ConditionAndStatement {
+            .map(
+                |(
+                    comment_before_elsif_word,
+                    tag,
                     condition,
-                    body: Box::new(body),
-                    extra: (tag, right_curly).into(),
-                }
-            })
+                    comment_before_body,
+                    (_left_curly, body, right_curly),
+                )| {
+                    puppet_lang::statement::ConditionAndStatement {
+                        condition,
+                        body: Box::new(body),
+                        extra: (tag, right_curly).into(),
+                        comment_before_body,
+                        comment_before_elsif_word,
+                    }
+                },
+            )
             .collect();
 
-        let end_range = match else_block {
-            Some((_, _, right_curly)) => Range::from((right_curly, right_curly)),
+        let end_range = match &else_block {
+            Some((
+                _comment_before_else,
+                _else_word,
+                _comment_before_body,
+                (_left_curly, _, right_curly),
+            )) => Range::from((right_curly, right_curly)),
             None => match &elsif_list.last() {
                 Some(v) => v.extra.clone(),
                 None => if_block.extra.clone(),
             },
         };
 
+        let comment_before_else_word = else_block.as_ref().map(|v| v.0.clone()).unwrap_or_default();
+        let comment_before_body = else_block.as_ref().map(|v| v.2.clone()).unwrap_or_default();
+
         puppet_lang::statement::IfElse {
             extra: (&if_block.extra, &end_range).into(),
             condition: if_block,
             elsif_list,
-            else_block: else_block.map(|body| Box::new(body.1)),
+            else_block: else_block.map(|body| Box::new(body.3 .1)),
+            comment_before_body,
+            comment_before_else_word,
         }
     });
 
@@ -288,16 +332,20 @@ fn parse_unless(input: Span) -> IResult<StatementVariant<Range>> {
             |_| "Condition is expected after 'unless'".to_string(),
             crate::expression::parse_expression,
         )),
+        capture_comment,
         parse_statement_block,
     ));
 
     map(
         parser,
-        |(op, condition, (_left_curly, body, right_curly))| {
+        |(op, condition, comment_before_body, (_left_curly, body, right_curly))| {
             StatementVariant::Unless(puppet_lang::statement::ConditionAndStatement {
                 condition,
                 body: Box::new(body),
                 extra: (op, right_curly).into(),
+                comment_before_body,
+                // not applicable here
+                comment_before_elsif_word: vec![],
             })
         },
     )(input)
@@ -314,6 +362,7 @@ fn parse_case(input: Span) -> IResult<StatementVariant<Range>> {
 
     let parser_element = map(
         tuple((
+            capture_comment,
             separated_list1(
                 comma_separator,
                 space0_delimimited(crate::expression::parse_case_variant),
@@ -321,16 +370,19 @@ fn parse_case(input: Span) -> IResult<StatementVariant<Range>> {
             tag(":"),
             space0_delimimited(parse_statement_block),
         )),
-        |(matches, _tag, (_left_curly, body, right_curly))| puppet_lang::statement::CaseElement {
-            extra: (matches.first().unwrap().extra(), right_curly).into(),
-            matches,
-            body: Box::new(body),
+        |(comment, matches, _tag, (_left_curly, body, right_curly))| {
+            puppet_lang::statement::CaseElement {
+                extra: (matches.first().unwrap().extra(), right_curly).into(),
+                matches,
+                body: Box::new(body),
+                comment,
+            }
         },
     );
 
     let parser = pair(
         parser_header,
-        curly_brackets_delimimited(many0(parser_element)),
+        curly_brackets_delimimited(crate::common::list_with_last_comment(many0(parser_element))),
     );
 
     let parser = map(
@@ -390,17 +442,22 @@ fn parse_statement_variant(input: Span) -> IResult<StatementVariant<Range>> {
 }
 
 fn parse_statement(input: Span) -> IResult<Statement<Range>> {
-    map(parse_statement_variant, |value| Statement { value })(input)
+    map(
+        pair(capture_comment, parse_statement_variant),
+        |(comment, value)| Statement { value, comment },
+    )(input)
 }
 
-pub fn parse_statement_list(input: Span) -> IResult<Vec<Statement<Range>>> {
-    many0(terminated(
+pub fn parse_statement_list(input: Span) -> IResult<puppet_lang::List<Range, Statement<Range>>> {
+    crate::common::list_with_last_comment(many0(terminated(
         space0_delimimited(parse_statement),
         opt(space0_delimimited(tag(";"))),
-    ))(input)
+    )))(input)
 }
 
-pub fn parse_statement_block(input: Span) -> IResult<(Span, Vec<Statement<Range>>, Span)> {
+pub fn parse_statement_block(
+    input: Span,
+) -> IResult<(Span, puppet_lang::List<Range, Statement<Range>>, Span)> {
     tuple((
         tag("{"),
         parse_statement_list,

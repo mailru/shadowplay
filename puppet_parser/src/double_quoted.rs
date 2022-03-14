@@ -43,6 +43,8 @@ fn parse_interpolation(input: Span) -> IResult<DoubleQuotedFragment<Range>> {
                         ),
                     },
                 ),
+                // Comments are not possible for interpolated expressions
+                comment: vec![],
             },
         )
     };

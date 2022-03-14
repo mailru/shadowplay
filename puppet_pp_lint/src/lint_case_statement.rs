@@ -13,7 +13,7 @@ impl LintPass for EmptyCasesList {
 
 impl EarlyLintPass for EmptyCasesList {
     fn check_case_statement(&self, elt: &puppet_lang::statement::Case<Range>) -> Vec<LintError> {
-        if elt.elements.is_empty() {
+        if elt.elements.value.is_empty() {
             return vec![LintError::new(
                 Box::new(self.clone()),
                 "Cases list is empty",
@@ -38,7 +38,7 @@ impl EarlyLintPass for DefaultCaseIsNotLast {
     fn check_case_statement(&self, elt: &puppet_lang::statement::Case<Range>) -> Vec<LintError> {
         let mut default = None;
         let mut errors = Vec::new();
-        for case in &elt.elements {
+        for case in &elt.elements.value {
             if case
                 .matches
                 .iter()
@@ -74,7 +74,7 @@ impl EarlyLintPass for MultipleDefaultCase {
     fn check_case_statement(&self, elt: &puppet_lang::statement::Case<Range>) -> Vec<LintError> {
         let mut default: Option<&puppet_lang::statement::CaseElement<Range>> = None;
         let mut errors = Vec::new();
-        for case in &elt.elements {
+        for case in &elt.elements.value {
             if case
                 .matches
                 .iter()
@@ -110,7 +110,7 @@ impl LintPass for NoDefaultCase {
 impl EarlyLintPass for NoDefaultCase {
     fn check_case_statement(&self, elt: &puppet_lang::statement::Case<Range>) -> Vec<LintError> {
         let mut has_default = false;
-        for case in &elt.elements {
+        for case in &elt.elements.value {
             for case_elt in &case.matches {
                 if matches!(case_elt, puppet_lang::expression::CaseVariant::Default(_)) {
                     has_default = true

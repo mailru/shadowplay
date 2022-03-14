@@ -91,7 +91,7 @@ impl Check {
 
         let mut class = None;
 
-        if let Some(elt) = ast.data.into_iter().next() {
+        if let Some(elt) = ast.data.value.into_iter().next() {
             match elt.value {
                 puppet_lang::statement::StatementVariant::Toplevel(
                     puppet_lang::toplevel::Toplevel {

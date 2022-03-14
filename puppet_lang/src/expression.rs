@@ -23,7 +23,7 @@ pub struct RegexpGroupID<EXTRA> {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Lambda<EXTRA> {
     pub args: Vec<crate::argument::Argument<EXTRA>>,
-    pub body: Vec<crate::statement::Statement<EXTRA>>,
+    pub body: crate::List<EXTRA, crate::statement::Statement<EXTRA>>,
     pub extra: EXTRA,
 }
 
@@ -80,15 +80,22 @@ pub struct Parens<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct MapKV<EXTRA> {
+    pub key: Term<EXTRA>,
+    pub value: Expression<EXTRA>,
+    pub comment: Vec<crate::comment::Comment<EXTRA>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Map<EXTRA> {
-    pub value: Vec<(Term<EXTRA>, Expression<EXTRA>)>,
+    pub value: crate::List<EXTRA, MapKV<EXTRA>>,
     pub accessor: Option<Accessor<EXTRA>>,
     pub extra: EXTRA,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Array<EXTRA> {
-    pub value: Vec<Expression<EXTRA>>,
+    pub value: crate::List<EXTRA, Expression<EXTRA>>,
     pub accessor: Option<Accessor<EXTRA>>,
     pub extra: EXTRA,
 }
@@ -141,12 +148,13 @@ pub struct SelectorCase<EXTRA> {
     pub case: CaseVariant<EXTRA>,
     pub body: Box<Expression<EXTRA>>,
     pub extra: EXTRA,
+    pub comment: Vec<crate::comment::Comment<EXTRA>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Selector<EXTRA> {
     pub condition: Box<Expression<EXTRA>>,
-    pub cases: Vec<SelectorCase<EXTRA>>,
+    pub cases: crate::List<EXTRA, SelectorCase<EXTRA>>,
     pub extra: EXTRA,
 }
 
@@ -209,4 +217,5 @@ pub enum ExpressionVariant<EXTRA> {
 pub struct Expression<EXTRA> {
     pub value: ExpressionVariant<EXTRA>,
     pub extra: EXTRA,
+    pub comment: Vec<crate::comment::Comment<EXTRA>>,
 }

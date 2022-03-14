@@ -47,10 +47,12 @@ impl EarlyLintPass for UniqueAttributeName {
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
-        for resource in &elt.list {
+        for resource in &elt.list.value {
             let mut names = std::collections::HashSet::new();
             for attribute in &resource.attributes {
-                if let puppet_lang::statement::ResourceAttribute::Name(pair) = attribute {
+                if let puppet_lang::statement::ResourceAttributeVariant::Name(pair) =
+                    &attribute.value
+                {
                     let name = puppet_ast_tool::string::raw_content(&pair.0);
                     if names.contains(&name) {
                         errors.push(LintError::new(
@@ -83,9 +85,11 @@ impl EarlyLintPass for EnsureAttributeIsNotTheFirst {
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
-        for resource in &elt.list {
+        for resource in &elt.list.value {
             for (pos, attribute) in resource.attributes.iter().enumerate() {
-                if let puppet_lang::statement::ResourceAttribute::Name(pair) = attribute {
+                if let puppet_lang::statement::ResourceAttributeVariant::Name(pair) =
+                    &attribute.value
+                {
                     let name = puppet_ast_tool::string::raw_content(&pair.0);
                     if name == "ensure" && pos > 0 {
                         errors.push(LintError::new_with_url(
@@ -177,9 +181,11 @@ impl EarlyLintPass for FileModeAttributeIsString {
             return vec![];
         }
 
-        for resource in &elt.list {
+        for resource in &elt.list.value {
             for attribute in &resource.attributes {
-                if let puppet_lang::statement::ResourceAttribute::Name(attribute) = attribute {
+                if let puppet_lang::statement::ResourceAttributeVariant::Name(attribute) =
+                    &attribute.value
+                {
                     let name = puppet_ast_tool::string::raw_content(&attribute.0);
                     if name == "mode" {
                         if let puppet_lang::expression::ExpressionVariant::Term(term) =
@@ -224,7 +230,7 @@ impl EarlyLintPass for MultipleResourcesWithoutDefault {
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut has_default = false;
-        for resource in &elt.list {
+        for resource in &elt.list.value {
             if let puppet_lang::expression::ExpressionVariant::Term(term) = &resource.title.value {
                 if let puppet_lang::expression::TermVariant::String(v) = &term.value {
                     if puppet_ast_tool::string::raw_content(v) == "default" {
@@ -234,7 +240,7 @@ impl EarlyLintPass for MultipleResourcesWithoutDefault {
             }
         }
 
-        if elt.list.len() > 1 {
+        if elt.list.value.len() > 1 {
             if !has_default {
                 return vec![LintError::new_with_url(
                     Box::new(self.clone()),
@@ -243,7 +249,7 @@ impl EarlyLintPass for MultipleResourcesWithoutDefault {
                     &elt.extra,
                 )];
             }
-            if elt.list.len() == 2 {
+            if elt.list.value.len() == 2 {
                 return vec![LintError::new(
                                         Box::new(self.clone()),
                     "Multiple resources with default set and only two sets in total. Defaults set can be merged with the only resource.",
@@ -271,9 +277,11 @@ impl EarlyLintPass for SelectorInAttributeValue {
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
-        for resource in &elt.list {
+        for resource in &elt.list.value {
             for attribute in &resource.attributes {
-                if let puppet_lang::statement::ResourceAttribute::Name(attribute) = attribute {
+                if let puppet_lang::statement::ResourceAttributeVariant::Name(attribute) =
+                    &attribute.value
+                {
                     if matches!(
                         attribute.1.value,
                         puppet_lang::expression::ExpressionVariant::Selector(_)

@@ -85,7 +85,8 @@ pub struct Dump {
 impl Dump {
     pub fn dump(&self) {
         for path in &self.paths {
-            let pp = std::fs::read_to_string(&path).expect(&format!("Cannot load {:?}", &path));
+            let pp = std::fs::read_to_string(&path)
+                .unwrap_or_else(|err| panic!("Cannot load {:?}: {}", &path, err));
 
             let ast = match crate::check::PuppetAst::parse(&pp) {
                 Err(err) => {

@@ -1,4 +1,4 @@
-use crate::{range::Range, IResult, ParseError, Span};
+use crate::{common::capture_comment, range::Range, IResult, ParseError, Span};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -258,30 +258,52 @@ fn parse_struct_key(input: Span) -> IResult<puppet_lang::typing::TypeStructKey<R
 }
 
 fn parse_struct(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVariant<Range>> {
-    let kv_parser = pair(
-        crate::common::space0_delimimited(parse_struct_key),
-        preceded(
-            ParseError::protect(|_| "Expected '=>'".to_owned(), tag("=>")),
-            ParseError::protect(
-                |_| "Expected type specification".to_owned(),
-                crate::common::space0_delimimited(parse_type_specification),
+    let kv_parser = map(
+        tuple((
+            capture_comment,
+            crate::common::space0_delimimited(parse_struct_key),
+            preceded(
+                ParseError::protect(|_| "Expected '=>'".to_owned(), tag("=>")),
+                ParseError::protect(
+                    |_| "Expected type specification".to_owned(),
+                    crate::common::space0_delimimited(parse_type_specification),
+                ),
             ),
-        ),
+        )),
+        |(comment, key, value)| puppet_lang::typing::TypeStructKV {
+            key,
+            value,
+            comment,
+        },
     );
 
     let parser = map(
         pair(
             tag("Struct"),
-            crate::common::square_brackets_delimimited(
-                crate::common::curly_brackets_comma_separated0(kv_parser),
-            ),
+            crate::common::square_brackets_delimimited(tuple((
+                capture_comment,
+                crate::common::curly_brackets_delimimited(
+                    crate::common::comma_separated_list_with_last_comment(kv_parser),
+                ),
+                capture_comment,
+            ))),
         ),
         |(
             tag_kw,
-            (_left_bracket, (_inner_left_bracket, keys, _inner_right_bracket), right_bracket),
+            (
+                _left_bracket,
+                (
+                    comment_before_keys,
+                    (_inner_left_curly, keys, _inner_right_curly),
+                    comment_after_keys,
+                ),
+                right_bracket,
+            ),
         )| puppet_lang::typing::TypeStruct {
             keys,
             extra: (tag_kw, right_bracket).into(),
+            comment_before_keys,
+            comment_after_keys,
         },
     );
 
@@ -447,9 +469,12 @@ pub fn parse_type_specification(
         parse_external_type,
     ));
 
-    map(parser, |data| puppet_lang::typing::TypeSpecification {
-        extra: (&data).into(),
-        data,
+    map(pair(capture_comment, parser), |(comment, data)| {
+        puppet_lang::typing::TypeSpecification {
+            extra: (&data).into(),
+            data,
+            comment,
+        }
     })(input)
 }
 
@@ -510,6 +535,7 @@ fn test_array() {
         puppet_lang::typing::TypeSpecificationVariant::Array(puppet_lang::typing::TypeArray {
             extra: Range::new(0, 1, 1, 24, 1, 25),
             inner: Some(Box::new(puppet_lang::typing::TypeSpecification {
+                comment: vec![],
                 data: puppet_lang::typing::TypeSpecificationVariant::String(
                     puppet_lang::typing::TypeString {
                         min: Some(puppet_lang::expression::Usize {
@@ -543,6 +569,7 @@ fn test_hash() {
         puppet_lang::typing::TypeSpecificationVariant::Hash(puppet_lang::typing::TypeHash {
             extra: Range::new(0, 1, 1, 27, 1, 28),
             key: Some(Box::new(puppet_lang::typing::TypeSpecification {
+                comment: vec![],
                 data: puppet_lang::typing::TypeSpecificationVariant::String(
                     puppet_lang::typing::TypeString {
                         min: Some(puppet_lang::expression::Usize {
@@ -559,6 +586,7 @@ fn test_hash() {
                 extra: Range::new(6, 1, 7, 17, 1, 18)
             })),
             value: Some(Box::new(puppet_lang::typing::TypeSpecification {
+                comment: vec![],
                 data: puppet_lang::typing::TypeSpecificationVariant::Boolean(
                     puppet_lang::typing::Boolean {
                         extra: Range::new(20, 1, 21, 26, 1, 27)
@@ -584,6 +612,7 @@ fn test_optional() {
                 extra: Range::new(0, 1, 1, 23, 1, 24),
                 value: puppet_lang::typing::TypeOptionalVariant::TypeSpecification(Box::new(
                     puppet_lang::typing::TypeSpecification {
+                        comment: vec![],
                         data: puppet_lang::typing::TypeSpecificationVariant::String(
                             puppet_lang::typing::TypeString {
                                 min: Some(puppet_lang::expression::Usize {
@@ -612,29 +641,38 @@ fn test_struct() {
             .unwrap()
             .1,
         puppet_lang::typing::TypeSpecificationVariant::Struct(puppet_lang::typing::TypeStruct {
+            comment_before_keys: vec![],
+            comment_after_keys: vec![],
             extra: Range::new(0, 1, 1, 31, 1, 32),
-            keys: vec![(
-                puppet_lang::typing::TypeStructKey::String(puppet_lang::string::StringExpr {
-                    data: puppet_lang::string::StringVariant::SingleQuoted(vec![
-                        puppet_lang::string::StringFragment::Literal(
-                            puppet_lang::string::Literal {
-                                data: "some_key".to_owned(),
-                                extra: Range::new(9, 1, 10, 16, 1, 17)
-                            }
-                        )
-                    ]),
-                    accessor: None,
-                    extra: Range::new(9, 1, 10, 16, 1, 17)
-                }),
-                puppet_lang::typing::TypeSpecification {
-                    data: puppet_lang::typing::TypeSpecificationVariant::Boolean(
-                        puppet_lang::typing::Boolean {
-                            extra: Range::new(21, 1, 22, 27, 1, 28)
+            keys: puppet_lang::List {
+                last_comment: vec![],
+                value: vec![puppet_lang::typing::TypeStructKV {
+                    key: puppet_lang::typing::TypeStructKey::String(
+                        puppet_lang::string::StringExpr {
+                            data: puppet_lang::string::StringVariant::SingleQuoted(vec![
+                                puppet_lang::string::StringFragment::Literal(
+                                    puppet_lang::string::Literal {
+                                        data: "some_key".to_owned(),
+                                        extra: Range::new(9, 1, 10, 16, 1, 17)
+                                    }
+                                )
+                            ]),
+                            accessor: None,
+                            extra: Range::new(9, 1, 10, 16, 1, 17)
                         }
                     ),
-                    extra: Range::new(21, 1, 22, 27, 1, 28)
-                }
-            )]
+                    value: puppet_lang::typing::TypeSpecification {
+                        comment: vec![],
+                        data: puppet_lang::typing::TypeSpecificationVariant::Boolean(
+                            puppet_lang::typing::Boolean {
+                                extra: Range::new(21, 1, 22, 27, 1, 28)
+                            }
+                        ),
+                        extra: Range::new(21, 1, 22, 27, 1, 28)
+                    },
+                    comment: vec![],
+                }]
+            }
         })
     );
 }
@@ -648,6 +686,7 @@ fn test_tuple() {
         puppet_lang::typing::TypeSpecificationVariant::Tuple(puppet_lang::typing::TypeTuple {
             extra: Range::new(0, 1, 1, 29, 1, 30),
             list: vec![puppet_lang::typing::TypeSpecification {
+                comment: vec![],
                 data: puppet_lang::typing::TypeSpecificationVariant::Integer(
                     puppet_lang::typing::TypeInteger {
                         min: Some(puppet_lang::expression::Integer {
@@ -681,6 +720,7 @@ fn test_tuple() {
             extra: Range::new(0, 1, 1, 34, 1, 35),
             list: vec![
                 puppet_lang::typing::TypeSpecification {
+                    comment: vec![],
                     data: puppet_lang::typing::TypeSpecificationVariant::Integer(
                         puppet_lang::typing::TypeInteger {
                             min: Some(puppet_lang::expression::Integer {
@@ -697,6 +737,7 @@ fn test_tuple() {
                     extra: Range::new(7, 1, 8, 18, 1, 19)
                 },
                 puppet_lang::typing::TypeSpecification {
+                    comment: vec![],
                     data: puppet_lang::typing::TypeSpecificationVariant::Integer(
                         puppet_lang::typing::TypeInteger {
                             min: Some(puppet_lang::expression::Integer {
@@ -727,6 +768,7 @@ fn test_type_specification() {
             .unwrap()
             .1,
         puppet_lang::typing::TypeSpecification {
+            comment: vec![],
             data: puppet_lang::typing::TypeSpecificationVariant::ExternalType(
                 puppet_lang::typing::ExternalType {
                     name: vec!["Stdlib".to_owned(), "Unixpath".to_owned()],
@@ -742,10 +784,12 @@ fn test_type_specification() {
             .unwrap()
             .1,
         puppet_lang::typing::TypeSpecification {
+            comment: vec![],
             data: puppet_lang::typing::TypeSpecificationVariant::ExternalType(
                 puppet_lang::typing::ExternalType {
                     name: vec!["Class".to_owned(),],
                     arguments: vec![puppet_lang::expression::Expression {
+                        comment: vec![],
                         value: puppet_lang::expression::ExpressionVariant::Term(
                             puppet_lang::expression::Term {
                                 value: puppet_lang::expression::TermVariant::String(
@@ -776,6 +820,7 @@ fn test_type_specification() {
     assert_eq!(
         parse_type_specification(Span::new("Numeric")).unwrap().1,
         puppet_lang::typing::TypeSpecification {
+            comment: vec![],
             data: puppet_lang::typing::TypeSpecificationVariant::Numeric(
                 puppet_lang::typing::Numeric {
                     extra: Range::new(0, 1, 1, 6, 1, 7)

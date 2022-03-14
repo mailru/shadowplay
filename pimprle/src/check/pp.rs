@@ -42,7 +42,7 @@ impl Check {
         let linter = puppet_pp_lint::lint::AstLinter;
 
         let mut errors = Vec::new();
-        for statement in &ast.data {
+        for statement in &ast.data.value {
             errors.append(&mut linter.check_statement(&linter_storage, statement));
         }
 

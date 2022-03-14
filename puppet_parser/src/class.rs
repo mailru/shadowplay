@@ -11,18 +11,25 @@ use puppet_lang::{
     toplevel::{Class, Definition, Plan},
 };
 
-pub fn parse_header(input: Span) -> IResult<(LowerIdentifier<Range>, Vec<Argument<Range>>)> {
+type Header = (
+    LowerIdentifier<Range>,
+    puppet_lang::List<Range, Argument<Range>>,
+);
+
+pub fn parse_header(input: Span) -> IResult<Header> {
     let arguments_parser = map(
-        opt(super::common::round_brackets_comma_separated0(
-            crate::argument::parse,
+        opt(crate::common::round_brackets_delimimited(
+            crate::common::comma_separated_list_with_last_comment(crate::argument::parse),
         )),
-        |v: Option<(Span, Vec<Argument<Range>>, Span)>| v.map(|v| v.1).unwrap_or_default(),
+        |v: Option<(Span, puppet_lang::List<Range, Argument<Range>>, Span)>| {
+            v.map(|v| v.1).unwrap_or_else(puppet_lang::List::default)
+        },
     );
 
     tuple((
         ParseError::protect(
             |_| "Invalid name".to_owned(),
-            super::identifier::identifier_with_toplevel,
+            crate::identifier::identifier_with_toplevel,
         ),
         preceded(super::common::separator0, arguments_parser),
     ))(input)
@@ -118,8 +125,8 @@ fn test_class() {
                 is_toplevel: false,
                 extra: Range::new(7, 1, 8, 14, 1, 15),
             },
-            arguments: Vec::new(),
-            body: vec![],
+            arguments: puppet_lang::List::default(),
+            body: puppet_lang::List::default(),
             inherits: None,
             extra: Range::new(0, 1, 1, 23, 2, 3),
         }
@@ -266,16 +273,20 @@ fn test_body_tag() {
                 is_toplevel: false,
                 extra: Range::new(7, 1, 8, 14, 1, 15),
             },
-            arguments: Vec::new(),
-            body: vec![puppet_lang::statement::Statement {
+            arguments: puppet_lang::List::default(),
+            body: puppet_lang::List {
+                last_comment: vec![],
+                value: vec![puppet_lang::statement::Statement {
                     value: puppet_lang::statement::StatementVariant::Expression(
                         puppet_lang::expression::Expression {
+                            comment: vec![],
                             value: puppet_lang::expression::ExpressionVariant::BuiltinFunction(
                                 puppet_lang::builtin::BuiltinVariant::Tag(
                                     puppet_lang::builtin::Many1 {
                                         lambda: None,
                                         args: vec![
                                             puppet_lang::expression::Expression {
+                            comment: vec![],
                                                 value: puppet_lang::expression::ExpressionVariant::Term(
                                                     puppet_lang::expression::Term {
                                                         value: puppet_lang::expression::TermVariant::String(
@@ -301,6 +312,7 @@ fn test_body_tag() {
                                                 extra: Range::new(26, 2, 6, 28, 2, 8)
                                             },
                                             puppet_lang::expression::Expression {
+                            comment: vec![],
                                                 value: puppet_lang::expression::ExpressionVariant::Term(
                                                     puppet_lang::expression::Term {
                                                         value: puppet_lang::expression::TermVariant::String(
@@ -326,6 +338,7 @@ fn test_body_tag() {
                                                 extra: Range::new(31, 2, 11, 35, 2, 15)
                                             },
                                             puppet_lang::expression::Expression {
+                            comment: vec![],
                                                 value: puppet_lang::expression::ExpressionVariant::Term(
                                                     puppet_lang::expression::Term {
                                                         value: puppet_lang::expression::TermVariant::String(
@@ -355,8 +368,9 @@ fn test_body_tag() {
                             ),
                             extra: Range::new(22, 2, 2, 42, 2, 22),
                         }
-                    )
-            }],
+                    ),
+                comment: vec![],
+            }]},
             inherits: None,
             extra: Range::new(0, 1, 1, 44, 2, 24),
         }
@@ -371,25 +385,29 @@ fn test_body_require() {
             // 0         10        20        30        40        50
             "class  abc::def () {\n require abc::def require zzz }\n"
         ))
-        .unwrap()
-        .1,
+            .unwrap()
+            .1,
         Class {
             identifier: LowerIdentifier {
                 name: vec!["abc".to_owned(), "def".to_owned()],
                 is_toplevel: false,
                 extra: Range::new(7, 1, 8, 14, 1, 15),
             },
-            arguments: Vec::new(),
-            body: vec![
-                puppet_lang::statement::Statement {
-                    value: puppet_lang::statement::StatementVariant::Expression(
-                        puppet_lang::expression::Expression {
-                            value: puppet_lang::expression::ExpressionVariant::BuiltinFunction(
-                                puppet_lang::builtin::BuiltinVariant::Require(puppet_lang::builtin::Many1 {
-                                    args: vec![puppet_lang::expression::Expression {
-                                        value: puppet_lang::expression::ExpressionVariant::Term(
-                                            puppet_lang::expression::Term {
-                                                value:
+            arguments: puppet_lang::List::default(),
+            body: puppet_lang::List {
+                last_comment: vec![],
+                value: vec![
+                    puppet_lang::statement::Statement {
+                        value: puppet_lang::statement::StatementVariant::Expression(
+                            puppet_lang::expression::Expression {
+                            comment: vec![],
+                                value: puppet_lang::expression::ExpressionVariant::BuiltinFunction(
+                                    puppet_lang::builtin::BuiltinVariant::Require(puppet_lang::builtin::Many1 {
+                                        args: vec![puppet_lang::expression::Expression {
+                                            comment: vec![],
+                                            value: puppet_lang::expression::ExpressionVariant::Term(
+                                                puppet_lang::expression::Term {
+                                                    value:
                                                     puppet_lang::expression::TermVariant::Identifier(
                                                         LowerIdentifier {
                                                             name: vec![
@@ -400,55 +418,59 @@ fn test_body_require() {
                                                             extra: Range::new(30, 2, 10, 37, 2, 17),
                                                         }
                                                     ),
-                                                extra: Range::new(30, 2, 10, 37, 2, 17),
-                                            }
-                                        ),
-                                        extra: Range::new(30, 2, 10, 37, 2, 17),
-                                    }],
-                                    lambda: None,
-                                },
-                            )),
-                            extra: Range::new(22, 2, 2, 37, 2, 17),
-                        }
-                    ),
-                },
-                puppet_lang::statement::Statement {
-                    value: puppet_lang::statement::StatementVariant::Expression(
-                        puppet_lang::expression::Expression {
-                            value: puppet_lang::expression::ExpressionVariant::BuiltinFunction(
-                                puppet_lang::builtin::BuiltinVariant::Require(puppet_lang::builtin::Many1 {
-                                    args: vec![puppet_lang::expression::Expression {
-                                        value: puppet_lang::expression::ExpressionVariant::Term(
-                                            puppet_lang::expression::Term {
-                                                value: puppet_lang::expression::TermVariant::String(
-                                                    puppet_lang::string::StringExpr {
-                                                        data:
-                                                        puppet_lang::string::StringVariant::SingleQuoted(
-                                                            vec![
-                                                                puppet_lang::string::StringFragment::Literal(
-                                                                    puppet_lang::string::Literal {
-                                                                        data: "zzz".to_owned(),
-                                                                        extra: Range::new(47,2, 27, 49, 2, 29)
-                                                                    }
-                                                                )
-                                                            ]
-                                                        ),
-                                                        accessor: None,
-                                                        extra: Range::new(47, 2, 27, 49, 2, 29),
-                                                    }
-                                                ),
-                                                extra: Range::new(47, 2, 27, 49, 2, 29)
-                                            }
-                                        ),
-                                        extra: Range::new(47, 2, 27, 49, 2, 29)
-                                    }],
-                                    lambda: None,
-                                })),
-                            extra: Range::new(39, 2, 19, 49, 2, 29)
-                        }
-                    ),
-                }
-            ],
+                                                    extra: Range::new(30, 2, 10, 37, 2, 17),
+                                                }
+                                            ),
+                                            extra: Range::new(30, 2, 10, 37, 2, 17),
+                                        }],
+                                        lambda: None,
+                                    },
+                                    )),
+                                extra: Range::new(22, 2, 2, 37, 2, 17),
+                            }
+                        ),
+                        comment: vec![],
+                    },
+                    puppet_lang::statement::Statement {
+                        value: puppet_lang::statement::StatementVariant::Expression(
+                            puppet_lang::expression::Expression {
+                            comment: vec![],
+                                value: puppet_lang::expression::ExpressionVariant::BuiltinFunction(
+                                    puppet_lang::builtin::BuiltinVariant::Require(puppet_lang::builtin::Many1 {
+                                        args: vec![puppet_lang::expression::Expression {
+                                            comment: vec![],
+                                            value: puppet_lang::expression::ExpressionVariant::Term(
+                                                puppet_lang::expression::Term {
+                                                    value: puppet_lang::expression::TermVariant::String(
+                                                        puppet_lang::string::StringExpr {
+                                                            data:
+                                                            puppet_lang::string::StringVariant::SingleQuoted(
+                                                                vec![
+                                                                    puppet_lang::string::StringFragment::Literal(
+                                                                        puppet_lang::string::Literal {
+                                                                            data: "zzz".to_owned(),
+                                                                            extra: Range::new(47,2, 27, 49, 2, 29)
+                                                                        }
+                                                                    )
+                                                                ]
+                                                            ),
+                                                            accessor: None,
+                                                            extra: Range::new(47, 2, 27, 49, 2, 29),
+                                                        }
+                                                    ),
+                                                    extra: Range::new(47, 2, 27, 49, 2, 29)
+                                                }
+                                            ),
+                                            extra: Range::new(47, 2, 27, 49, 2, 29)
+                                        }],
+                                        lambda: None,
+                                    })),
+                                extra: Range::new(39, 2, 19, 49, 2, 29)
+                            }
+                        ),
+                        comment: vec![],
+                    }
+                ]},
             inherits: None,
             extra: Range::new(0, 1, 1, 51, 2, 31),
         }

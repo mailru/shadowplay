@@ -2,9 +2,15 @@ use crate::{expression::Expression, identifier::LowerIdentifier};
 use serde::Serialize;
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
-pub enum ResourceAttribute<EXTRA> {
+pub enum ResourceAttributeVariant<EXTRA> {
     Name((crate::string::StringExpr<EXTRA>, Expression<EXTRA>)),
     Group(crate::expression::Term<EXTRA>),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct ResourceAttribute<EXTRA> {
+    pub value: ResourceAttributeVariant<EXTRA>,
+    pub comment: Vec<crate::comment::Comment<EXTRA>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -17,15 +23,18 @@ pub struct Resource<EXTRA> {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct ResourceSet<EXTRA> {
     pub name: LowerIdentifier<EXTRA>,
-    pub list: Vec<Resource<EXTRA>>,
+    pub list: crate::List<EXTRA, Resource<EXTRA>>,
     pub is_virtual: bool,
     pub extra: EXTRA,
+    pub comment: Vec<crate::comment::Comment<EXTRA>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct ConditionAndStatement<EXTRA> {
     pub condition: Expression<EXTRA>,
-    pub body: Box<Vec<Statement<EXTRA>>>,
+    pub comment_before_elsif_word: Vec<crate::comment::Comment<EXTRA>>,
+    pub comment_before_body: Vec<crate::comment::Comment<EXTRA>>,
+    pub body: Box<crate::List<EXTRA, Statement<EXTRA>>>,
     pub extra: EXTRA,
 }
 
@@ -33,7 +42,9 @@ pub struct ConditionAndStatement<EXTRA> {
 pub struct IfElse<EXTRA> {
     pub condition: ConditionAndStatement<EXTRA>,
     pub elsif_list: Vec<ConditionAndStatement<EXTRA>>,
-    pub else_block: Option<Box<Vec<Statement<EXTRA>>>>,
+    pub else_block: Option<Box<crate::List<EXTRA, Statement<EXTRA>>>>,
+    pub comment_before_else_word: Vec<crate::comment::Comment<EXTRA>>,
+    pub comment_before_body: Vec<crate::comment::Comment<EXTRA>>,
     pub extra: EXTRA,
 }
 
@@ -76,6 +87,7 @@ pub struct RelationElt<EXTRA> {
 pub struct Relation<EXTRA> {
     pub relation_type: RelationType<EXTRA>,
     pub relation_to: Box<RelationList<EXTRA>>,
+    pub comment: Vec<crate::comment::Comment<EXTRA>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -88,14 +100,15 @@ pub struct RelationList<EXTRA> {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct CaseElement<EXTRA> {
     pub matches: Vec<crate::expression::CaseVariant<EXTRA>>,
-    pub body: Box<Vec<Statement<EXTRA>>>,
+    pub body: Box<crate::List<EXTRA, Statement<EXTRA>>>,
     pub extra: EXTRA,
+    pub comment: Vec<crate::comment::Comment<EXTRA>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Case<EXTRA> {
     pub condition: Expression<EXTRA>,
-    pub elements: Vec<CaseElement<EXTRA>>,
+    pub elements: crate::List<EXTRA, CaseElement<EXTRA>>,
     pub extra: EXTRA,
 }
 
@@ -120,6 +133,7 @@ pub enum StatementVariant<EXTRA> {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Statement<EXTRA> {
     pub value: StatementVariant<EXTRA>,
+    pub comment: Vec<crate::comment::Comment<EXTRA>>,
 }
 
 impl<EXTRA> crate::ExtraGetter<EXTRA> for Statement<EXTRA> {

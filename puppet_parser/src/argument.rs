@@ -1,8 +1,8 @@
-use crate::{range::Range, IResult, ParseError, Span};
+use crate::{common::capture_comment, range::Range, IResult, ParseError, Span};
 use nom::{
     bytes::complete::tag,
     combinator::{map, opt},
-    sequence::{preceded, tuple},
+    sequence::{pair, preceded, tuple},
 };
 
 pub fn parse(input: Span) -> IResult<puppet_lang::argument::Argument<Range>> {
@@ -22,22 +22,26 @@ pub fn parse(input: Span) -> IResult<puppet_lang::argument::Argument<Range>> {
         )),
     ));
 
-    map(parser, |(type_spec, dollar_sign, name, default)| {
-        let start_range = match &type_spec {
-            None => Range::from((dollar_sign, dollar_sign)),
-            Some(v) => v.extra.clone(),
-        };
-        let end_range = match &default {
-            None => Range::from((name, name)),
-            Some(v) => v.extra.clone(),
-        };
-        puppet_lang::argument::Argument {
-            type_spec,
-            extra: Range::from((&start_range, &end_range)),
-            name: name.to_string(),
-            default,
-        }
-    })(input)
+    map(
+        pair(capture_comment, parser),
+        move |(comment, (type_spec, dollar_sign, name, default))| {
+            let start_range = match &type_spec {
+                None => Range::from((dollar_sign, dollar_sign)),
+                Some(v) => v.extra.clone(),
+            };
+            let end_range = match &default {
+                None => Range::from((name, name)),
+                Some(v) => v.extra.clone(),
+            };
+            puppet_lang::argument::Argument {
+                type_spec,
+                extra: Range::from((&start_range, &end_range)),
+                name: name.to_string(),
+                default,
+                comment,
+            }
+        },
+    )(input)
 }
 
 // #[test]

@@ -26,4 +26,5 @@ pub struct ResourceCollection<EXTRA> {
     pub type_specification: crate::typing::TypeSpecification<EXTRA>,
     pub search_expression: Option<SearchExpression<EXTRA>>,
     pub extra: EXTRA,
+    pub comment: Vec<crate::comment::Comment<EXTRA>>,
 }

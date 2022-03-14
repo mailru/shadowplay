@@ -35,15 +35,15 @@ impl OptionalArgumentsGoesFirst {
 
 impl EarlyLintPass for OptionalArgumentsGoesFirst {
     fn check_class(&self, elt: &puppet_lang::toplevel::Class<Range>) -> Vec<LintError> {
-        self.check_order(&elt.arguments)
+        self.check_order(&elt.arguments.value)
     }
 
     fn check_definition(&self, elt: &puppet_lang::toplevel::Definition<Range>) -> Vec<LintError> {
-        self.check_order(&elt.arguments)
+        self.check_order(&elt.arguments.value)
     }
 
     fn check_plan(&self, elt: &puppet_lang::toplevel::Plan<Range>) -> Vec<LintError> {
-        self.check_order(&elt.arguments)
+        self.check_order(&elt.arguments.value)
     }
 }
 
@@ -83,14 +83,14 @@ impl UniqueArgumentsNames {
 
 impl EarlyLintPass for UniqueArgumentsNames {
     fn check_class(&self, elt: &puppet_lang::toplevel::Class<Range>) -> Vec<LintError> {
-        self.check(&elt.arguments)
+        self.check(&elt.arguments.value)
     }
 
     fn check_definition(&self, elt: &puppet_lang::toplevel::Definition<Range>) -> Vec<LintError> {
-        self.check(&elt.arguments)
+        self.check(&elt.arguments.value)
     }
 
     fn check_plan(&self, elt: &puppet_lang::toplevel::Plan<Range>) -> Vec<LintError> {
-        self.check(&elt.arguments)
+        self.check(&elt.arguments.value)
     }
 }
