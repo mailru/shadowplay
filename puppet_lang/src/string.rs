@@ -39,6 +39,5 @@ pub enum StringVariant<EXTRA> {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct StringExpr<EXTRA> {
     pub data: StringVariant<EXTRA>,
-    pub accessor: Option<crate::expression::Accessor<EXTRA>>,
     pub extra: EXTRA,
 }

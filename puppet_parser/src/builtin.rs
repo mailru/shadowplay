@@ -30,6 +30,7 @@ where
                 (PARSERESULT, crate::range::Range),
                 Option<puppet_lang::expression::Lambda<Range>>,
             ),
+            Option<puppet_lang::expression::Accessor<Range>>,
         ),
     ) -> O,
     O: Clone,
@@ -59,16 +60,21 @@ where
 
         map(
             map(
-                tuple((capture_comment, spaced_word(keyword), body_parser)),
-                |(comment, kw, ((args, end_range), lambda))| {
+                tuple((
+                    capture_comment,
+                    spaced_word(keyword),
+                    body_parser,
+                    crate::expression::parse_accessor,
+                )),
+                |(comment, kw, ((args, end_range), lambda), accessor)| {
                     let range = match &lambda {
                         None => match end_range {
                             None => Range::from((kw, kw)),
                             Some(end_range) => Range::from((kw, &end_range)),
                         },
-                        Some(v) => Range::from((kw, &v.extra)),
+                        Some(v) => Range::from((&kw, &accessor, &v.extra)),
                     };
-                    (comment, kw, ((args, range), lambda))
+                    (comment, kw, ((args, range), lambda), accessor)
                 },
             ),
             &mapper,
@@ -89,6 +95,7 @@ where
                 ((), crate::range::Range),
                 Option<puppet_lang::expression::Lambda<Range>>,
             ),
+            Option<puppet_lang::expression::Accessor<Range>>,
         ),
     ) -> O,
     O: Clone,
@@ -137,6 +144,7 @@ where
                 (Vec<Expression<Range>>, crate::range::Range),
                 Option<puppet_lang::expression::Lambda<Range>>,
             ),
+            Option<puppet_lang::expression::Accessor<Range>>,
         ),
     ) -> O,
     O: Clone,
@@ -157,77 +165,88 @@ where
 }
 
 fn parse_undef(input: Span) -> IResult<Expression<Range>> {
-    builtin_unit("undef", |(comment, _kw, ((_, range), _lambda))| {
-        Expression {
+    builtin_unit(
+        "undef",
+        |(comment, _kw, ((_, range), _lambda), accessor)| Expression {
             value: ExpressionVariant::BuiltinFunction(BuiltinVariant::Undef),
             extra: range,
             comment,
-        }
-    })(input)
+            accessor,
+        },
+    )(input)
 }
 
 fn parse_tag(input: Span) -> IResult<Expression<Range>> {
-    builtin_many1("tag", |(comment, _kw, ((args, range), lambda))| {
-        Expression {
+    builtin_many1(
+        "tag",
+        |(comment, _kw, ((args, range), lambda), accessor)| Expression {
             value: ExpressionVariant::BuiltinFunction(BuiltinVariant::Tag(builtin::Many1 {
                 lambda,
                 args,
             })),
             extra: range,
             comment,
-        }
-    })(input)
+            accessor,
+        },
+    )(input)
 }
 
 fn parse_require(input: Span) -> IResult<Expression<Range>> {
-    builtin_many1("require", |(comment, _kw, ((args, range), lambda))| {
-        Expression {
+    builtin_many1(
+        "require",
+        |(comment, _kw, ((args, range), lambda), accessor)| Expression {
             value: ExpressionVariant::BuiltinFunction(BuiltinVariant::Require(builtin::Many1 {
                 lambda,
                 args,
             })),
             extra: range,
             comment,
-        }
-    })(input)
+            accessor,
+        },
+    )(input)
 }
 
 fn parse_include(input: Span) -> IResult<Expression<Range>> {
-    builtin_many1("include", |(comment, _kw, ((args, range), lambda))| {
-        Expression {
+    builtin_many1(
+        "include",
+        |(comment, _kw, ((args, range), lambda), accessor)| Expression {
             value: ExpressionVariant::BuiltinFunction(BuiltinVariant::Include(builtin::Many1 {
                 lambda,
                 args,
             })),
             extra: range,
             comment,
-        }
-    })(input)
+            accessor,
+        },
+    )(input)
 }
 
 fn parse_realize(input: Span) -> IResult<Expression<Range>> {
-    builtin_many1("realize", |(comment, _kw, ((args, range), lambda))| {
-        Expression {
+    builtin_many1(
+        "realize",
+        |(comment, _kw, ((args, range), lambda), accessor)| Expression {
             value: ExpressionVariant::BuiltinFunction(BuiltinVariant::Realize(builtin::Many1 {
                 lambda,
                 args,
             })),
             extra: range,
             comment,
-        }
-    })(input)
+            accessor,
+        },
+    )(input)
 }
 
 fn parse_create_resources(input: Span) -> IResult<Expression<Range>> {
     builtin_many1(
         "create_resources",
-        |(comment, _kw, ((args, range), lambda))| Expression {
+        |(comment, _kw, ((args, range), lambda), accessor)| Expression {
             value: ExpressionVariant::BuiltinFunction(BuiltinVariant::Realize(builtin::Many1 {
                 lambda,
                 args,
             })),
             extra: range,
             comment,
+            accessor,
         },
     )(input)
 }

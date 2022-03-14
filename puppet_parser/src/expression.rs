@@ -1,33 +1,52 @@
 use nom::combinator::opt;
+use nom::multi::many1;
 use nom::sequence::tuple;
 ///
 /// https://puppet.com/docs/puppet/6/lang_expressions.html#lang_expressions-order-of-operations
 ///
 use nom::{bytes::complete::tag, sequence::pair};
-use puppet_lang::expression::CaseVariant;
+use puppet_lang::expression::{Accessor, CaseVariant};
 use puppet_lang::ExtraGetter;
 
-use crate::common::{capture_comment, fold_many0_with_const_init, space0_delimimited, spaced_word};
+use crate::common::{
+    capture_comment, fold_many0_with_const_init, space0_delimimited, spaced_word,
+    square_brackets_comma_separated1,
+};
 
 use crate::range::Range;
-use crate::term::{parse_accessor, parse_term};
+use crate::term::parse_term;
 use crate::{IResult, ParseError, Span};
 
 use nom::{branch::alt, combinator::map};
+
+pub fn parse_accessor(input: Span) -> IResult<Option<Accessor<Range>>> {
+    opt(map(
+        many1(square_brackets_comma_separated1(map(
+            crate::expression::parse_expression,
+            Box::new,
+        ))),
+        |list| Accessor {
+            extra: Range::from((list.first().unwrap().0, list.last().unwrap().2)),
+            list: list.into_iter().map(|(_, elt, _)| elt).collect(),
+        },
+    ))(input)
+}
 
 /// https://puppet.com/docs/puppet/6/lang_expressions.html#lang_exp_comparison_operators-comparison-regex-or-data-type-match
 pub(crate) fn parse_match_variant(
     input: Span,
 ) -> IResult<puppet_lang::expression::Expression<Range>> {
-    let (input, (comment, left_term, tag_variant)) = tuple((
+    let (input, (comment, left_term, accessor, tag_variant)) = tuple((
         capture_comment,
         space0_delimimited(crate::term::parse_term),
+        parse_accessor,
         space0_delimimited(alt((tag("=~"), tag("!~")))),
     ))(input)?;
 
     let left_expr = puppet_lang::expression::Expression {
-        extra: left_term.extra.clone(),
+        extra: Range::from((&left_term.extra, &accessor, &left_term.extra)),
         value: puppet_lang::expression::ExpressionVariant::Term(left_term),
+        accessor,
         comment,
     };
 
@@ -40,6 +59,7 @@ pub(crate) fn parse_match_variant(
                     Box::new(left_expr.clone()),
                     regex,
                 )),
+                accessor: None,
                 comment,
             },
             "!~" => puppet_lang::expression::Expression {
@@ -48,6 +68,7 @@ pub(crate) fn parse_match_variant(
                     Box::new(left_expr.clone()),
                     regex,
                 )),
+                accessor: None,
                 comment,
             },
             _ => unreachable!(),
@@ -63,6 +84,7 @@ pub(crate) fn parse_match_variant(
                     Box::new(left_expr.clone()),
                     Box::new(t),
                 )),
+                accessor: None,
                 comment,
             },
             "!~" => puppet_lang::expression::Expression {
@@ -71,6 +93,7 @@ pub(crate) fn parse_match_variant(
                     Box::new(left_expr.clone()),
                     Box::new(t),
                 )),
+                accessor: None,
                 comment,
             },
             _ => unreachable!(),
@@ -100,6 +123,7 @@ fn parse_not(input: Span) -> IResult<puppet_lang::expression::Expression<Range>>
             extra: (op, &expr.extra).into(),
             value: puppet_lang::expression::ExpressionVariant::Not(Box::new(expr)),
             comment,
+            accessor: None,
         }
     })(input)
 }
@@ -119,11 +143,12 @@ pub fn parse_case_variant(input: Span) -> IResult<CaseVariant<Range>> {
 
 fn parse_term_expr(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> {
     map(
-        pair(capture_comment, crate::term::parse_term),
-        |(comment, term)| puppet_lang::expression::Expression {
-            extra: term.extra.clone(),
+        tuple((capture_comment, crate::term::parse_term, parse_accessor)),
+        |(comment, term, accessor)| puppet_lang::expression::Expression {
+            extra: Range::from((&term.extra, &accessor, &term.extra)),
             value: puppet_lang::expression::ExpressionVariant::Term(term),
             comment,
+            accessor,
         },
     )(input)
 }
@@ -167,16 +192,16 @@ fn parse_funcall(input: Span) -> IResult<puppet_lang::expression::Expression<Ran
                 },
             };
             puppet_lang::expression::Expression {
-                extra: (&identifier.extra, &end_range).into(),
+                extra: (&identifier.extra, &accessor, &end_range).into(),
                 value: puppet_lang::expression::ExpressionVariant::FunctionCall(
                     puppet_lang::expression::FunctionCall {
                         extra: (&identifier.extra, &end_range).into(),
                         identifier,
                         args,
                         lambda,
-                        accessor,
                     },
                 ),
+                accessor,
                 comment,
             }
         },
@@ -376,17 +401,13 @@ fn parse_chain_call_right(input: Span) -> IResult<puppet_lang::expression::Funct
                 crate::common::round_brackets_comma_separated0(crate::expression::parse_expression),
             )),
             opt(space0_delimimited(parse_lambda)),
-            parse_accessor,
         )),
-        |(identifier, args, lambda, accessor)| {
-            let end_range = match &accessor {
+        |(identifier, args, lambda)| {
+            let end_range = match &lambda {
                 Some(v) => v.extra.clone(),
-                None => match &lambda {
-                    Some(v) => v.extra.clone(),
-                    None => match args {
-                        Some((_, _, right_bracket)) => Range::from((right_bracket, right_bracket)),
-                        None => identifier.extra.clone(),
-                    },
+                None => match args {
+                    Some((_, _, right_bracket)) => Range::from((right_bracket, right_bracket)),
+                    None => identifier.extra.clone(),
                 },
             };
             let args = args.map(|v| v.1).unwrap_or_default();
@@ -395,7 +416,6 @@ fn parse_chain_call_right(input: Span) -> IResult<puppet_lang::expression::Funct
                 identifier,
                 args,
                 lambda,
-                accessor,
             }
         },
     )(input)
@@ -424,6 +444,7 @@ fn parse_chain_call(input: Span) -> IResult<puppet_lang::expression::Expression<
             ),
             // Comment is captured by inner expression
             comment: vec![],
+            accessor: None,
         },
     );
     parser(input)
@@ -451,6 +472,7 @@ fn parse_in_expr(input: Span) -> IResult<puppet_lang::expression::Expression<Ran
             )),
             // Comment is captured by inner expression
             comment: vec![],
+            accessor: None,
         },
         None => left,
     })(input)
@@ -459,6 +481,7 @@ fn parse_in_expr(input: Span) -> IResult<puppet_lang::expression::Expression<Ran
 /// https://puppet.com/docs/puppet/7/lang_conditional.html#lang_condition_selector
 fn parse_selector_case(input: Span) -> IResult<puppet_lang::expression::SelectorCase<Range>> {
     let parser = tuple((
+        capture_comment,
         parse_case_variant,
         space0_delimimited(tag("=>")),
         ParseError::protect(
@@ -467,13 +490,12 @@ fn parse_selector_case(input: Span) -> IResult<puppet_lang::expression::Selector
         ),
     ));
 
-    map(parser, |(case, _tag, body)| {
+    map(parser, |(comment, case, _tag, body)| {
         puppet_lang::expression::SelectorCase {
             extra: Range::from((case.extra(), &body.extra)),
             case,
             body: Box::new(body),
-            // Comment is captured by inner expression
-            comment: vec![],
+            comment,
         }
     })(input)
 }
@@ -510,6 +532,7 @@ fn parse_selector(input: Span) -> IResult<puppet_lang::expression::Expression<Ra
             ),
             // Comment is captured by inner expression
             comment: vec![],
+            accessor: None,
         },
         None => condition,
     })(input)
@@ -535,6 +558,7 @@ pub(crate) fn parse_l1(input: Span) -> IResult<puppet_lang::expression::Expressi
                 )),
                 // Comment captured by inner parser
                 comment: Vec::new(),
+                accessor: None,
             },
             "/" => puppet_lang::expression::Expression {
                 extra: Range::from((&prev.extra, &cur.extra)),
@@ -544,6 +568,7 @@ pub(crate) fn parse_l1(input: Span) -> IResult<puppet_lang::expression::Expressi
                 )),
                 // Comment captured by inner parser
                 comment: Vec::new(),
+                accessor: None,
             },
             "%" => puppet_lang::expression::Expression {
                 extra: Range::from((&prev.extra, &cur.extra)),
@@ -553,6 +578,7 @@ pub(crate) fn parse_l1(input: Span) -> IResult<puppet_lang::expression::Expressi
                 )),
                 // Comment captured by inner parser
                 comment: Vec::new(),
+                accessor: None,
             },
             _ => unreachable!(),
         },
@@ -580,6 +606,7 @@ fn parse_l2(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> 
                 )),
                 // Comment captured by inner parser
                 comment: Vec::new(),
+                accessor: None,
             },
             "-" => puppet_lang::expression::Expression {
                 extra: Range::from((&prev.extra, &cur.extra)),
@@ -589,6 +616,7 @@ fn parse_l2(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> 
                 )),
                 // Comment captured by inner parser
                 comment: Vec::new(),
+                accessor: None,
             },
             _ => unreachable!(),
         },
@@ -616,6 +644,7 @@ fn parse_l3(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> 
                 )),
                 // Comment captured by inner parser
                 comment: Vec::new(),
+                accessor: None,
             },
             ">>" => puppet_lang::expression::Expression {
                 extra: Range::from((&prev.extra, &cur.extra)),
@@ -625,6 +654,7 @@ fn parse_l3(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> 
                 )),
                 // Comment captured by inner parser
                 comment: Vec::new(),
+                accessor: None,
             },
             _ => unreachable!(),
         },
@@ -659,6 +689,7 @@ fn parse_l4(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> 
                 )),
                 // Comment captured by inner parser
                 comment: Vec::new(),
+                accessor: None,
             },
             "!=" => puppet_lang::expression::Expression {
                 extra: Range::from((&prev.extra, &cur.extra)),
@@ -668,6 +699,7 @@ fn parse_l4(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> 
                 )),
                 // Comment captured by inner parser
                 comment: Vec::new(),
+                accessor: None,
             },
             ">" => puppet_lang::expression::Expression {
                 extra: Range::from((&prev.extra, &cur.extra)),
@@ -677,6 +709,7 @@ fn parse_l4(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> 
                 )),
                 // Comment captured by inner parser
                 comment: Vec::new(),
+                accessor: None,
             },
             ">=" => puppet_lang::expression::Expression {
                 extra: Range::from((&prev.extra, &cur.extra)),
@@ -686,6 +719,7 @@ fn parse_l4(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> 
                 )),
                 // Comment captured by inner parser
                 comment: Vec::new(),
+                accessor: None,
             },
             "<" => puppet_lang::expression::Expression {
                 extra: Range::from((&prev.extra, &cur.extra)),
@@ -695,6 +729,7 @@ fn parse_l4(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> 
                 )),
                 // Comment captured by inner parser
                 comment: Vec::new(),
+                accessor: None,
             },
             "<=" => puppet_lang::expression::Expression {
                 extra: Range::from((&prev.extra, &cur.extra)),
@@ -704,6 +739,7 @@ fn parse_l4(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> 
                 )),
                 // Comment captured by inner parser
                 comment: Vec::new(),
+                accessor: None,
             },
             _ => unreachable!(),
         },
@@ -731,6 +767,7 @@ fn parse_l5(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> 
                 )),
                 // Comment captured by inner parser
                 comment: Vec::new(),
+                accessor: None,
             },
             "or" => puppet_lang::expression::Expression {
                 extra: Range::from((&prev.extra, &cur.extra)),
@@ -740,6 +777,7 @@ fn parse_l5(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> 
                 )),
                 // Comment captured by inner parser
                 comment: Vec::new(),
+                accessor: None,
             },
             _ => unreachable!(),
         },
@@ -761,6 +799,7 @@ pub fn parse_expression(input: Span) -> IResult<puppet_lang::expression::Express
                 )),
                 // Comment captured by inner parser
                 comment: Vec::new(),
+                accessor: None,
             },
             _ => unreachable!(),
         },
@@ -773,9 +812,11 @@ fn test_multiply() {
     assert_eq!(
         parse_expression(Span::new("2*3")).unwrap().1,
         puppet_lang::expression::Expression {
+            accessor: None,
             comment: vec![],
             value: puppet_lang::expression::ExpressionVariant::Multiply((
                 Box::new(puppet_lang::expression::Expression {
+                    accessor: None,
                     comment: vec![],
                     value: puppet_lang::expression::ExpressionVariant::Term(
                         puppet_lang::expression::Term {
@@ -791,6 +832,7 @@ fn test_multiply() {
                     extra: Range::new(0, 1, 1, 0, 1, 1)
                 }),
                 Box::new(puppet_lang::expression::Expression {
+                    accessor: None,
                     comment: vec![],
                     value: puppet_lang::expression::ExpressionVariant::Term(
                         puppet_lang::expression::Term {
@@ -821,19 +863,24 @@ fn test_operators_precendence() {
     assert_eq!(
         parse_expression(Span::new("(1 +2) * 3* 4 - 10")).unwrap().1,
         Expression {
+            accessor: None,
             comment: vec![],
             value: ExpressionVariant::Minus((
                 Box::new(Expression {
+                    accessor: None,
                     comment: vec![],
                     value: ExpressionVariant::Multiply((
                         Box::new(Expression {
+                            accessor: None,
                             comment: vec![],
                             value: ExpressionVariant::Term(Term {
                                 value: TermVariant::Parens(puppet_lang::expression::Parens {
                                     value: Box::new(Expression {
+                                        accessor: None,
                                         comment: vec![],
                                         value: ExpressionVariant::Plus((
                                             Box::new(Expression {
+                                                accessor: None,
                                                 comment: vec![],
                                                 value: ExpressionVariant::Term(Term {
                                                     value: TermVariant::Integer(Integer {
@@ -845,6 +892,7 @@ fn test_operators_precendence() {
                                                 extra: Range::new(1, 1, 2, 1, 1, 2)
                                             }),
                                             Box::new(Expression {
+                                                accessor: None,
                                                 comment: vec![],
                                                 value: ExpressionVariant::Term(Term {
                                                     value: TermVariant::Integer(Integer {
@@ -858,7 +906,6 @@ fn test_operators_precendence() {
                                         )),
                                         extra: Range::new(1, 1, 2, 4, 1, 5)
                                     }),
-                                    accessor: None,
                                     extra: Range::new(0, 1, 1, 5, 1, 6)
                                 }),
                                 extra: Range::new(0, 1, 1, 5, 1, 6)
@@ -866,9 +913,11 @@ fn test_operators_precendence() {
                             extra: Range::new(0, 1, 1, 5, 1, 6)
                         }),
                         Box::new(Expression {
+                            accessor: None,
                             comment: vec![],
                             value: ExpressionVariant::Multiply((
                                 Box::new(Expression {
+                                    accessor: None,
                                     comment: vec![],
                                     value: ExpressionVariant::Term(Term {
                                         value: TermVariant::Integer(Integer {
@@ -880,6 +929,7 @@ fn test_operators_precendence() {
                                     extra: Range::new(9, 1, 10, 9, 1, 10)
                                 }),
                                 Box::new(Expression {
+                                    accessor: None,
                                     comment: vec![],
                                     value: ExpressionVariant::Term(Term {
                                         value: TermVariant::Integer(Integer {
@@ -897,6 +947,7 @@ fn test_operators_precendence() {
                     extra: Range::new(0, 1, 1, 12, 1, 13)
                 }),
                 Box::new(Expression {
+                    accessor: None,
                     comment: vec![],
                     value: ExpressionVariant::Term(Term {
                         value: TermVariant::Integer(Integer {
@@ -920,6 +971,7 @@ fn test_function_call() {
             .unwrap()
             .1,
         puppet_lang::expression::Expression {
+            accessor: None,
             comment: vec![],
             value: puppet_lang::expression::ExpressionVariant::FunctionCall(
                 puppet_lang::expression::FunctionCall {
@@ -929,6 +981,7 @@ fn test_function_call() {
                         extra: Range::new(0, 1, 1, 5, 1, 6)
                     },
                     args: vec![puppet_lang::expression::Expression {
+                        accessor: None,
                         comment: vec![],
                         value: puppet_lang::expression::ExpressionVariant::Term(
                             puppet_lang::expression::Term {
@@ -943,7 +996,6 @@ fn test_function_call() {
                                             )]
                                         ),
                                         extra: Range::new(7, 1, 8, 33, 1, 34),
-                                        accessor: None,
                                     }
                                 ),
                                 extra: Range::new(7, 1, 8, 33, 1, 34)
@@ -953,7 +1005,6 @@ fn test_function_call() {
                     },],
                     lambda: None,
                     extra: Range::new(0, 1, 1, 34, 1, 35),
-                    accessor: None,
                 }
             ),
             extra: Range::new(0, 1, 1, 34, 1, 35)
@@ -966,14 +1017,17 @@ fn test_in_with_parens() {
     assert_eq!(
         parse_expression(Span::new("(1 in $a)")).unwrap().1,
         puppet_lang::expression::Expression {
+                    accessor: None,
             comment: vec![],
             value: puppet_lang::expression::ExpressionVariant::Term(
                 puppet_lang::expression::Term {
                     value: puppet_lang::expression::TermVariant::Parens(puppet_lang::expression::Parens {
                         value: Box::new(puppet_lang::expression::Expression {
+                            accessor: None,
                             comment: vec![],
                             value: puppet_lang::expression::ExpressionVariant::In((
                                 Box::new(puppet_lang::expression::Expression {
+                                    accessor: None,
                                     comment: vec![],
                                     value: puppet_lang::expression::ExpressionVariant::Term(
                                         puppet_lang::expression::Term {
@@ -989,6 +1043,7 @@ fn test_in_with_parens() {
                                     extra: Range::new(1,1,2, 1, 1, 2)
                                 }),
                                 Box::new(puppet_lang::expression::Expression {
+                                    accessor: None,
                                     comment: vec![],
                                     value: puppet_lang::expression::ExpressionVariant::Term(
                                         puppet_lang::expression::Term {
@@ -1000,7 +1055,6 @@ fn test_in_with_parens() {
                                                             is_toplevel: false,
                                                             extra: Range::new(7,1,8, 7, 1, 8)
                                                         },
-                                                    accessor: None,
                                                     extra: Range::new(6,1,7, 7, 1, 8)
                                                 }
                                             ),
@@ -1012,7 +1066,6 @@ fn test_in_with_parens() {
                             )),
                             extra: Range::new(1,1,2, 7, 1, 8)
                         }),
-                        accessor: None,
                         extra: Range::new(0,1,1, 8, 1, 9)
                     }),
                     extra: Range::new(0,1,1, 8, 1, 9)
@@ -1021,4 +1074,74 @@ fn test_in_with_parens() {
             extra: Range::new(0,1,1, 8, 1, 9)
         }
     );
+}
+
+#[test]
+fn test_accessor() {
+    assert_eq!(
+        parse_expression(Span::new("$a[ 1 ]['z']")).unwrap().1,
+        puppet_lang::expression::Expression {
+            extra: Range::new(0, 1, 1, 11, 1, 12),
+            accessor: Some(puppet_lang::expression::Accessor {
+                list: vec![
+                    vec![Box::new(puppet_lang::expression::Expression {
+                        accessor: None,
+                        comment: vec![],
+                        value: puppet_lang::expression::ExpressionVariant::Term(
+                            puppet_lang::expression::Term {
+                                value: puppet_lang::expression::TermVariant::Integer(
+                                    puppet_lang::expression::Integer {
+                                        extra: Range::new(4, 1, 5, 4, 1, 5),
+                                        value: 1,
+                                    }
+                                ),
+                                extra: Range::new(4, 1, 5, 4, 1, 5)
+                            }
+                        ),
+                        extra: Range::new(4, 1, 5, 4, 1, 5)
+                    })],
+                    vec![Box::new(puppet_lang::expression::Expression {
+                        accessor: None,
+                        comment: vec![],
+                        value: puppet_lang::expression::ExpressionVariant::Term(
+                            puppet_lang::expression::Term {
+                                value: puppet_lang::expression::TermVariant::String(
+                                    puppet_lang::string::StringExpr {
+                                        data: puppet_lang::string::StringVariant::SingleQuoted(
+                                            vec![puppet_lang::string::StringFragment::Literal(
+                                                puppet_lang::string::Literal {
+                                                    data: "z".to_owned(),
+                                                    extra: Range::new(9, 1, 10, 9, 1, 10),
+                                                }
+                                            )]
+                                        ),
+                                        extra: Range::new(8, 1, 9, 10, 1, 11),
+                                    }
+                                ),
+                                extra: Range::new(8, 1, 9, 10, 1, 11)
+                            }
+                        ),
+                        extra: Range::new(8, 1, 9, 10, 1, 11)
+                    })]
+                ],
+                extra: Range::new(2, 1, 3, 11, 1, 12)
+            }),
+            comment: vec![],
+            value: puppet_lang::expression::ExpressionVariant::Term(
+                puppet_lang::expression::Term {
+                    extra: Range::new(0, 1, 1, 1, 1, 2),
+                    value: puppet_lang::expression::TermVariant::Variable(
+                        puppet_lang::expression::Variable {
+                            identifier: puppet_lang::identifier::LowerIdentifier {
+                                name: vec!["a".to_owned()],
+                                is_toplevel: false,
+                                extra: Range::new(1, 1, 2, 1, 1, 2)
+                            },
+                            extra: Range::new(0, 1, 1, 1, 1, 2),
+                        }
+                    )
+                }
+            )
+        }
+    )
 }

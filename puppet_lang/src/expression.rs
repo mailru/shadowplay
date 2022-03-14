@@ -10,7 +10,6 @@ pub struct Accessor<EXTRA> {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Variable<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,
-    pub accessor: Option<Accessor<EXTRA>>,
     pub extra: EXTRA,
 }
 
@@ -32,7 +31,6 @@ pub struct FunctionCall<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,
     pub args: Vec<Expression<EXTRA>>,
     pub lambda: Option<Lambda<EXTRA>>,
-    pub accessor: Option<Accessor<EXTRA>>,
     pub extra: EXTRA,
 }
 
@@ -75,13 +73,12 @@ pub struct Boolean<EXTRA> {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Parens<EXTRA> {
     pub value: Box<Expression<EXTRA>>,
-    pub accessor: Option<Accessor<EXTRA>>,
     pub extra: EXTRA,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct MapKV<EXTRA> {
-    pub key: Term<EXTRA>,
+    pub key: Expression<EXTRA>,
     pub value: Expression<EXTRA>,
     pub comment: Vec<crate::comment::Comment<EXTRA>>,
 }
@@ -89,14 +86,12 @@ pub struct MapKV<EXTRA> {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Map<EXTRA> {
     pub value: crate::List<EXTRA, MapKV<EXTRA>>,
-    pub accessor: Option<Accessor<EXTRA>>,
     pub extra: EXTRA,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Array<EXTRA> {
     pub value: crate::List<EXTRA, Expression<EXTRA>>,
-    pub accessor: Option<Accessor<EXTRA>>,
     pub extra: EXTRA,
 }
 
@@ -217,5 +212,6 @@ pub enum ExpressionVariant<EXTRA> {
 pub struct Expression<EXTRA> {
     pub value: ExpressionVariant<EXTRA>,
     pub extra: EXTRA,
+    pub accessor: Option<Accessor<EXTRA>>,
     pub comment: Vec<crate::comment::Comment<EXTRA>>,
 }

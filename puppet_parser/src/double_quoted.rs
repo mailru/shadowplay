@@ -27,7 +27,7 @@ fn parse_interpolation(input: Span) -> IResult<DoubleQuotedFragment<Range>> {
         map(
             pair(
                 crate::identifier::identifier_with_toplevel,
-                crate::term::parse_accessor,
+                crate::expression::parse_accessor,
             ),
             |(identifier, accessor)| puppet_lang::expression::Expression {
                 extra: (&identifier.extra, &accessor, &identifier.extra).into(),
@@ -37,12 +37,12 @@ fn parse_interpolation(input: Span) -> IResult<DoubleQuotedFragment<Range>> {
                         value: puppet_lang::expression::TermVariant::Variable(
                             puppet_lang::expression::Variable {
                                 extra: (&identifier.extra, &accessor, &identifier.extra).into(),
-                                accessor,
                                 identifier,
                             },
                         ),
                     },
                 ),
+                accessor,
                 // Comments are not possible for interpolated expressions
                 comment: vec![],
             },
@@ -118,14 +118,12 @@ pub fn parse(input: Span) -> IResult<StringExpr<Range>> {
         ),
     ));
 
-    map(
-        pair(double_quoted_parser, crate::term::parse_accessor),
-        |((left_quote, data, right_quote), accessor)| StringExpr {
+    map(double_quoted_parser, |(left_quote, data, right_quote)| {
+        StringExpr {
             data: StringVariant::DoubleQuoted(data),
-            extra: Range::from((&left_quote, &accessor, &right_quote)),
-            accessor,
-        },
-    )(input)
+            extra: Range::from((&left_quote, &right_quote)),
+        }
+    })(input)
 }
 
 #[test]
@@ -134,7 +132,6 @@ fn test() {
         parse(Span::new("\"\"")).unwrap().1,
         puppet_lang::string::StringExpr {
             data: puppet_lang::string::StringVariant::DoubleQuoted(vec![]),
-            accessor: None,
             extra: Range::new(0, 1, 1, 1, 1, 2)
         }
     );
@@ -149,7 +146,6 @@ fn test() {
                     }
                 ))
             ]),
-            accessor: None,
             extra: Range::new(0, 1, 1, 2, 1, 3)
         }
     );
@@ -164,7 +160,6 @@ fn test() {
                     }
                 ))
             ]),
-            accessor: None,
             extra: Range::new(0, 1, 1, 3, 1, 4)
         }
     );

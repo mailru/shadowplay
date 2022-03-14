@@ -1,11 +1,11 @@
 use crate::common::{
     capture_comment, curly_brackets_delimimited, round_brackets_delimimited, space0_delimimited,
-    square_brackets_comma_separated1, square_brackets_delimimited,
+    square_brackets_delimimited,
 };
+use crate::expression::{parse_accessor, parse_expression};
 use crate::range::Range;
 use crate::{IResult, ParseError, Span};
 use nom::combinator::map_res;
-use nom::multi::many1;
 use nom::sequence::tuple;
 use nom::{
     branch::alt,
@@ -14,32 +14,14 @@ use nom::{
     combinator::{map, opt, recognize},
     sequence::{delimited, pair, preceded},
 };
-use puppet_lang::expression::{Accessor, MapKV};
+use puppet_lang::expression::MapKV;
 use puppet_lang::string::StringExpr;
-
-pub fn parse_accessor(input: Span) -> IResult<Option<Accessor<Range>>> {
-    opt(map(
-        many1(square_brackets_comma_separated1(map(
-            crate::expression::parse_expression,
-            Box::new,
-        ))),
-        |list| Accessor {
-            extra: Range::from((list.first().unwrap().0, list.last().unwrap().2)),
-            list: list.into_iter().map(|(_, elt, _)| elt).collect(),
-        },
-    ))(input)
-}
 
 pub fn parse_variable(input: Span) -> IResult<puppet_lang::expression::Variable<Range>> {
     map(
-        tuple((
-            tag("$"),
-            crate::identifier::identifier_with_toplevel,
-            parse_accessor,
-        )),
-        |(dollar_sign, identifier, accessor)| puppet_lang::expression::Variable {
-            extra: (&dollar_sign, &accessor, &identifier.extra).into(),
-            accessor,
+        pair(tag("$"), crate::identifier::identifier_with_toplevel),
+        |(dollar_sign, identifier)| puppet_lang::expression::Variable {
+            extra: (dollar_sign, &identifier.extra).into(),
             identifier,
         },
     )(input)
@@ -143,10 +125,22 @@ pub fn parse_sensitive(input: Span) -> IResult<puppet_lang::expression::TermVari
 }
 
 fn parse_map(input: Span) -> IResult<puppet_lang::expression::TermVariant<Range>> {
+    let key_parser = alt((
+        map(pair(parse_term, parse_accessor), |(value, accessor)| {
+            puppet_lang::expression::Expression {
+                extra: value.extra.clone(),
+                value: puppet_lang::expression::ExpressionVariant::Term(value),
+                accessor,
+                comment: vec![],
+            }
+        }),
+        parse_expression,
+    ));
+
     let kv_parser = map(
         tuple((
             capture_comment,
-            space0_delimimited(parse_term),
+            space0_delimimited(key_parser),
             preceded(
                 tag("=>"),
                 space0_delimimited(ParseError::protect(
@@ -163,17 +157,13 @@ fn parse_map(input: Span) -> IResult<puppet_lang::expression::TermVariant<Range>
     );
 
     map(
-        pair(
-            curly_brackets_delimimited(crate::common::comma_separated_list_with_last_comment(
-                kv_parser,
-            )),
-            parse_accessor,
-        ),
-        |((tag_left, value, tag_right), accessor)| {
+        curly_brackets_delimimited(crate::common::comma_separated_list_with_last_comment(
+            kv_parser,
+        )),
+        |(tag_left, value, tag_right)| {
             puppet_lang::expression::TermVariant::Map(puppet_lang::expression::Map {
-                extra: (&tag_left, &accessor, &tag_right).into(),
+                extra: (&tag_left, &tag_right).into(),
                 value,
-                accessor,
             })
         },
     )(input)
@@ -181,17 +171,13 @@ fn parse_map(input: Span) -> IResult<puppet_lang::expression::TermVariant<Range>
 
 fn parse_array(input: Span) -> IResult<puppet_lang::expression::TermVariant<Range>> {
     map(
-        tuple((
-            square_brackets_delimimited(crate::common::comma_separated_list_with_last_comment(
-                crate::expression::parse_expression,
-            )),
-            parse_accessor,
+        square_brackets_delimimited(crate::common::comma_separated_list_with_last_comment(
+            crate::expression::parse_expression,
         )),
-        |((tag_left, value, tag_right), accessor)| {
+        |(tag_left, value, tag_right)| {
             puppet_lang::expression::TermVariant::Array(puppet_lang::expression::Array {
-                extra: (&tag_left, &accessor, &tag_right).into(),
+                extra: (&tag_left, &tag_right).into(),
                 value,
-                accessor,
             })
         },
     )(input)
@@ -207,12 +193,10 @@ pub fn parse_parens(input: Span) -> IResult<puppet_lang::expression::Parens<Rang
             space0_delimimited(tag("(")),
             crate::expression::parse_expression,
             space0_delimimited(tag(")")),
-            parse_accessor,
         )),
-        |(left_tag, value, right_tag, accessor)| puppet_lang::expression::Parens {
-            extra: (&left_tag, &accessor, &right_tag).into(),
+        |(left_tag, value, right_tag)| puppet_lang::expression::Parens {
+            extra: (&left_tag, &right_tag).into(),
             value: Box::new(value),
-            accessor,
         },
     )(input)
 }
@@ -326,6 +310,7 @@ fn test_array_of_types() {
                     last_comment: vec![],
                     value: vec![
                         puppet_lang::expression::Expression {
+                            accessor: None,
                             comment: vec![],
                             value: puppet_lang::expression::ExpressionVariant::Term(
                                 puppet_lang::expression::Term {
@@ -338,6 +323,7 @@ fn test_array_of_types() {
                                                     name: vec!["Class".to_owned()],
                                                     arguments: vec![
                                                         puppet_lang::expression::Expression {
+                                                            accessor: None,
                                                             comment: vec![],
                                                             value: puppet_lang::expression::ExpressionVariant::Term(
                                                                 puppet_lang::expression::Term {
@@ -348,7 +334,6 @@ fn test_array_of_types() {
                                                                                 extra: Range::new(9, 1, 10, 18, 1, 19)
                                                                             })
                                                                         ]),
-                                                                        accessor: None,
                                                                         extra: Range::new(8, 1, 9, 19, 1, 20)
                                                                     }),
                                                                     extra: Range::new(8, 1, 9, 19, 1, 20)
@@ -368,7 +353,6 @@ fn test_array_of_types() {
                             extra: Range::new(2, 1, 3, 20, 1, 21)
                         }
                     ]},
-                accessor: None,
                 extra: Range::new(0, 1, 1, 22, 1, 23)
             }),
             extra: Range::new(0, 1, 1, 22, 1, 23)
@@ -447,7 +431,6 @@ fn test_array() {
         puppet_lang::expression::Term {
             value: puppet_lang::expression::TermVariant::Array(puppet_lang::expression::Array {
                 value: puppet_lang::List::default(),
-                accessor: None,
                 extra: Range::new(0, 1, 1, 1, 1, 2)
             }),
             extra: Range::new(0, 1, 1, 1, 1, 2)
@@ -461,6 +444,7 @@ fn test_array() {
                 value: puppet_lang::List {
                     last_comment: vec![],
                     value: vec![puppet_lang::expression::Expression {
+                        accessor: None,
                         comment: vec![],
                         value: puppet_lang::expression::ExpressionVariant::Term(
                             puppet_lang::expression::Term {
@@ -476,7 +460,6 @@ fn test_array() {
                         extra: Range::new(1, 1, 2, 5, 1, 6)
                     }]
                 },
-                accessor: None,
                 extra: Range::new(0, 1, 1, 6, 1, 7)
             }),
             extra: Range::new(0, 1, 1, 6, 1, 7)
@@ -491,7 +474,6 @@ fn test_map() {
         puppet_lang::expression::Term {
             value: puppet_lang::expression::TermVariant::Map(puppet_lang::expression::Map {
                 value: puppet_lang::List::default(),
-                accessor: None,
                 extra: Range::new(0, 1, 1, 1, 1, 2)
             }),
             extra: Range::new(0, 1, 1, 1, 1, 2)
@@ -505,16 +487,24 @@ fn test_map() {
                 value: puppet_lang::List {
                     last_comment: vec![],
                     value: vec![puppet_lang::expression::MapKV {
-                        key: puppet_lang::expression::Term {
-                            value: puppet_lang::expression::TermVariant::Boolean(
-                                puppet_lang::expression::Boolean {
-                                    value: false,
+                        key: puppet_lang::expression::Expression {
+                            extra: Range::new(1, 1, 2, 5, 1, 6),
+                            accessor: None,
+                            comment: vec![],
+                            value: puppet_lang::expression::ExpressionVariant::Term(
+                                puppet_lang::expression::Term {
+                                    value: puppet_lang::expression::TermVariant::Boolean(
+                                        puppet_lang::expression::Boolean {
+                                            value: false,
+                                            extra: Range::new(1, 1, 2, 5, 1, 6)
+                                        }
+                                    ),
                                     extra: Range::new(1, 1, 2, 5, 1, 6)
                                 }
-                            ),
-                            extra: Range::new(1, 1, 2, 5, 1, 6)
+                            )
                         },
                         value: puppet_lang::expression::Expression {
+                            accessor: None,
                             comment: vec![],
                             value: puppet_lang::expression::ExpressionVariant::Term(
                                 puppet_lang::expression::Term {
@@ -532,7 +522,6 @@ fn test_map() {
                         comment: vec![],
                     }],
                 },
-                accessor: None,
                 extra: Range::new(0, 1, 1, 11, 1, 12)
             }),
             extra: Range::new(0, 1, 1, 11, 1, 12)
@@ -552,7 +541,6 @@ fn test_variable() {
                 is_toplevel: false,
                 extra: Range::new(1, 1, 2, 1, 1, 2)
             },
-            accessor: None,
             extra: Range::new(0, 1, 1, 1, 1, 2)
         }
     );
@@ -564,62 +552,7 @@ fn test_variable() {
                 is_toplevel: true,
                 extra: Range::new(1, 1, 2, 6, 1, 7)
             },
-            accessor: None,
             extra: Range::new(0, 1, 1, 6, 1, 7)
-        }
-    );
-    assert_eq!(
-        parse_variable(Span::new("$a[ 1 ]['z']")).unwrap().1,
-        puppet_lang::expression::Variable {
-            identifier: puppet_lang::identifier::LowerIdentifier {
-                name: vec!["a".to_owned()],
-                is_toplevel: false,
-                extra: Range::new(1, 1, 2, 1, 1, 2)
-            },
-            accessor: Some(Accessor {
-                list: vec![
-                    vec![Box::new(puppet_lang::expression::Expression {
-                        comment: vec![],
-                        value: puppet_lang::expression::ExpressionVariant::Term(
-                            puppet_lang::expression::Term {
-                                value: puppet_lang::expression::TermVariant::Integer(
-                                    puppet_lang::expression::Integer {
-                                        extra: Range::new(4, 1, 5, 4, 1, 5),
-                                        value: 1,
-                                    }
-                                ),
-                                extra: Range::new(4, 1, 5, 4, 1, 5)
-                            }
-                        ),
-                        extra: Range::new(4, 1, 5, 4, 1, 5)
-                    })],
-                    vec![Box::new(puppet_lang::expression::Expression {
-                        comment: vec![],
-                        value: puppet_lang::expression::ExpressionVariant::Term(
-                            puppet_lang::expression::Term {
-                                value: puppet_lang::expression::TermVariant::String(
-                                    puppet_lang::string::StringExpr {
-                                        data: puppet_lang::string::StringVariant::SingleQuoted(
-                                            vec![puppet_lang::string::StringFragment::Literal(
-                                                puppet_lang::string::Literal {
-                                                    data: "z".to_owned(),
-                                                    extra: Range::new(9, 1, 10, 9, 1, 10),
-                                                }
-                                            )]
-                                        ),
-                                        accessor: None,
-                                        extra: Range::new(8, 1, 9, 10, 1, 11),
-                                    }
-                                ),
-                                extra: Range::new(8, 1, 9, 10, 1, 11)
-                            }
-                        ),
-                        extra: Range::new(8, 1, 9, 10, 1, 11)
-                    })]
-                ],
-                extra: Range::new(2, 1, 3, 11, 1, 12)
-            }),
-            extra: Range::new(0, 1, 1, 11, 1, 12)
         }
     );
 }

@@ -657,7 +657,6 @@ fn test_struct() {
                                     }
                                 )
                             ]),
-                            accessor: None,
                             extra: Range::new(9, 1, 10, 16, 1, 17)
                         }
                     ),
@@ -789,6 +788,7 @@ fn test_type_specification() {
                 puppet_lang::typing::ExternalType {
                     name: vec!["Class".to_owned(),],
                     arguments: vec![puppet_lang::expression::Expression {
+                        accessor: None,
                         comment: vec![],
                         value: puppet_lang::expression::ExpressionVariant::Term(
                             puppet_lang::expression::Term {
@@ -802,7 +802,6 @@ fn test_type_specification() {
                                                 }
                                             )]
                                         ),
-                                        accessor: None,
                                         extra: Range::new(6, 1, 7, 12, 1, 13),
                                     }
                                 ),

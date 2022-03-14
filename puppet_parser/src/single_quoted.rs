@@ -92,24 +92,18 @@ pub fn parse(input: Span) -> IResult<puppet_lang::string::StringExpr<Range>> {
                 tag("'"),
                 ParseError::protect(|_| "Unterminated quoted string".to_string(), build_string),
                 tag("'"),
-                crate::term::parse_accessor,
             )),
-            |(left_tag, data, right_tag, accessor)| puppet_lang::string::StringExpr {
-                extra: Range::from((&left_tag, &accessor, &right_tag)),
+            |(left_tag, data, right_tag)| puppet_lang::string::StringExpr {
+                extra: Range::from((&left_tag, &right_tag)),
                 data: StringVariant::SingleQuoted(data),
-                accessor,
             },
         ),
-        map(
-            pair(bareword, crate::term::parse_accessor),
-            |(word, accessor)| puppet_lang::string::StringExpr {
-                extra: word.extra.clone(),
-                data: StringVariant::SingleQuoted(vec![
-                    puppet_lang::string::StringFragment::Literal(word),
-                ]),
-                accessor,
-            },
-        ),
+        map(bareword, |word| puppet_lang::string::StringExpr {
+            extra: word.extra.clone(),
+            data: StringVariant::SingleQuoted(vec![puppet_lang::string::StringFragment::Literal(
+                word,
+            )]),
+        }),
     ))(input)
 }
 
@@ -119,7 +113,6 @@ fn test() {
         parse(Span::new("''")).unwrap().1,
         puppet_lang::string::StringExpr {
             data: puppet_lang::string::StringVariant::SingleQuoted(Vec::new()),
-            accessor: None,
             extra: Range::new(0, 1, 1, 1, 1, 2)
         }
     );
@@ -132,7 +125,6 @@ fn test() {
                     extra: Range::new(1, 1, 2, 1, 1, 2)
                 })
             ]),
-            accessor: None,
             extra: Range::new(0, 1, 1, 2, 1, 3)
         }
     );
@@ -145,7 +137,6 @@ fn test() {
                     extra: Range::new(1, 1, 2, 2, 1, 3)
                 })
             ]),
-            accessor: None,
             extra: Range::new(0, 1, 1, 3, 1, 4)
         }
     );
@@ -158,7 +149,6 @@ fn test() {
                     extra: Range::new(0, 1, 1, 9, 1, 10)
                 })
             ]),
-            accessor: None,
             extra: Range::new(0, 1, 1, 9, 1, 10)
         }
     );
@@ -172,7 +162,6 @@ fn test() {
                     extra: Range::new(0, 1, 1, 7, 1, 8)
                 })
             ]),
-            accessor: None,
             extra: Range::new(0, 1, 1, 7, 1, 8)
         }
     );

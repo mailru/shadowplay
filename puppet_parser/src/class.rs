@@ -279,6 +279,7 @@ fn test_body_tag() {
                 value: vec![puppet_lang::statement::Statement {
                     value: puppet_lang::statement::StatementVariant::Expression(
                         puppet_lang::expression::Expression {
+                            accessor: None,
                             comment: vec![],
                             value: puppet_lang::expression::ExpressionVariant::BuiltinFunction(
                                 puppet_lang::builtin::BuiltinVariant::Tag(
@@ -286,7 +287,8 @@ fn test_body_tag() {
                                         lambda: None,
                                         args: vec![
                                             puppet_lang::expression::Expression {
-                            comment: vec![],
+                                                accessor: None,
+                                                comment: vec![],
                                                 value: puppet_lang::expression::ExpressionVariant::Term(
                                                     puppet_lang::expression::Term {
                                                         value: puppet_lang::expression::TermVariant::String(
@@ -302,7 +304,6 @@ fn test_body_tag() {
                                                                         )
                                                                     ]
                                                                 ),
-                                                                accessor: None,
                                                                 extra: Range::new(26, 2, 6, 28, 2, 8)
                                                             },
                                                         ),
@@ -312,7 +313,8 @@ fn test_body_tag() {
                                                 extra: Range::new(26, 2, 6, 28, 2, 8)
                                             },
                                             puppet_lang::expression::Expression {
-                            comment: vec![],
+                                                accessor: None,
+                                                comment: vec![],
                                                 value: puppet_lang::expression::ExpressionVariant::Term(
                                                     puppet_lang::expression::Term {
                                                         value: puppet_lang::expression::TermVariant::String(
@@ -328,7 +330,6 @@ fn test_body_tag() {
                                                                         )
                                                                     ]
                                                                 ),
-                                                                accessor: None,
                                                                 extra: Range::new(31, 2, 11, 35, 2, 15)
                                                             },
                                                         ),
@@ -338,7 +339,8 @@ fn test_body_tag() {
                                                 extra: Range::new(31, 2, 11, 35, 2, 15)
                                             },
                                             puppet_lang::expression::Expression {
-                            comment: vec![],
+                                                accessor: None,
+                                                comment: vec![],
                                                 value: puppet_lang::expression::ExpressionVariant::Term(
                                                     puppet_lang::expression::Term {
                                                         value: puppet_lang::expression::TermVariant::String(
@@ -353,7 +355,6 @@ fn test_body_tag() {
                                                                                 }
                                                                             ))
                                                                     ]),
-                                                                accessor: None,
                                                                 extra: Range::new(38, 2, 18, 42, 2, 22)
                                                             },
                                                         ),
@@ -381,8 +382,6 @@ fn test_body_tag() {
 fn test_body_require() {
     assert_eq!(
         parse_class(Span::new(
-            // 0123456789012345678901234567890123456789012345678901234567890
-            // 0         10        20        30        40        50
             "class  abc::def () {\n require abc::def require zzz }\n"
         ))
             .unwrap()
@@ -400,10 +399,12 @@ fn test_body_require() {
                     puppet_lang::statement::Statement {
                         value: puppet_lang::statement::StatementVariant::Expression(
                             puppet_lang::expression::Expression {
-                            comment: vec![],
+                                accessor: None,
+                                comment: vec![],
                                 value: puppet_lang::expression::ExpressionVariant::BuiltinFunction(
                                     puppet_lang::builtin::BuiltinVariant::Require(puppet_lang::builtin::Many1 {
                                         args: vec![puppet_lang::expression::Expression {
+                                            accessor: None,
                                             comment: vec![],
                                             value: puppet_lang::expression::ExpressionVariant::Term(
                                                 puppet_lang::expression::Term {
@@ -434,10 +435,12 @@ fn test_body_require() {
                     puppet_lang::statement::Statement {
                         value: puppet_lang::statement::StatementVariant::Expression(
                             puppet_lang::expression::Expression {
-                            comment: vec![],
+                                accessor: None,
+                                comment: vec![],
                                 value: puppet_lang::expression::ExpressionVariant::BuiltinFunction(
                                     puppet_lang::builtin::BuiltinVariant::Require(puppet_lang::builtin::Many1 {
                                         args: vec![puppet_lang::expression::Expression {
+                                            accessor: None,
                                             comment: vec![],
                                             value: puppet_lang::expression::ExpressionVariant::Term(
                                                 puppet_lang::expression::Term {
@@ -454,7 +457,6 @@ fn test_body_require() {
                                                                     )
                                                                 ]
                                                             ),
-                                                            accessor: None,
                                                             extra: Range::new(47, 2, 27, 49, 2, 29),
                                                         }
                                                     ),

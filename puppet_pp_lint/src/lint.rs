@@ -230,7 +230,6 @@ impl AstLinter {
         for expr in &array.value.value {
             errors.append(&mut self.check_expression(storage, true, expr))
         }
-        errors.append(&mut self.check_accessor(storage, &array.accessor));
 
         errors
     }
@@ -262,23 +261,19 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for kv in &elt.value.value {
-            errors.append(&mut self.check_term(storage, &kv.key));
+            errors.append(&mut self.check_expression(storage, true, &kv.key));
             errors.append(&mut self.check_expression(storage, true, &kv.value));
         }
-        errors.append(&mut self.check_accessor(storage, &elt.accessor));
 
         errors
     }
 
     pub fn check_variable(
         &self,
-        storage: &Storage,
-        elt: &puppet_lang::expression::Variable<Range>,
+        _storage: &Storage,
+        _elt: &puppet_lang::expression::Variable<Range>,
     ) -> Vec<LintError> {
-        let mut errors = Vec::new();
-        errors.append(&mut self.check_accessor(storage, &elt.accessor));
-
-        errors
+        Vec::new()
     }
 
     pub fn check_type_specification(
@@ -330,7 +325,6 @@ impl AstLinter {
         match &elt.value {
             puppet_lang::expression::TermVariant::String(elt) => {
                 errors.append(&mut self.check_string_expression(storage, elt));
-                errors.append(&mut self.check_accessor(storage, &elt.accessor));
             }
             puppet_lang::expression::TermVariant::Parens(expr) => {
                 errors.append(&mut self.check_expression(storage, false, &expr.value))
@@ -374,7 +368,6 @@ impl AstLinter {
         if let Some(lambda) = &elt.lambda {
             errors.append(&mut self.check_lambda(storage, lambda))
         }
-        errors.append(&mut self.check_accessor(storage, &elt.accessor));
 
         errors
     }
@@ -522,6 +515,7 @@ impl AstLinter {
                 errors.append(&mut self.check_type_specification(storage, right));
             }
         };
+        errors.append(&mut self.check_accessor(storage, &elt.accessor));
 
         errors
     }
