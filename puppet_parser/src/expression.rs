@@ -422,8 +422,8 @@ fn parse_chain_call(input: Span) -> IResult<puppet_lang::expression::Expression<
                     right: Box::new(right),
                 },
             ),
-            // TODO is it applicable?
-            comment: Vec::new(),
+            // Comment is captured by inner expression
+            comment: vec![],
         },
     );
     parser(input)
@@ -431,8 +431,7 @@ fn parse_chain_call(input: Span) -> IResult<puppet_lang::expression::Expression<
 
 /// https://puppet.com/docs/puppet/6/lang_expressions.html#lang_exp_comparison_operators-comparison-in
 fn parse_in_expr(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> {
-    let parser = tuple((
-        capture_comment,
+    let parser = pair(
         parse_chain_call,
         opt(pair(
             spaced_word("in"),
@@ -441,16 +440,17 @@ fn parse_in_expr(input: Span) -> IResult<puppet_lang::expression::Expression<Ran
                 parse_chain_call,
             ),
         )),
-    ));
+    );
 
-    map(parser, |(comment, left, tail)| match tail {
+    map(parser, |(left, tail)| match tail {
         Some((_op, right)) => puppet_lang::expression::Expression {
             extra: Range::from((&left.extra, &right.extra)),
             value: puppet_lang::expression::ExpressionVariant::In((
                 Box::new(left),
                 Box::new(right),
             )),
-            comment,
+            // Comment is captured by inner expression
+            comment: vec![],
         },
         None => left,
     })(input)
@@ -459,7 +459,6 @@ fn parse_in_expr(input: Span) -> IResult<puppet_lang::expression::Expression<Ran
 /// https://puppet.com/docs/puppet/7/lang_conditional.html#lang_condition_selector
 fn parse_selector_case(input: Span) -> IResult<puppet_lang::expression::SelectorCase<Range>> {
     let parser = tuple((
-        capture_comment,
         parse_case_variant,
         space0_delimimited(tag("=>")),
         ParseError::protect(
@@ -468,20 +467,20 @@ fn parse_selector_case(input: Span) -> IResult<puppet_lang::expression::Selector
         ),
     ));
 
-    map(parser, |(comment, case, _tag, body)| {
+    map(parser, |(case, _tag, body)| {
         puppet_lang::expression::SelectorCase {
             extra: Range::from((case.extra(), &body.extra)),
             case,
             body: Box::new(body),
-            comment,
+            // Comment is captured by inner expression
+            comment: vec![],
         }
     })(input)
 }
 
 /// https://puppet.com/docs/puppet/7/lang_conditional.html#lang_condition_selector
 fn parse_selector(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> {
-    let parser = tuple((
-        capture_comment,
+    let parser = pair(
         parse_in_expr,
         opt(tuple((
             space0_delimimited(tag("?")),
@@ -497,9 +496,9 @@ fn parse_selector(input: Span) -> IResult<puppet_lang::expression::Expression<Ra
                 tag("}"),
             ),
         ))),
-    ));
+    );
 
-    map(parser, |(comment, condition, tail)| match tail {
+    map(parser, |(condition, tail)| match tail {
         Some((_op, _, cases, right_curly)) => puppet_lang::expression::Expression {
             extra: Range::from((&condition.extra, right_curly)),
             value: puppet_lang::expression::ExpressionVariant::Selector(
@@ -509,7 +508,8 @@ fn parse_selector(input: Span) -> IResult<puppet_lang::expression::Expression<Ra
                     cases,
                 },
             ),
-            comment,
+            // Comment is captured by inner expression
+            comment: vec![],
         },
         None => condition,
     })(input)
