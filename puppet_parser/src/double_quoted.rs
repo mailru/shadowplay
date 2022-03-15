@@ -49,13 +49,17 @@ fn parse_interpolation(input: Span) -> IResult<DoubleQuotedFragment<Range>> {
         )
     };
 
-    let parser_delimited = alt((parser_variable(), crate::expression::parse_expression));
-
     let (input, dollar_tag) = tag("$")(input)?;
 
     let parser = alt((
         map(
-            tuple((tag("{"), parser_delimited, tag("}"))),
+            tuple((tag("{"), parser_variable(), tag("}"))),
+            |(_left_bracket, expr, _right_bracket)| {
+                DoubleQuotedFragment::Expression(puppet_lang::string::Expression { data: expr })
+            },
+        ),
+        map(
+            tuple((tag("{"), crate::expression::parse_expression, tag("}"))),
             |(_left_bracket, expr, _right_bracket)| {
                 DoubleQuotedFragment::Expression(puppet_lang::string::Expression { data: expr })
             },
@@ -127,7 +131,7 @@ pub fn parse(input: Span) -> IResult<StringExpr<Range>> {
 }
 
 #[test]
-fn test() {
+fn test_simple() {
     assert_eq!(
         parse(Span::new("\"\"")).unwrap().1,
         puppet_lang::string::StringExpr {
@@ -161,6 +165,75 @@ fn test() {
                 ))
             ]),
             extra: Range::new(0, 1, 1, 3, 1, 4)
+        }
+    );
+}
+
+#[test]
+fn test_interpolatad_variable() {
+    assert_eq!(
+        parse(Span::new("\"${varname}\"")).unwrap().1,
+        puppet_lang::string::StringExpr {
+            data: puppet_lang::string::StringVariant::DoubleQuoted(vec![
+                puppet_lang::string::DoubleQuotedFragment::Expression(
+                    puppet_lang::string::Expression {
+                        data: puppet_lang::expression::Expression {
+                            value: puppet_lang::expression::ExpressionVariant::Term(
+                                puppet_lang::expression::Term {
+                                    value: puppet_lang::expression::TermVariant::Variable(
+                                        puppet_lang::expression::Variable {
+                                            identifier: puppet_lang::identifier::LowerIdentifier {
+                                                name: vec!["varname".to_string()],
+                                                is_toplevel: false,
+                                                extra: Range::new(3, 1, 4, 9, 1, 10)
+                                            },
+                                            extra: Range::new(3, 1, 4, 9, 1, 10)
+                                        }
+                                    ),
+                                    extra: Range::new(3, 1, 4, 9, 1, 10)
+                                }
+                            ),
+                            extra: Range::new(3, 1, 4, 9, 1, 10),
+                            accessor: None,
+                            comment: vec![],
+                        },
+                    }
+                )
+            ]),
+            extra: Range::new(0, 1, 1, 11, 1, 12)
+        }
+    );
+}
+
+#[test]
+fn test_interpolatad_expression() {
+    assert_eq!(
+        parse(Span::new("\"${funcall()}\"")).unwrap().1,
+        puppet_lang::string::StringExpr {
+            data: puppet_lang::string::StringVariant::DoubleQuoted(vec![
+                puppet_lang::string::DoubleQuotedFragment::Expression(
+                    puppet_lang::string::Expression {
+                        data: puppet_lang::expression::Expression {
+                            value: puppet_lang::expression::ExpressionVariant::FunctionCall(
+                                puppet_lang::expression::FunctionCall {
+                                    extra: Range::new(3, 1, 4, 11, 1, 12),
+                                    identifier: puppet_lang::identifier::LowerIdentifier {
+                                        name: vec!["funcall".to_string()],
+                                        is_toplevel: false,
+                                        extra: Range::new(3, 1, 4, 9, 1, 10)
+                                    },
+                                    args: vec![],
+                                    lambda: None,
+                                }
+                            ),
+                            extra: Range::new(3, 1, 4, 11, 1, 12),
+                            accessor: None,
+                            comment: vec![],
+                        },
+                    }
+                )
+            ]),
+            extra: Range::new(0, 1, 1, 13, 1, 14)
         }
     );
 }
