@@ -12,7 +12,7 @@ impl<EXTRA> Printer for puppet_lang::argument::Argument<EXTRA> {
             Some(v) => RcDoc::softline()
                 .append(RcDoc::text("="))
                 .append(RcDoc::softline())
-                .append(crate::expression::to_doc(&v, false)),
+                .append(crate::expression::to_doc(v, false)),
             None => RcDoc::nil(),
         };
 
@@ -36,9 +36,9 @@ impl<EXTRA> Printer for puppet_lang::List<EXTRA, puppet_lang::argument::Argument
     }
 }
 
-pub fn list_to_rounded_doc<'a, EXTRA>(
-    elt: &'a puppet_lang::List<EXTRA, puppet_lang::argument::Argument<EXTRA>>,
-) -> RcDoc<'a, ()> {
+pub fn list_to_rounded_doc<EXTRA>(
+    elt: &puppet_lang::List<EXTRA, puppet_lang::argument::Argument<EXTRA>>,
+) -> RcDoc<()> {
     if elt.value.is_empty() && elt.last_comment.is_empty() {
         return RcDoc::text("()");
     }
@@ -51,9 +51,9 @@ pub fn list_to_rounded_doc<'a, EXTRA>(
         .append(RcDoc::text(")"))
 }
 
-pub fn list_to_piped_doc<'a, EXTRA>(
-    elt: &'a puppet_lang::List<EXTRA, puppet_lang::argument::Argument<EXTRA>>,
-) -> RcDoc<'a, ()> {
+pub fn list_to_piped_doc<EXTRA>(
+    elt: &puppet_lang::List<EXTRA, puppet_lang::argument::Argument<EXTRA>>,
+) -> RcDoc<()> {
     if elt.value.is_empty() && elt.last_comment.is_empty() {
         return RcDoc::text("||");
     }

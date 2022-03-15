@@ -1,10 +1,10 @@
 use crate::Printer;
 use pretty::RcDoc;
 
-pub fn statement_block_to_doc<'a, EXTRA>(
-    elt: &'a puppet_lang::List<EXTRA, puppet_lang::statement::Statement<EXTRA>>,
+pub fn statement_block_to_doc<EXTRA>(
+    elt: &puppet_lang::List<EXTRA, puppet_lang::statement::Statement<EXTRA>>,
     with_parens: bool,
-) -> RcDoc<'a, ()> {
+) -> RcDoc<()> {
     let inner = RcDoc::intersperse(elt.value.iter().map(|x| x.to_doc()), RcDoc::hardline())
         .append(elt.last_comment.to_doc());
 
@@ -61,7 +61,7 @@ impl<EXTRA> Printer for puppet_lang::statement::IfElse<EXTRA> {
                     RcDoc::hardline(),
                     RcDoc::softline(),
                 ))
-                .append(statement_block_to_doc(&elt, true)),
+                .append(statement_block_to_doc(elt, true)),
         }
     }
 }

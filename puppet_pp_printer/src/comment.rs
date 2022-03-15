@@ -3,8 +3,12 @@ use pretty::{Doc, RcDoc};
 
 impl<EXTRA> Printer for Vec<puppet_lang::comment::Comment<EXTRA>> {
     fn to_doc(&self) -> RcDoc<()> {
-        let list: Vec<_> = self.iter().map(|v| v.value.split('\n')).flatten().collect();
-        if list.is_empty() {
+        if self
+            .iter()
+            .flat_map(|v| v.value.split('\n'))
+            .next()
+            .is_none()
+        {
             RcDoc::nil()
         } else {
             RcDoc::hardline().append(RcDoc::intersperse(

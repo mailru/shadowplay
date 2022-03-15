@@ -160,7 +160,7 @@ impl<EXTRA> Printer for puppet_lang::typing::Enum<EXTRA> {
                 RcDoc::intersperse(
                     self.list
                         .iter()
-                        .map(|x| crate::term::to_doc(&x, false).append(RcDoc::text(","))),
+                        .map(|x| crate::term::to_doc(x, false).append(RcDoc::text(","))),
                     RcDoc::softline(),
                 )
                 .group(),
@@ -183,7 +183,7 @@ impl<EXTRA> Printer for puppet_lang::typing::ExternalType<EXTRA> {
                     RcDoc::intersperse(
                         self.arguments
                             .iter()
-                            .map(|x| crate::expression::to_doc(&x, false).append(RcDoc::text(","))),
+                            .map(|x| crate::expression::to_doc(x, false).append(RcDoc::text(","))),
                         RcDoc::softline(),
                     )
                     .group(),
@@ -194,7 +194,7 @@ impl<EXTRA> Printer for puppet_lang::typing::ExternalType<EXTRA> {
                 .group()
         };
 
-        RcDoc::intersperse(self.name.iter().map(|x| RcDoc::text(x)), RcDoc::text("::")).append(args)
+        RcDoc::intersperse(self.name.iter().map(RcDoc::text), RcDoc::text("::")).append(args)
     }
 }
 
