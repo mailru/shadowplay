@@ -69,11 +69,16 @@ pub struct OptionalStructKey<EXTRA> {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
+pub struct NotUndefStructKey<EXTRA> {
+    pub value: crate::string::StringExpr<EXTRA>,
+    pub extra: EXTRA,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum TypeStructKey<EXTRA> {
     String(crate::string::StringExpr<EXTRA>),
     Optional(OptionalStructKey<EXTRA>),
-    // TODO
-    NotUndef(crate::string::StringExpr<EXTRA>),
+    NotUndef(NotUndefStructKey<EXTRA>),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -87,8 +92,6 @@ pub struct TypeStructKV<EXTRA> {
 pub struct TypeStruct<EXTRA> {
     pub keys: crate::List<EXTRA, TypeStructKV<EXTRA>>,
     pub extra: EXTRA,
-    pub comment_before_keys: Vec<crate::comment::Comment<EXTRA>>,
-    pub comment_after_keys: Vec<crate::comment::Comment<EXTRA>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]

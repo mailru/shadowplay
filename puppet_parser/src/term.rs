@@ -12,7 +12,7 @@ use nom::{
     bytes::complete::tag,
     character::complete::digit1,
     combinator::{map, opt, recognize},
-    sequence::{delimited, pair, preceded},
+    sequence::{pair, preceded},
 };
 use puppet_lang::expression::MapKV;
 use puppet_lang::string::StringExpr;
@@ -43,7 +43,10 @@ pub fn parse_regexp_group_id(
 }
 
 pub fn parse_float(input: Span) -> IResult<(f32, Span)> {
-    let number = delimited(digit1, alt((tag("e"), tag("E"), tag("."))), digit1);
+    let number = pair(
+        digit1,
+        opt(pair(alt((tag("e"), tag("E"), tag("."))), digit1)),
+    );
     let (tail, s) = recognize(pair(opt(tag("-")), number))(input)?;
 
     let f = match s.parse::<f32>() {

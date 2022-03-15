@@ -4,10 +4,10 @@ use nom::{
     bytes::complete::tag,
     combinator::{map, opt, value},
     multi::separated_list0,
-    sequence::{pair, preceded, tuple},
+    sequence::{pair, preceded, terminated, tuple},
     Parser,
 };
-use puppet_lang::typing::{ExternalType, OptionalStructKey};
+use puppet_lang::typing::{ExternalType, NotUndefStructKey, OptionalStructKey};
 
 pub fn parse_or_default<'a, O, F>(parser: F) -> impl FnMut(Span<'a>) -> IResult<Option<O>>
 where
@@ -110,7 +110,10 @@ fn parse_array(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVar
         parse_type_specification,
         opt(preceded(
             crate::common::comma_separator,
-            parse_min_max(crate::term::parse_usize_term),
+            terminated(
+                opt(parse_min_max(crate::term::parse_usize_term)),
+                opt(crate::common::comma_separator),
+            ),
         )),
     );
 
@@ -126,7 +129,7 @@ fn parse_array(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVar
                 extra: Range::from((keyword, keyword)),
             },
             Some((_left_bracket, (inner, min_max), right_bracket)) => {
-                let (min, max) = min_max.unwrap_or((None, None));
+                let (min, max) = min_max.flatten().unwrap_or((None, None));
                 puppet_lang::typing::TypeArray {
                     inner: Some(Box::new(inner)),
                     min,
@@ -146,7 +149,10 @@ fn parse_hash(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVari
         preceded(crate::common::comma_separator, parse_type_specification),
         opt(preceded(
             crate::common::comma_separator,
-            parse_min_max(crate::term::parse_usize_term),
+            terminated(
+                parse_min_max(crate::term::parse_usize_term),
+                opt(crate::common::comma_separator),
+            ),
         )),
     ));
 
@@ -231,18 +237,29 @@ fn parse_sensitive(input: Span) -> IResult<puppet_lang::typing::TypeSpecificatio
 }
 
 fn parse_struct_key(input: Span) -> IResult<puppet_lang::typing::TypeStructKey<Range>> {
-    let inner_parse = crate::common::square_brackets_delimimited(alt((
-        crate::double_quoted::parse,
-        crate::single_quoted::parse,
-    )));
+    let inner_parse = || {
+        crate::common::square_brackets_delimimited(alt((
+            crate::double_quoted::parse,
+            crate::single_quoted::parse,
+        )))
+    };
 
     alt((
         map(
-            pair(tag("Optional"), inner_parse),
+            pair(tag("Optional"), inner_parse()),
             |(opt_kw, (_left_bracket, value, right_bracket))| {
                 puppet_lang::typing::TypeStructKey::Optional(OptionalStructKey {
                     extra: (opt_kw, right_bracket).into(),
                     value,
+                })
+            },
+        ),
+        map(
+            pair(tag("NotUndef"), inner_parse()),
+            |(opt_kw, (_left_bracket, value, right_bracket))| {
+                puppet_lang::typing::TypeStructKey::NotUndef(NotUndefStructKey {
+                    value,
+                    extra: (opt_kw, right_bracket).into(),
                 })
             },
         ),
@@ -280,30 +297,16 @@ fn parse_struct(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVa
     let parser = map(
         pair(
             tag("Struct"),
-            crate::common::square_brackets_delimimited(tuple((
-                capture_comment,
-                crate::common::curly_brackets_delimimited(
-                    crate::common::comma_separated_list_with_last_comment(kv_parser),
-                ),
-                capture_comment,
-            ))),
+            crate::common::square_brackets_delimimited(crate::common::curly_brackets_delimimited(
+                crate::common::comma_separated_list_with_last_comment(kv_parser),
+            )),
         ),
         |(
             tag_kw,
-            (
-                _left_bracket,
-                (
-                    comment_before_keys,
-                    (_inner_left_curly, keys, _inner_right_curly),
-                    comment_after_keys,
-                ),
-                right_bracket,
-            ),
+            (_left_bracket, (_inner_left_curly, keys, _inner_right_curly), right_bracket),
         )| puppet_lang::typing::TypeStruct {
             keys,
             extra: (tag_kw, right_bracket).into(),
-            comment_before_keys,
-            comment_after_keys,
         },
     );
 
@@ -320,7 +323,10 @@ fn parse_tuple(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVar
         separated_list0(crate::common::comma_separator, parse_type_specification),
         opt(preceded(
             crate::common::comma_separator,
-            parse_min_max(crate::term::parse_usize_term),
+            terminated(
+                parse_min_max(crate::term::parse_usize_term),
+                opt(crate::common::comma_separator),
+            ),
         )),
     ));
 
@@ -641,8 +647,6 @@ fn test_struct() {
             .unwrap()
             .1,
         puppet_lang::typing::TypeSpecificationVariant::Struct(puppet_lang::typing::TypeStruct {
-            comment_before_keys: vec![],
-            comment_after_keys: vec![],
             extra: Range::new(0, 1, 1, 31, 1, 32),
             keys: puppet_lang::List {
                 last_comment: vec![],
