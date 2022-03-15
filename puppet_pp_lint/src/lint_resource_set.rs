@@ -49,7 +49,7 @@ impl EarlyLintPass for UniqueAttributeName {
         let mut errors = Vec::new();
         for resource in &elt.list.value {
             let mut names = std::collections::HashSet::new();
-            for attribute in &resource.attributes {
+            for attribute in &resource.attributes.value {
                 if let puppet_lang::statement::ResourceAttributeVariant::Name(pair) =
                     &attribute.value
                 {
@@ -86,7 +86,7 @@ impl EarlyLintPass for EnsureAttributeIsNotTheFirst {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for resource in &elt.list.value {
-            for (pos, attribute) in resource.attributes.iter().enumerate() {
+            for (pos, attribute) in resource.attributes.value.iter().enumerate() {
                 if let puppet_lang::statement::ResourceAttributeVariant::Name(pair) =
                     &attribute.value
                 {
@@ -182,7 +182,7 @@ impl EarlyLintPass for FileModeAttributeIsString {
         }
 
         for resource in &elt.list.value {
-            for attribute in &resource.attributes {
+            for attribute in &resource.attributes.value {
                 if let puppet_lang::statement::ResourceAttributeVariant::Name(attribute) =
                     &attribute.value
                 {
@@ -278,7 +278,7 @@ impl EarlyLintPass for SelectorInAttributeValue {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for resource in &elt.list.value {
-            for attribute in &resource.attributes {
+            for attribute in &resource.attributes.value {
                 if let puppet_lang::statement::ResourceAttributeVariant::Name(attribute) =
                     &attribute.value
                 {

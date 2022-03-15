@@ -585,7 +585,7 @@ impl AstLinter {
 
         for resource in &elt.list.value {
             errors.append(&mut self.check_expression(storage, true, &resource.title));
-            for attribute in &resource.attributes {
+            for attribute in &resource.attributes.value {
                 match &attribute.value {
                     puppet_lang::statement::ResourceAttributeVariant::Name((name, value)) => {
                         errors.append(&mut self.check_string_expression(storage, name));
@@ -624,7 +624,7 @@ impl AstLinter {
             errors.append(&mut lint.check_relation_elt(elt));
         }
 
-        for elt in &elt.data {
+        for elt in &elt.data.value {
             match elt {
                 puppet_lang::statement::RelationEltVariant::ResourceSet(elt) => {
                     errors.append(&mut self.check_resource_set(storage, elt))
@@ -716,7 +716,7 @@ impl AstLinter {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
             errors.append(&mut lint.check_deprecated_resource_defaults(elt));
-            for (k, v) in &elt.args {
+            for (k, v) in &elt.args.value {
                 errors.append(&mut self.check_term(storage, k));
                 errors.append(&mut self.check_expression(storage, true, v));
             }
@@ -815,7 +815,7 @@ impl AstLinter {
         elt: &puppet_lang::expression::Lambda<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
-        for arg in &elt.args {
+        for arg in &elt.args.value {
             errors.append(&mut self.check_argument(storage, arg))
         }
         errors.append(&mut self.check_statement_set(storage, &elt.body.value));

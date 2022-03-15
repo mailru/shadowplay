@@ -7,14 +7,14 @@ impl<EXTRA> Printer for puppet_lang::resource_collection::SearchExpression<EXTRA
             puppet_lang::resource_collection::ExpressionVariant::Equal((left, right)) => {
                 crate::expression::infix_to_doc(
                     RcDoc::text(&left.name),
-                    crate::term::to_doc(&right, false),
+                    crate::term::to_doc(right, false),
                     "==",
                 )
             }
             puppet_lang::resource_collection::ExpressionVariant::NotEqual((left, right)) => {
                 crate::expression::infix_to_doc(
                     RcDoc::text(&left.name),
-                    crate::term::to_doc(&right, false),
+                    crate::term::to_doc(right, false),
                     "!=",
                 )
             }
@@ -64,7 +64,7 @@ impl<EXTRA> Printer for puppet_lang::statement::ResourceAttributeVariant<EXTRA> 
                 .append(RcDoc::softline())
                 .append(RcDoc::text("=>"))
                 .append(RcDoc::softline())
-                .append(crate::term::to_doc(&v, false)),
+                .append(crate::term::to_doc(v, false)),
         }
     }
 }

@@ -32,6 +32,7 @@ pub fn has_side_effect<EXTRA>(statement: &puppet_lang::statement::Statement<EXTR
         puppet_lang::statement::StatementVariant::Toplevel(_) => true,
         puppet_lang::statement::StatementVariant::ResourceDefaults(v) => v
             .args
+            .value
             .iter()
             .any(|(_k, v)| crate::tool::expression::has_side_effect(v)),
     }
