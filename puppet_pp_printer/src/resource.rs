@@ -78,15 +78,19 @@ impl<EXTRA> Printer for puppet_lang::statement::ResourceAttribute<EXTRA> {
 
 impl<EXTRA> Printer for puppet_lang::statement::Resource<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
-        let inner = RcDoc::intersperse(
-            self.attributes.value.iter().map(|elt| elt.to_doc()),
-            RcDoc::text(",").append(RcDoc::hardline()),
-        )
-        .append(self.attributes.last_comment.to_doc());
+        let inner = if self.attributes.value.is_empty() {
+            RcDoc::nil()
+        } else {
+            RcDoc::hardline().append(RcDoc::intersperse(
+                self.attributes.value.iter().map(|elt| elt.to_doc()),
+                RcDoc::text(",").append(RcDoc::hardline()),
+            ))
+        };
+
+        let inner = inner.append(self.attributes.last_comment.to_doc());
 
         crate::expression::to_doc(&self.title, false)
             .append(RcDoc::text(":"))
-            .append(RcDoc::softline())
             .append(inner)
             .nest(2)
     }
