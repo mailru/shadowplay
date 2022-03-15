@@ -186,7 +186,16 @@ impl<EXTRA> Printer for puppet_lang::typing::ExternalType<EXTRA> {
                             .map(|x| crate::expression::to_doc(x, false).append(RcDoc::text(","))),
                         RcDoc::softline(),
                     )
-                    .group(),
+                    .group()
+                    .flat_alt(
+                        RcDoc::intersperse(
+                            self.arguments
+                                .iter()
+                                .map(|x| crate::expression::to_doc(x, false)),
+                            RcDoc::text(",").append(RcDoc::softline()),
+                        )
+                        .group(),
+                    ),
                 )
                 .nest(2)
                 .append(RcDoc::softline())

@@ -1,7 +1,11 @@
 use crate::Printer;
 use pretty::{Doc, RcDoc};
 
-fn infix_to_doc<'a>(left: RcDoc<'a, ()>, right: RcDoc<'a, ()>, op: &'static str) -> RcDoc<'a, ()> {
+pub fn infix_to_doc<'a>(
+    left: RcDoc<'a, ()>,
+    right: RcDoc<'a, ()>,
+    op: &'static str,
+) -> RcDoc<'a, ()> {
     left.append(RcDoc::softline())
         .append(RcDoc::text(op))
         .append(RcDoc::space())

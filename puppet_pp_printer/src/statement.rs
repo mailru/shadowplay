@@ -154,7 +154,7 @@ impl<EXTRA> Printer for puppet_lang::statement::Statement<EXTRA> {
             puppet_lang::statement::StatementVariant::Expression(v) => {
                 crate::expression::to_doc(v, false)
             }
-            puppet_lang::statement::StatementVariant::RelationList(_) => todo!(),
+            puppet_lang::statement::StatementVariant::RelationList(v) => v.to_doc(),
             puppet_lang::statement::StatementVariant::IfElse(v) => v.to_doc(),
             puppet_lang::statement::StatementVariant::Unless(v) => {
                 condition_and_statement_to_doc(RcDoc::text("unless"), v)

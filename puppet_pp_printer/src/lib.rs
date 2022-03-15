@@ -3,6 +3,7 @@ pub mod argument;
 pub mod comment;
 pub mod expression;
 pub mod identifier;
+pub mod resource;
 pub mod statement;
 pub mod string;
 pub mod term;
