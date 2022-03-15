@@ -1,4 +1,4 @@
-use nom::combinator::{opt, success};
+use nom::combinator::{eof, opt, success};
 use nom::multi::separated_list1;
 use nom::sequence::terminated;
 use nom::sequence::{pair, tuple};
@@ -100,7 +100,15 @@ where
     ) -> O,
     O: Clone,
 {
-    builtin_variant_parser(keyword, |i| map(success(()), |()| ((), None))(i), mapper)
+    builtin_variant_parser(
+        keyword,
+        |i| {
+            map(alt((success(()), nom::combinator::value((), eof))), |()| {
+                ((), None)
+            })(i)
+        },
+        mapper,
+    )
 }
 
 // fn builtin_one<'a, O, MAPPER>(
@@ -240,10 +248,9 @@ fn parse_create_resources(input: Span) -> IResult<Expression<Range>> {
     builtin_many1(
         "create_resources",
         |(comment, _kw, ((args, range), lambda), accessor)| Expression {
-            value: ExpressionVariant::BuiltinFunction(BuiltinVariant::Realize(builtin::Many1 {
-                lambda,
-                args,
-            })),
+            value: ExpressionVariant::BuiltinFunction(BuiltinVariant::CreateResources(
+                builtin::Many1 { lambda, args },
+            )),
             extra: range,
             comment,
             accessor,

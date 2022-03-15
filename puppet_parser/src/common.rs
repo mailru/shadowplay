@@ -216,7 +216,13 @@ where
 pub fn word<'a>(searchword: &'static str) -> impl FnMut(Span<'a>) -> IResult<Span<'a>> {
     terminated(
         tag(searchword),
-        peek(verify(anychar, |c| !c.is_alphanumeric() && *c != '_')),
+        alt((
+            map(
+                peek(verify(anychar, |c| !c.is_alphanumeric() && *c != '_')),
+                |_| (),
+            ),
+            map(eof, |_| ()),
+        )),
     )
 }
 
