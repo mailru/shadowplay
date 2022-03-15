@@ -33,7 +33,6 @@ impl<EXTRA> Printer for puppet_lang::expression::Lambda<EXTRA> {
     }
 }
 impl<EXTRA> Printer for puppet_lang::expression::FunctionCall<EXTRA> {
-    // TODO: lambda
     fn to_doc(&self) -> RcDoc<()> {
         let lambda = match &self.lambda {
             Some(v) => RcDoc::softline().append(v.to_doc()),
@@ -128,7 +127,6 @@ fn builtin_many1_to_doc<'a, EXTRA>(
     elt: &'a puppet_lang::builtin::Many1<EXTRA>,
     with_parens: bool,
 ) -> RcDoc<'a, ()> {
-    // TODO: lambda
     let args_list = RcDoc::intersperse(
         elt.args.iter().map(|x| crate::expression::to_doc(x, false)),
         RcDoc::text(",").append(Doc::line()),
@@ -137,7 +135,12 @@ fn builtin_many1_to_doc<'a, EXTRA>(
     // .append(v.args.last_comment.to_doc())
     .nest(2);
 
-    let args_list = match (with_parens, elt.args.is_empty()) {
+    let lambda = match &elt.lambda {
+        Some(v) => RcDoc::softline().append(v.to_doc()),
+        None => RcDoc::nil(),
+    };
+
+    let args_list = match ((with_parens || elt.lambda.is_some()), elt.args.is_empty()) {
         (_, true) => RcDoc::text("()"),
         (true, false) => RcDoc::text("(")
             .append(RcDoc::softline_())
@@ -152,6 +155,7 @@ fn builtin_many1_to_doc<'a, EXTRA>(
     RcDoc::text(name)
         .append(RcDoc::softline_())
         .append(args_list)
+        .append(lambda)
 }
 
 impl<EXTRA> Printer for puppet_lang::builtin::BuiltinVariant<EXTRA> {
@@ -296,6 +300,7 @@ fn test_idempotence_short() {
         "require\na::b, c",
         "create_resources\n(1, 2)",
         "fn(1, 2,) |\n  $a, $b| {\n  1\n}",
+        "realize(1,\n  2) |$a,\n  $b| {\n  1\n}",
     ];
 
     for case in cases {
