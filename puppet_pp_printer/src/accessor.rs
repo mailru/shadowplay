@@ -1,5 +1,5 @@
 use crate::Printer;
-use pretty::{Doc, RcDoc};
+use pretty::RcDoc;
 
 impl<EXTRA> Printer for Option<puppet_lang::expression::Accessor<EXTRA>> {
     fn to_doc(&self) -> RcDoc<()> {
@@ -11,7 +11,9 @@ impl<EXTRA> Printer for Option<puppet_lang::expression::Accessor<EXTRA>> {
                         .append(RcDoc::line_())
                         .append(
                             RcDoc::intersperse(
-                                sublist.iter().map(|elt| elt.to_doc()),
+                                sublist
+                                    .iter()
+                                    .map(|elt| crate::expression::to_doc(elt, false)),
                                 RcDoc::text(",").append(RcDoc::line()),
                             )
                             .group(),

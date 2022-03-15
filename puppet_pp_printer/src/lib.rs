@@ -1,8 +1,10 @@
+pub mod accessor;
 pub mod comment;
 pub mod expression;
-pub mod term;
 pub mod identifier;
-pub mod accessor;
+pub mod string;
+pub mod term;
+pub mod typing;
 
 use pretty::RcDoc;
 
