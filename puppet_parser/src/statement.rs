@@ -12,7 +12,7 @@ use crate::{
     common::{
         capture_comment, comma_separated_list_with_last_comment, comma_separator,
         curly_brackets_delimimited, space0_delimimited, spaced0_separator, spaced_word,
-        square_brackets_comma_separated1,
+        square_brackets_delimimited,
     },
     term::parse_string_variant,
     {range::Range, IResult, ParseError, Span},
@@ -54,40 +54,31 @@ fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Range
         |(_, term)| puppet_lang::statement::ResourceAttributeVariant::Group(term),
     );
 
-    let parse_arguments = separated_list0(
-        comma_separator,
-        map(
-            pair(
-                capture_comment,
-                alt((parse_attribute, parse_attribute_group)),
-            ),
-            |(comment, value)| puppet_lang::statement::ResourceAttribute { value, comment },
+    let parse_arguments = crate::common::comma_separated_list_with_last_comment(map(
+        pair(
+            capture_comment,
+            alt((parse_attribute, parse_attribute_group)),
         ),
-    );
+        |(comment, value)| puppet_lang::statement::ResourceAttribute { value, comment },
+    ));
 
     let mut parser = map(
         tuple((
             space0_delimimited(crate::expression::parse_expression),
             preceded(tag(":"), space0_delimimited(parse_arguments)),
-            opt(tag(",")),
         )),
-        |(title, arguments, opt_comma)| {
-            let last_range = match opt_comma {
-                Some(v) => Range::from((v, v)),
-                None => match arguments.last() {
-                    Some(v) => match &v.value {
-                        puppet_lang::statement::ResourceAttributeVariant::Name((_, v)) => {
-                            v.extra.clone()
-                        }
-                        puppet_lang::statement::ResourceAttributeVariant::Group(v) => {
-                            v.extra.clone()
-                        }
-                    },
-                    None => title.extra.clone(),
+        |(title, attributes)| {
+            let last_range = match attributes.value.last() {
+                Some(v) => match &v.value {
+                    puppet_lang::statement::ResourceAttributeVariant::Name((_, v)) => {
+                        v.extra.clone()
+                    }
+                    puppet_lang::statement::ResourceAttributeVariant::Group(v) => v.extra.clone(),
                 },
+                None => title.extra.clone(),
             };
             puppet_lang::statement::Resource {
-                attributes: arguments,
+                attributes,
                 extra: (&title.extra, &last_range).into(),
                 title,
             }
@@ -162,16 +153,18 @@ fn parse_relation_type(input: Span) -> IResult<puppet_lang::statement::RelationT
 fn parse_relation(input: Span) -> IResult<puppet_lang::statement::RelationList<Range>> {
     let head_parser = alt((
         map(
-            square_brackets_comma_separated1(alt((
-                map(
-                    parse_resource_set,
-                    puppet_lang::statement::RelationEltVariant::ResourceSet,
-                ),
-                map(
-                    crate::resource_collection::parse_resource_collection,
-                    puppet_lang::statement::RelationEltVariant::ResourceCollection,
-                ),
-            ))),
+            square_brackets_delimimited(crate::common::comma_separated_list_with_last_comment(
+                alt((
+                    map(
+                        parse_resource_set,
+                        puppet_lang::statement::RelationEltVariant::ResourceSet,
+                    ),
+                    map(
+                        crate::resource_collection::parse_resource_collection,
+                        puppet_lang::statement::RelationEltVariant::ResourceCollection,
+                    ),
+                )),
+            )),
             |(left_curly, data, right_curly)| puppet_lang::statement::RelationElt {
                 data,
                 extra: Range::from((left_curly, right_curly)),
@@ -190,7 +183,10 @@ fn parse_relation(input: Span) -> IResult<puppet_lang::statement::RelationList<R
             )),
             |elt| puppet_lang::statement::RelationElt {
                 extra: Range::from((elt.extra(), elt.extra())),
-                data: vec![elt],
+                data: puppet_lang::List {
+                    value: vec![elt],
+                    last_comment: vec![],
+                },
             },
         ),
     ));

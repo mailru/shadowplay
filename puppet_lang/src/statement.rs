@@ -16,7 +16,7 @@ pub struct ResourceAttribute<EXTRA> {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Resource<EXTRA> {
     pub title: Expression<EXTRA>,
-    pub attributes: Vec<ResourceAttribute<EXTRA>>,
+    pub attributes: crate::List<EXTRA, ResourceAttribute<EXTRA>>,
     pub extra: EXTRA,
 }
 
@@ -79,7 +79,7 @@ impl<EXTRA> crate::ExtraGetter<EXTRA> for RelationEltVariant<EXTRA> {
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct RelationElt<EXTRA> {
-    pub data: Vec<RelationEltVariant<EXTRA>>,
+    pub data: crate::List<EXTRA, RelationEltVariant<EXTRA>>,
     pub extra: EXTRA,
 }
 
