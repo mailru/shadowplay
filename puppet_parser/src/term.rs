@@ -5,8 +5,9 @@ use crate::common::{
 use crate::expression::{parse_accessor, parse_expression};
 use crate::range::Range;
 use crate::{IResult, ParseError, Span};
-use nom::combinator::map_res;
-use nom::sequence::tuple;
+use nom::character::complete::anychar;
+use nom::combinator::{eof, map_res, peek, verify};
+use nom::sequence::{terminated, tuple};
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -67,7 +68,19 @@ pub fn parse_float_term(input: Span) -> IResult<puppet_lang::expression::Float<R
 }
 
 pub fn parse_integer(input: Span) -> IResult<(i64, Span)> {
-    let (tail, s) = recognize(pair(opt(tag("-")), digit1))(input)?;
+    let (tail, s) = recognize(pair(
+        opt(tag("-")),
+        terminated(
+            digit1,
+            alt((
+                map(
+                    peek(verify(anychar, |c| *c != 'e' && *c != 'E' && *c != '.')),
+                    |_| (),
+                ),
+                map(eof, |_| ()),
+            )),
+        ),
+    ))(input)?;
 
     let v = match s.parse::<i64>() {
         Ok(v) => v,
@@ -267,12 +280,12 @@ pub fn parse_term(input: Span) -> IResult<puppet_lang::expression::Term<Range>> 
         parse_false,
         parse_sensitive,
         map(
-            parse_float_term,
-            puppet_lang::expression::TermVariant::Float,
-        ),
-        map(
             parse_integer_term,
             puppet_lang::expression::TermVariant::Integer,
+        ),
+        map(
+            parse_float_term,
+            puppet_lang::expression::TermVariant::Float,
         ),
         parse_type_specification,
         parse_resource_identifier,

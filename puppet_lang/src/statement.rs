@@ -44,7 +44,7 @@ pub struct IfElse<EXTRA> {
     pub elsif_list: Vec<ConditionAndStatement<EXTRA>>,
     pub else_block: Option<Box<crate::List<EXTRA, Statement<EXTRA>>>>,
     pub comment_before_else_word: Vec<crate::comment::Comment<EXTRA>>,
-    pub comment_before_body: Vec<crate::comment::Comment<EXTRA>>,
+    pub comment_before_else_body: Vec<crate::comment::Comment<EXTRA>>,
     pub extra: EXTRA,
 }
 
@@ -115,7 +115,7 @@ pub struct Case<EXTRA> {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct ResourceDefaults<EXTRA> {
     pub name: String,
-    pub args: Vec<(crate::expression::Term<EXTRA>, Expression<EXTRA>)>,
+    pub args: crate::List<EXTRA, (crate::expression::Term<EXTRA>, Expression<EXTRA>)>,
     pub extra: EXTRA,
 }
 

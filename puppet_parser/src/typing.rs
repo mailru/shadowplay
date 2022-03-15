@@ -519,7 +519,7 @@ fn test_float() {
             extra: Range::new(0, 1, 1, 20, 1, 21)
         })
     );
-    assert!(parse_float(Span::new("Float[ 100,  1000, 10.0]")).is_ok());
+    assert!(parse_float(Span::new("Float[ 100,  1000 ]")).is_ok());
     assert!(parse_float(Span::new("Float[]")).is_ok())
 }
 

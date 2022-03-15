@@ -10,8 +10,9 @@ use puppet_lang::ExtraGetter;
 
 use crate::{
     common::{
-        capture_comment, comma_separator, curly_brackets_delimimited, space0_delimimited,
-        spaced0_separator, spaced_word, square_brackets_comma_separated1,
+        capture_comment, comma_separated_list_with_last_comment, comma_separator,
+        curly_brackets_delimimited, space0_delimimited, spaced0_separator, spaced_word,
+        square_brackets_comma_separated1,
     },
     term::parse_string_variant,
     {range::Range, IResult, ParseError, Span},
@@ -317,7 +318,7 @@ fn parse_if_else(input: Span) -> IResult<StatementVariant<Range>> {
             condition: if_block,
             elsif_list,
             else_block: else_block.map(|body| Box::new(body.3 .1)),
-            comment_before_body,
+            comment_before_else_body: comment_before_body,
             comment_before_else_word,
         }
     });
@@ -416,10 +417,9 @@ fn parse_resource_defaults(
     map(
         pair(
             crate::identifier::camel_case_identifier,
-            space0_delimimited(curly_brackets_delimimited(terminated(
-                separated_list0(comma_separator, kv_parser),
-                opt(space0_delimimited(tag(","))),
-            ))),
+            space0_delimimited(curly_brackets_delimimited(
+                comma_separated_list_with_last_comment(kv_parser),
+            )),
         ),
         |(name, (_left_curly, args, right_curly))| puppet_lang::statement::ResourceDefaults {
             name: name.to_string(),

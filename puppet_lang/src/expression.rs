@@ -21,7 +21,7 @@ pub struct RegexpGroupID<EXTRA> {
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Lambda<EXTRA> {
-    pub args: Vec<crate::argument::Argument<EXTRA>>,
+    pub args: crate::List<EXTRA, crate::argument::Argument<EXTRA>>,
     pub body: crate::List<EXTRA, crate::statement::Statement<EXTRA>>,
     pub extra: EXTRA,
 }

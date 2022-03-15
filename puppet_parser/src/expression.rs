@@ -156,7 +156,9 @@ fn parse_term_expr(input: Span) -> IResult<puppet_lang::expression::Expression<R
 pub fn parse_lambda(input: Span) -> IResult<puppet_lang::expression::Lambda<Range>> {
     map(
         pair(
-            crate::common::pipes_comma_separated0(crate::argument::parse),
+            crate::common::pipes_delimimited(
+                crate::common::comma_separated_list_with_last_comment(crate::argument::parse),
+            ),
             space0_delimimited(ParseError::protect(
                 |_| "'{' expected".to_string(),
                 crate::statement::parse_statement_block,
