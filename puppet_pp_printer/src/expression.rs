@@ -21,9 +21,21 @@ fn assigment_to_doc<'a>(left: RcDoc<'a, ()>, right: RcDoc<'a, ()>) -> RcDoc<'a, 
         .nest(2)
 }
 
+impl<EXTRA> Printer for puppet_lang::expression::Lambda<EXTRA> {
+    fn to_doc(&self) -> RcDoc<()> {
+        crate::argument::list_to_piped_doc(&self.args)
+            .append(RcDoc::softline())
+            .append(crate::statement::statement_block_to_doc(&self.body, true))
+    }
+}
 impl<EXTRA> Printer for puppet_lang::expression::FunctionCall<EXTRA> {
     // TODO: lambda
     fn to_doc(&self) -> RcDoc<()> {
+        let lambda = match &self.lambda {
+            Some(v) => RcDoc::softline().append(v.to_doc()),
+            None => RcDoc::nil(),
+        };
+
         let parens = if self.args.is_empty() {
             RcDoc::text("()")
         } else {
@@ -44,7 +56,11 @@ impl<EXTRA> Printer for puppet_lang::expression::FunctionCall<EXTRA> {
                 .append(RcDoc::text(")"))
         };
 
-        self.identifier.to_doc().append(parens).group()
+        self.identifier
+            .to_doc()
+            .append(parens)
+            .append(lambda)
+            .group()
     }
 }
 
@@ -64,8 +80,7 @@ impl<EXTRA> Printer for puppet_lang::expression::SelectorCase<EXTRA> {
             puppet_lang::expression::CaseVariant::Default(_) => RcDoc::text("default"),
         };
 
-        self.comment
-            .to_doc()
+        crate::comment::comment_or(&self.comment, RcDoc::hardline(), RcDoc::nil())
             .append(case)
             .append(RcDoc::softline())
             .append(RcDoc::text("=>"))
@@ -91,7 +106,11 @@ impl<EXTRA> Printer for puppet_lang::expression::Selector<EXTRA> {
                     Doc::line(),
                 )
                 .group()
-                .append(self.cases.last_comment.to_doc()),
+                .append(crate::comment::comment_or(
+                    &self.cases.last_comment,
+                    RcDoc::hardline(),
+                    RcDoc::nil(),
+                )),
             )
             .nest(2)
             .append(RcDoc::line())
@@ -239,8 +258,7 @@ pub fn to_doc<EXTRA>(
         puppet_lang::expression::ExpressionVariant::BuiltinFunction(v) => v.to_doc(),
     };
 
-    expr.comment
-        .to_doc()
+    crate::comment::comment_or(&expr.comment, RcDoc::hardline(), RcDoc::nil())
         .append(v)
         .append(expr.accessor.to_doc())
 }
@@ -260,7 +278,7 @@ fn test_idempotence_short() {
         "123[1][\n    2, 3\n  ][4][5]",
         "[\n  (123.45),\n  146,\n]",
         "[\n  (\n    #comment\n    123.45),\n  146,\n]",
-        "[\n  (\n    #comment\n    123.45),\n  146,\n  #ending_comment\n  \n]",
+        "[\n  (\n    #comment\n    123.45),\n  146,\n  #ending_comment\n]",
         "!$a",
         "/a/",
         "/a\\d/",
@@ -269,10 +287,11 @@ fn test_idempotence_short() {
         "1 + 1 + 1\n+ 1 + 1 + 1\n+ 1 + 1 + 1\n+ 1 + 1 + 1\n+ 1",
         "(1 or 2)\nand (3 + 4\n  * 5)\nor (true\n  and (!true\n    and false))",
         "$v.call1()\n.call2(1,\n  2,)\n.call3withlongname()",
-        "$v ? {\n  1 => 'a',\n  \n  #comment\n  2 => 'b',\n  default\n  => 'c',\n}",
+        "$v ? {\n  1 => a,\n  \n  #comment\n  2 => b,\n  default\n  => c,\n}",
         "undef",
-        "require\na::b, 'c'",
+        "require\na::b, c",
         "create_resources\n(1, 2)",
+        "fn(1, 2,) |\n  $a, $b| {\n  1\n}",
     ];
 
     for case in cases {

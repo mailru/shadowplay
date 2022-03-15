@@ -42,12 +42,19 @@ impl<EXTRA> Printer for puppet_lang::string::DoubleQuotedFragment<EXTRA> {
 impl<EXTRA> Printer for puppet_lang::string::StringExpr<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
         match &self.data {
-            puppet_lang::string::StringVariant::SingleQuoted(list) => RcDoc::text("'")
-                .append(RcDoc::intersperse(
-                    list.iter().map(|v| v.to_doc()),
-                    RcDoc::nil(),
-                ))
-                .append(RcDoc::text("'")),
+            puppet_lang::string::StringVariant::SingleQuoted(list) => match &list.as_slice() {
+                &[puppet_lang::string::StringFragment::Literal(v)]
+                    if v.data.chars().all(|c| c.is_alphabetic()) =>
+                {
+                    RcDoc::text(&v.data)
+                }
+                _ => RcDoc::text("'")
+                    .append(RcDoc::intersperse(
+                        list.iter().map(|v| v.to_doc()),
+                        RcDoc::nil(),
+                    ))
+                    .append(RcDoc::text("'")),
+            },
             puppet_lang::string::StringVariant::DoubleQuoted(list) => RcDoc::text("\"")
                 .append(RcDoc::intersperse(
                     list.iter().map(|v| v.to_doc()),

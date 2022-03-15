@@ -375,7 +375,8 @@ impl<EXTRA> Printer for puppet_lang::typing::TypeSpecificationVariant<EXTRA> {
 
 impl<EXTRA> Printer for puppet_lang::typing::TypeSpecification<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
-        self.comment.to_doc().append(self.data.to_doc())
+        crate::comment::comment_or(&self.comment, RcDoc::hardline(), RcDoc::nil())
+            .append(self.data.to_doc())
     }
 }
 
@@ -396,13 +397,13 @@ fn test_idempotence_short() {
         "Array[\n  Integer,\n  2, ]",
         "Array[\n  Integer,\n  2, 4, ]",
         "Variant[\n  String[1,\n    2],\n  Integer,\n]",
-        "Enum[ 1,\n  'aaaaaa',\n  3, ]",
+        "Enum[ 1,\n  aaaaaa,\n  3, ]",
         "Some::Type",
         "Some::Type[\n  1, ]",
         "Hash[\n  String,\n  Integer,\n  default,\n  1, ]",
-        "Struct[{\n  'a' =>\n  Integer,\n}]",
-        "Struct[{\n  Optional[\n    'a' ]\n  =>\n  Integer,\n}]",
-        "Struct[{\n  NotUndef[\n    'a' ]\n  =>\n  Integer,\n}]",
+        "Struct[{ a\n  =>\n  Integer,\n}]",
+        "Struct[{\n  Optional[\n    a ] =>\n  Integer,\n}]",
+        "Struct[{\n  NotUndef[\n    a ] =>\n  Integer,\n}]",
         "Sensitive[\n  1 ]",
         "Sensitive[\n  String ]",
         "Tuple[\n  String,\n  Integer,\n  default,\n  100, ]",
