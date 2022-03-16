@@ -1,5 +1,5 @@
 Summary: Puppet checker, linter and explorer
-Name: pimprle
+Name: shadowplay
 Version: %(cat VERSION)
 Release: 1%{dist}
 License: MailRu Private
@@ -39,13 +39,13 @@ cargo build --release
 rm -rf %{buildroot}
 %{__mkdir} -p %{buildroot}%{_bindir}
 
-%{__install} -pD -m 755 target/release/pimprle %{buildroot}%{_bindir}/pimprle
-%{__install} -pD -m 644 etc/config.yaml.example %{buildroot}%{_sysconfdir}/pimprle.yaml.example
+%{__install} -pD -m 755 target/release/shadowplay %{buildroot}%{_bindir}/shadowplay
+%{__install} -pD -m 644 etc/config.yaml.example %{buildroot}%{_sysconfdir}/shadowplay.yaml.example
 
 %clean
 rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-%{_bindir}/pimprle
-%{_sysconfdir}/pimprle.yaml.example
+%{_bindir}/shadowplay
+%{_sysconfdir}/shadowplay.yaml.example

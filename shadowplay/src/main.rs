@@ -10,7 +10,7 @@ use structopt::StructOpt;
 #[macro_use]
 extern crate lazy_static;
 
-const APP_CONFIG: &str = "/etc/pimprle.yaml";
+const APP_CONFIG: &str = "/etc/shadowplay.yaml";
 
 #[derive(Debug, StructOpt)]
 pub enum ValuePrintFormat {
@@ -161,7 +161,7 @@ pub enum Query {
 }
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "pimprle", about = "Puppet checker, linter and explorer.")]
+#[structopt(name = "shadowplay", about = "Puppet checker, linter and explorer.")]
 struct Opt {
     #[structopt(default_value = "./", long)]
     pub repo_path: std::path::PathBuf,

@@ -224,30 +224,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pimprle"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "env_logger",
- "lazy_static",
- "linked-hash-map",
- "located_yaml",
- "log",
- "nom",
- "nom_locate",
- "puppet-lang",
- "puppet-parser",
- "puppet-pp-lint",
- "puppet-pp-printer",
- "regex",
- "serde",
- "serde_json",
- "serde_yaml",
- "structopt",
- "yaml-rust",
-]
-
-[[package]]
 name = "pretty"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -419,6 +395,30 @@ dependencies = [
  "dtoa",
  "indexmap",
  "serde",
+ "yaml-rust",
+]
+
+[[package]]
+name = "shadowplay"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "env_logger",
+ "lazy_static",
+ "linked-hash-map",
+ "located_yaml",
+ "log",
+ "nom",
+ "nom_locate",
+ "puppet-lang",
+ "puppet-parser",
+ "puppet-pp-lint",
+ "puppet-pp-printer",
+ "regex",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "structopt",
  "yaml-rust",
 ]
 

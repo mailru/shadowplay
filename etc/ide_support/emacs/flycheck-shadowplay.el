@@ -1,4 +1,4 @@
-;; flycheck-pimprle.el --- Flycheck binding to pimprle -*- lexical-binding: t; -*-
+;; flycheck-shadowplay.el --- Flycheck binding to shadowplay -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2021-2022 Evgenii Lepikhin
 ;; Copyright (C) 2021-2022 VK Company
@@ -14,8 +14,8 @@
   (require 'pcase)          ; `pcase-dolist' (`pcase' itself is autoloaded)
   )
 
-(defun flycheck-parse-pimprle-lint (output checker buffer)
-  "Parse JSON OUTPUT of CHECKER on BUFFER as Pimprle errors."
+(defun flycheck-parse-shadowplay-lint (output checker buffer)
+  "Parse JSON OUTPUT of CHECKER on BUFFER as Shadowplay errors."
   (mapcar (lambda (err)
             (let-alist err
               (flycheck-error-new
@@ -35,14 +35,14 @@
                :filename .range.path)))
           (flycheck-parse-json output)))
 
-(flycheck-define-checker puppet-pimprle
+(flycheck-define-checker puppet-shadowplay
   "A Puppet DSL linter using pimperle."
-  :command ("pimprle" "check" "-f" "json" "pp" source)
-  :error-parser flycheck-parse-pimprle-lint
+  :command ("shadowplay" "check" "-f" "json" "pp" source)
+  :error-parser flycheck-parse-shadowplay-lint
   :modes puppet-mode)
 
-(add-to-list 'flycheck-checkers 'puppet-pimprle)
+(add-to-list 'flycheck-checkers 'puppet-shadowplay)
 
-(provide 'flycheck-pimprle)
+(provide 'flycheck-shadowplay)
 
-;;; flycheck-pimprle.el ends here
+;;; flycheck-shadowplay.el ends here

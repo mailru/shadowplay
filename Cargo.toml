@@ -12,5 +12,5 @@ members = [
         , "puppet_parser"
         , "puppet_pp_lint"
         , "puppet_pp_printer"
-        , "pimprle"
+        , "shadowplay"
 ]

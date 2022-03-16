@@ -1,4 +1,4 @@
-package.name = "pimprle"
+package.name = "shadowplay"
 package.version = "0.1.0"
 package.edition = "2021"
 package.authors = ["Evgenii Lepikhin <e.lepikhin@corp.mail.ru>", "VK Company / mail.ru"]
@@ -6,7 +6,7 @@ package.readme = "../README.md"
 package.license = "MIT/Apache-2.0"
 
 [[bin]]
-name = "pimprle"
+name = "shadowplay"
 path = "src/main.rs"
 
 [dependencies]
