@@ -51,28 +51,29 @@ impl<EXTRA> Printer for puppet_lang::resource_collection::ResourceCollection<EXT
     }
 }
 
-impl<EXTRA> Printer for puppet_lang::statement::ResourceAttributeVariant<EXTRA> {
+impl<EXTRA> Printer for puppet_lang::statement::ResourceAttribute<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
-        match self {
+        let value = match &self.value {
             puppet_lang::statement::ResourceAttributeVariant::Name((k, v)) => k
                 .to_doc()
-                .append(RcDoc::softline())
-                .append(RcDoc::text("=>"))
+                .append(RcDoc::column(|w| {
+                    let offset = (w / 10 + 1) * 10;
+                    RcDoc::text(format!("{} =>", " ".repeat(offset - w)))
+                }))
                 .append(RcDoc::softline())
                 .append(crate::expression::to_doc(v, false)),
             puppet_lang::statement::ResourceAttributeVariant::Group(v) => RcDoc::text("*")
                 .append(RcDoc::softline())
-                .append(RcDoc::text("=>"))
+                .append(RcDoc::column(|w| {
+                    let offset = (w / 10 + 1) * 10;
+                    RcDoc::text(format!("{} =>", " ".repeat(offset - w)))
+                }))
+                .append(RcDoc::column(|w| RcDoc::text(format!("=> ?? {} ??", w))))
                 .append(RcDoc::softline())
                 .append(crate::term::to_doc(v, false)),
-        }
-    }
-}
+        };
 
-impl<EXTRA> Printer for puppet_lang::statement::ResourceAttribute<EXTRA> {
-    fn to_doc(&self) -> RcDoc<()> {
-        crate::comment::comment_or(&self.comment, RcDoc::hardline(), RcDoc::nil())
-            .append(self.value.to_doc())
+        crate::comment::comment_or(&self.comment, RcDoc::hardline(), RcDoc::nil()).append(value)
     }
 }
 

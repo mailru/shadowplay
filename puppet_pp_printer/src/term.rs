@@ -34,8 +34,10 @@ impl<EXTRA> Printer for puppet_lang::expression::Regexp<EXTRA> {
 impl<EXTRA> Printer for puppet_lang::expression::MapKV<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
         crate::expression::to_doc(&self.key, false)
-            .append(RcDoc::softline())
-            .append(RcDoc::text("=>"))
+            .append(RcDoc::column(|w| {
+                let offset = (w / 10 + 1) * 10;
+                RcDoc::text(format!("{} =>", " ".repeat(offset - w)))
+            }))
             .append(RcDoc::softline())
             .append(crate::expression::to_doc(&self.value, false))
     }
