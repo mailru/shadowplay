@@ -296,7 +296,7 @@ impl<EXTRA> Printer for puppet_lang::typing::TypeStruct<EXTRA> {
                     RcDoc::hardline(),
                 )
                 .group()
-                .append(self.keys.last_comment.to_doc()),
+                .append(crate::comment::to_doc(&self.keys.last_comment)),
             )
             .nest(2)
             .append(RcDoc::hardline())

@@ -92,7 +92,7 @@ impl<EXTRA> Printer for puppet_lang::statement::Resource<EXTRA> {
             ))
         };
 
-        let inner = inner.append(self.attributes.last_comment.to_doc());
+        let inner = inner.append(crate::comment::to_doc(&self.attributes.last_comment));
 
         crate::expression::to_doc(&self.title, false)
             .append(RcDoc::text(":"))
@@ -113,7 +113,7 @@ impl<EXTRA> Printer for puppet_lang::statement::ResourceSet<EXTRA> {
             self.list.value.iter().map(|elt| elt.to_doc()),
             RcDoc::text(";").append(RcDoc::hardline()),
         )
-        .append(self.list.last_comment.to_doc());
+        .append(crate::comment::to_doc(&self.list.last_comment));
 
         crate::comment::comment_or(&self.comment, RcDoc::hardline(), RcDoc::nil())
             .append(is_virtual)
@@ -151,7 +151,7 @@ impl<EXTRA> Printer for puppet_lang::statement::RelationElt<EXTRA> {
             RcDoc::softline(),
         )
         .group()
-        .append(self.data.last_comment.to_doc());
+        .append(crate::comment::to_doc(&self.data.last_comment));
 
         RcDoc::text("[")
             .append(RcDoc::softline())

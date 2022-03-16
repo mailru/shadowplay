@@ -57,7 +57,7 @@ impl<EXTRA> Printer for puppet_lang::expression::Map<EXTRA> {
                 self.value.value.iter().map(|elt| mapkv_to_doc(elt, false)),
                 RcDoc::text(",").append(RcDoc::softline()),
             )
-            .append(self.value.last_comment.to_doc());
+            .append(crate::comment::to_doc(&self.value.last_comment));
             RcDoc::text("{")
                 .append(RcDoc::softline())
                 .append(inner)
@@ -72,7 +72,7 @@ impl<EXTRA> Printer for puppet_lang::expression::Map<EXTRA> {
                     .map(|elt| mapkv_to_doc(elt, true).append(RcDoc::text(","))),
                 RcDoc::hardline(),
             )
-            .append(self.value.last_comment.to_doc());
+            .append(crate::comment::to_doc(&self.value.last_comment));
 
             RcDoc::text("{")
                 .append(RcDoc::hardline())
@@ -107,7 +107,7 @@ pub fn to_doc<EXTRA>(
                     Doc::line(),
                 )
                 .group()
-                .append(v.value.last_comment.to_doc())
+                .append(crate::comment::to_doc(&v.value.last_comment))
                 .nest(2),
             )
             .append(RcDoc::line())

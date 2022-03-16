@@ -35,7 +35,7 @@ impl<EXTRA> Printer for puppet_lang::List<EXTRA, puppet_lang::argument::Argument
                 .map(|x| x.to_doc().append(RcDoc::text(","))),
             RcDoc::hardline(),
         )
-        .append(self.last_comment.to_doc())
+        .append(crate::comment::to_doc(&self.last_comment))
     }
 }
 
@@ -65,7 +65,7 @@ pub fn list_to_piped_doc<EXTRA>(
         elt.value.iter().map(|x| x.to_doc()),
         RcDoc::text(",").append(RcDoc::softline()),
     )
-    .append(elt.last_comment.to_doc());
+    .append(crate::comment::to_doc(&elt.last_comment));
 
     RcDoc::text("|")
         .append(RcDoc::softline_())

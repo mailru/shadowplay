@@ -6,7 +6,7 @@ pub fn statement_block_to_doc<EXTRA>(
     with_parens: bool,
 ) -> RcDoc<()> {
     let inner = RcDoc::intersperse(elt.value.iter().map(|x| x.to_doc()), RcDoc::hardline())
-        .append(elt.last_comment.to_doc());
+        .append(crate::comment::to_doc(&elt.last_comment));
 
     if with_parens {
         RcDoc::text("{")
@@ -107,7 +107,7 @@ impl<EXTRA> Printer for puppet_lang::statement::Case<EXTRA> {
             self.elements.value.iter().map(|x| x.to_doc()),
             RcDoc::hardline(),
         )
-        .append(self.elements.last_comment.to_doc());
+        .append(crate::comment::to_doc(&self.elements.last_comment));
 
         RcDoc::text("case")
             .append(RcDoc::softline())
@@ -135,7 +135,7 @@ impl<EXTRA> Printer for puppet_lang::statement::ResourceDefaults<EXTRA> {
             }),
             RcDoc::hardline(),
         )
-        .append(self.args.last_comment.to_doc());
+        .append(crate::comment::to_doc(&self.args.last_comment));
 
         RcDoc::text(&self.name)
             .append(RcDoc::softline())
