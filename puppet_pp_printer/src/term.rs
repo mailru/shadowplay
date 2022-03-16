@@ -31,34 +31,56 @@ impl<EXTRA> Printer for puppet_lang::expression::Regexp<EXTRA> {
     }
 }
 
-impl<EXTRA> Printer for puppet_lang::expression::MapKV<EXTRA> {
-    fn to_doc(&self) -> RcDoc<()> {
-        crate::expression::to_doc(&self.key, false)
-            .append(RcDoc::column(|w| {
+pub fn mapkv_to_doc<EXTRA>(
+    expr: &puppet_lang::expression::MapKV<EXTRA>,
+    with_indent: bool,
+) -> RcDoc<()> {
+    crate::expression::to_doc(&expr.key, false)
+        .append(RcDoc::column(move |w| {
+            if with_indent {
                 let offset = (w / 10 + 1) * 10;
                 RcDoc::text(format!("{} =>", " ".repeat(offset - w)))
-            }))
-            .append(RcDoc::softline())
-            .append(crate::expression::to_doc(&self.value, false))
-            .group()
-            .nest(2)
-    }
+            } else {
+                RcDoc::softline().append(RcDoc::text("=>"))
+            }
+        }))
+        .append(RcDoc::softline())
+        .append(crate::expression::to_doc(&expr.value, false))
+        .group()
+        .nest(2)
 }
 
 impl<EXTRA> Printer for puppet_lang::expression::Map<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
-        let inner = RcDoc::intersperse(
-            self.value.value.iter().map(|elt| elt.to_doc()),
-            RcDoc::text(",").append(RcDoc::hardline()),
-        )
-        .append(self.value.last_comment.to_doc());
+        if self.value.value.len() < 2 && self.value.last_comment.is_empty() {
+            let inner = RcDoc::intersperse(
+                self.value.value.iter().map(|elt| mapkv_to_doc(elt, false)),
+                RcDoc::text(",").append(RcDoc::softline()),
+            )
+            .append(self.value.last_comment.to_doc());
+            RcDoc::text("{")
+                .append(RcDoc::softline())
+                .append(inner)
+                .nest(2)
+                .append(RcDoc::softline())
+                .append(RcDoc::text("}"))
+        } else {
+            let inner = RcDoc::intersperse(
+                self.value
+                    .value
+                    .iter()
+                    .map(|elt| mapkv_to_doc(elt, true).append(RcDoc::text(","))),
+                RcDoc::hardline(),
+            )
+            .append(self.value.last_comment.to_doc());
 
-        RcDoc::text("{")
-            .append(RcDoc::softline())
-            .append(inner)
-            .nest(2)
-            .append(RcDoc::hardline())
-            .append(RcDoc::text("}"))
+            RcDoc::text("{")
+                .append(RcDoc::hardline())
+                .append(inner)
+                .nest(2)
+                .append(RcDoc::hardline())
+                .append(RcDoc::text("}"))
+        }
     }
 }
 
