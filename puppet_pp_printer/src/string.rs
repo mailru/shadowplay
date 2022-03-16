@@ -44,7 +44,7 @@ impl<EXTRA> Printer for puppet_lang::string::StringExpr<EXTRA> {
         match &self.data {
             puppet_lang::string::StringVariant::SingleQuoted(list) => match &list.as_slice() {
                 &[puppet_lang::string::StringFragment::Literal(v)]
-                    if v.data.chars().all(|c| c.is_alphabetic()) =>
+                    if v.data.chars().all(|c| c.is_alphabetic() || c == '_') =>
                 {
                     RcDoc::text(&v.data)
                 }
