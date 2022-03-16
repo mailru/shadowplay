@@ -1,4 +1,46 @@
 * Changelog
+** [2022-03-16] v0.10.0
+
+*** New features
+
+ - Improved multiline pretty printer for maps (808a05e)
+ - Better arrows indentation (16ee759)
+ - Added unit tests (8494f2a)
+ - Pretty printer (cbe3973)
+ - [WIP] Pretty printer (e3fa8cc)
+ - [WIP] pretty printer (160fd8f)
+ - [WIP] pretty printer (ac3084c)
+ - Comments are now included into AST (40d1dfa)
+ - Added AST dumper (c80e8b1)
+
+*** Bugfixes
+
+ - Issue reported by linter (a26f5d4)
+ - Updated unit tests (8fbfea9)
+ - Underscore char is valid in barewords (b07915d)
+ - Ugly arrows indentation (d41a982)
+ - Added subcommand for pretty-printing (0781f70)
+ - Minor printing fixes (dfb7f84)
+ - Printer for maps (21a3821)
+ - Tool adopted to updated AST (9dd0fd0)
+ - Lambda printer for builtin functions (6fd3752)
+ - Added hardline before non-empty attributes list (5d819ee)
+ - Minor AST improvements (136d6fa)
+ - Issues reported by linter (be8129c)
+ - Minor AST and parser improvements (36bc6a4)
+ - Minor parser issues (39a9bf9)
+ - builtin functions parsing rules (2944d15)
+ - Interpolated expressions parser (439d6fd)
+ - Comment is owned by inner expression (cd071a7)
+
+*** Other changes
+
+ - Accessor is now universal property of expression (36cecc2)
+ - Toplevel is now a struct (7082a0d)
+ - Generate DEB package using alien (358f3a7)
+ - Removed dependency on EPEL (6dcad34)
+
+
 ** [2022-03-13] v0.9.0
 
 *** New features
