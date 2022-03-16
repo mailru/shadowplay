@@ -13,6 +13,7 @@ build_hammer_el7:
         Rpm:
           spec_path: etc/centos.spec
           scripts:
+            - echo -e "[source.crates-io]\nreplace-with = \"vk-mirror\"\n[source.vk-mirror]\nregistry = \"https://rust.devmail.ru/crates.io-index\"\n" >> .cargo/config.toml
             - rpmbuild -bb etc/centos.spec
             - alien --to-deb /root/rpmbuild/RPMS/x86_64/*.rpm
     artifacts:
@@ -21,10 +22,10 @@ build_hammer_el7:
     environment_variables:
       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
       PATH: "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin:/sbin"
-    description: pimprle, c7
+    description: shadowplay, c7
     timeout: 2h
     user_tags:
-      - pimprle
+      - shadowplay
     notifications:
       on_build_error:
         - __author__
@@ -58,17 +59,18 @@ build_hammer_macos:
       builder:
         Generic:
           script:
+            - echo -e "[source.crates-io]\nreplace-with = \"vk-mirror\"\n[source.vk-mirror]\nregistry = \"https://rust.devmail.ru/crates.io-index\"\n" >> .cargo/config.toml
             - "sed -i -e \"s/^package[.]version = .*/package.version = \\\"$(cat VERSION)\\\"/\" Cargo.toml"
             - cargo build --release --target x86_64-apple-darwin
     environment_variables:
       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
       PATH: "/opt/darwin-cc/bin:/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin:/sbin"
     artifacts:
-      - path_glob: /root/build/target/x86_64-apple-darwin/release/pimprle
+      - path_glob: /root/build/target/x86_64-apple-darwin/release/shadowplay
         artifact_type: Generic
-    description: pimprle, MacOS"
+    description: shadowplay, MacOS"
     user_tags:
-      - pimprle
+      - shadowplay
     notifications:
       on_build_error:
         - __author__
@@ -92,6 +94,7 @@ clippy_check:
       builder:
         Generic:
           script:
+            - echo -e "[source.crates-io]\nreplace-with = \"vk-mirror\"\n[source.vk-mirror]\nregistry = \"https://rust.devmail.ru/crates.io-index\"\n" >> .cargo/config.toml
             - cargo clippy -- -D warnings
             - cargo test
     notifications:
@@ -104,7 +107,7 @@ clippy_check:
       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
     description: clippy check
     user_tags:
-      - pimprle
+      - shadowplay
       - clippy
   tags:
     - hammer-dev
