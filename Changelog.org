@@ -1,4 +1,11 @@
 * Changelog
+** [2022-03-16] v0.10.2
+
+*** Other changes
+
+ - Removed vendored sources (21e944f)
+
+
 ** [2022-03-16] v0.10.1
 
 *** Other changes
