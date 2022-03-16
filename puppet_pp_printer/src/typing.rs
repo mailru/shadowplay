@@ -90,7 +90,7 @@ impl<EXTRA> Printer for puppet_lang::typing::TypeOptional<EXTRA> {
             .append(RcDoc::softline_())
             .append(self.value.to_doc())
             .nest(2)
-            .append(RcDoc::softline())
+            .append(RcDoc::softline_())
             .append(RcDoc::text("]"))
             .group()
     }
@@ -257,7 +257,7 @@ impl<EXTRA> Printer for puppet_lang::typing::TypeStructKey<EXTRA> {
                 .append(RcDoc::softline_())
                 .append(v.value.to_doc())
                 .nest(2)
-                .append(RcDoc::softline())
+                .append(RcDoc::softline_())
                 .append(RcDoc::text("]"))
                 .group(),
             puppet_lang::typing::TypeStructKey::NotUndef(v) => RcDoc::text("NotUndef")
@@ -265,7 +265,7 @@ impl<EXTRA> Printer for puppet_lang::typing::TypeStructKey<EXTRA> {
                 .append(RcDoc::softline_())
                 .append(v.value.to_doc())
                 .nest(2)
-                .append(RcDoc::softline())
+                .append(RcDoc::softline_())
                 .append(RcDoc::text("]"))
                 .group(),
         }
@@ -286,20 +286,20 @@ impl<EXTRA> Printer for puppet_lang::typing::TypeStruct<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
         RcDoc::text("Struct")
             .append(RcDoc::text("[{"))
-            .append(RcDoc::softline())
+            .append(RcDoc::hardline())
             .append(
                 RcDoc::intersperse(
                     self.keys
                         .value
                         .iter()
                         .map(|x| x.to_doc().append(RcDoc::text(","))),
-                    RcDoc::softline(),
+                    RcDoc::hardline(),
                 )
                 .group()
                 .append(self.keys.last_comment.to_doc()),
             )
             .nest(2)
-            .append(RcDoc::softline())
+            .append(RcDoc::hardline())
             .append(RcDoc::text("}]"))
             .group()
     }
@@ -401,7 +401,7 @@ fn test_idempotence_short() {
         "Pattern[\n  /a/, /b/,\n]",
         "Regex[ // ]",
         "Regex[\n  /aaaaaaaaaaa/\n]",
-        "Optional[\n  #comment\n  Regex[\n    /aaaaaaaaaaa/\n  ] ]",
+        "Optional[\n  #comment\n  Regex[\n    /aaaaaaaaaaa/\n  ]]",
         "Array[\n  Integer,\n]",
         "Array[\n  Integer,\n  2, ]",
         "Array[\n  Integer,\n  2, 4, ]",
@@ -410,7 +410,7 @@ fn test_idempotence_short() {
         "Some::Type",
         "Some::Type[\n  1, ]",
         "Hash[\n  String,\n  Integer,\n  default,\n  1, ]",
-        "Struct[{ a\n  =>\n  Integer,\n}]",
+        "Struct[{\n  a =>\n  Integer,\n}]",
         "Struct[{\n  Optional[\n    a ] =>\n  Integer,\n}]",
         "Struct[{\n  NotUndef[\n    a ] =>\n  Integer,\n}]",
         "Sensitive[\n  1 ]",
