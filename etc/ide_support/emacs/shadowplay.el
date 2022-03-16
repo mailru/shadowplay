@@ -14,6 +14,11 @@
   (require 'pcase)          ; `pcase-dolist' (`pcase' itself is autoloaded)
   )
 
+(defcustom shadowplay-program "shadowplay"
+  "*Program name of shadowplay"
+  :type 'string
+  :group 'shadowplay)
+
 (defun flycheck-parse-shadowplay-lint (output checker buffer)
   "Parse JSON OUTPUT of CHECKER on BUFFER as Shadowplay errors."
   (mapcar (lambda (err)
@@ -36,12 +41,35 @@
           (flycheck-parse-json output)))
 
 (flycheck-define-checker puppet-shadowplay
-  "A Puppet DSL linter using pimperle."
+  "A Puppet DSL linter using shadowplay."
   :command ("shadowplay" "check" "-f" "json" "pp" source)
   :error-parser flycheck-parse-shadowplay-lint
   :modes puppet-mode)
 
 (add-to-list 'flycheck-checkers 'puppet-shadowplay)
+
+(defun shadowplay-format-buffer ()
+  "Formats the selected text with shadowplay pretty printer."
+  (interactive)
+  (call-process-region (point-min) (point-max) "shadowplay" t t nil "pretty-print"))
+
+(defun shadowplay-format-buffer ()
+  "Call shadowplay formatter for whole buffer."
+  (interactive)
+  (shadowplay-format-region (point-min) (point-max)))
+
+(defun shadowplay-format-region (beg end)
+  "Shadowplay format code in the region."
+  (interactive "r")
+  (or (get 'shadowplay-program 'has-shadowplay)
+      (if (executable-find shadowplay-program)
+          (put 'shadowplay-program 'has-shadowplay t)
+        (error "Seem shadowplay is not installed")))
+  (let ((shadowplay-run-list '("pretty-print")))
+
+    (apply #'call-process-region
+           (append (list beg end shadowplay-program t t nil ) shadowplay-run-list)))
+  t)
 
 (provide 'flycheck-shadowplay)
 
