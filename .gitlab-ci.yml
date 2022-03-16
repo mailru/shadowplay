@@ -6,7 +6,7 @@ build_hammer_el7:
       prepare_stages:
         - cache: 30days
           operations:
-            - Exec: yum  install -y autoconf automake libtool llvm-devel clang lxc-devel openssl-devel rpmdevtools yum-utils gcc git autoconf alien
+            - Exec: yum install -y autoconf automake libtool llvm-devel clang lxc-devel openssl-devel rpmdevtools yum-utils gcc git autoconf alien
             - Exec: curl -s https://rust.devmail.ru/rustup.sh | sh /dev/stdin -y
     build:
       builder:
@@ -53,7 +53,7 @@ build_hammer_macos:
                     includepkgs: darwin-cc*
             - Exec: yum  install -y autoconf automake libtool llvm-devel clang openssl-devel rpmdevtools yum-utils gcc git autoconf darwin-cc
             - Exec: curl -s https://rust.devmail.ru/rustup.sh | sh /dev/stdin -y
-            - Exec: "PATH=\"root/.cargo/bin:$PATH\" rustup target add x86_64-apple-darwin"
+            - Exec: "PATH=\"root/.cargo/bin:$PATH\" RUSTUP_DIST_SERVER=https://rust.devmail.ru RUSTUP_UPDATE_ROOT=https://rust.devmail.ru/rustup rustup target add x86_64-apple-darwin"
     build:
       builder:
         Generic:
