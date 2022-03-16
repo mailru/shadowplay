@@ -1,4 +1,12 @@
 * Changelog
+** [2022-03-16] v0.10.1
+
+*** Other changes
+
+ - Project is renamed once again (c137e48)
+ - Use local Rust mirror (bdf350e)
+
+
 ** [2022-03-16] v0.10.0
 
 *** New features
