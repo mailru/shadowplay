@@ -9,8 +9,11 @@ impl<EXTRA> Printer for puppet_lang::argument::Argument<EXTRA> {
         };
 
         let default = match &self.default {
-            Some(v) => RcDoc::softline()
-                .append(RcDoc::text("="))
+            Some(v) => RcDoc::softline_()
+                .append(RcDoc::column(|w| {
+                    let offset = (w / 30 + 1) * 30;
+                    RcDoc::text(format!("{} =", " ".repeat(offset - w)))
+                }))
                 .append(RcDoc::softline())
                 .append(crate::expression::to_doc(v, false)),
             None => RcDoc::nil(),

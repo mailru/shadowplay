@@ -61,7 +61,9 @@ impl<EXTRA> Printer for puppet_lang::statement::ResourceAttribute<EXTRA> {
                     RcDoc::text(format!("{} =>", " ".repeat(offset - w)))
                 }))
                 .append(RcDoc::softline())
-                .append(crate::expression::to_doc(v, false)),
+                .append(crate::expression::to_doc(v, false))
+                .group()
+                .nest(2),
             puppet_lang::statement::ResourceAttributeVariant::Group(v) => RcDoc::text("*")
                 .append(RcDoc::softline())
                 .append(RcDoc::column(|w| {
@@ -70,7 +72,9 @@ impl<EXTRA> Printer for puppet_lang::statement::ResourceAttribute<EXTRA> {
                 }))
                 .append(RcDoc::column(|w| RcDoc::text(format!("=> ?? {} ??", w))))
                 .append(RcDoc::softline())
-                .append(crate::term::to_doc(v, false)),
+                .append(crate::term::to_doc(v, false))
+                .group()
+                .nest(2),
         };
 
         crate::comment::comment_or(&self.comment, RcDoc::hardline(), RcDoc::nil()).append(value)

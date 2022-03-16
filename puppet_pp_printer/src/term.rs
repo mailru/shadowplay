@@ -40,6 +40,8 @@ impl<EXTRA> Printer for puppet_lang::expression::MapKV<EXTRA> {
             }))
             .append(RcDoc::softline())
             .append(crate::expression::to_doc(&self.value, false))
+            .group()
+            .nest(2)
     }
 }
 
