@@ -3,6 +3,8 @@ pub mod config;
 pub mod hiera_config;
 pub mod puppet;
 
+use std::io::Read;
+
 use structopt::StructOpt;
 
 #[macro_use]
@@ -108,11 +110,50 @@ impl Dump {
 }
 
 #[derive(Debug, StructOpt)]
+pub struct PrettyPrint {
+    #[structopt(long, default_value = "120")]
+    pub width: usize,
+}
+
+impl PrettyPrint {
+    pub fn pretty_print(&self) {
+        let mut buf = String::new();
+        let _ = std::io::stdin()
+            .read_to_string(&mut buf)
+            .expect("Read STDIN");
+
+        let ast = match crate::check::PuppetAst::parse(&buf) {
+            Err(err) => {
+                let err = match err {
+                    nom::Err::Incomplete(_) => {
+                        // nom::complete doesn't generate this state
+                        unreachable!()
+                    }
+                    nom::Err::Error(v) => v,
+                    nom::Err::Failure(v) => v,
+                };
+                panic!("Cannot parse STDIN: {}", &err)
+            }
+            Ok(v) => v,
+        };
+
+        let mut w = Vec::new();
+        puppet_pp_printer::statement::statement_block_to_doc(&ast.data, false)
+            .render(self.width, &mut w)
+            .unwrap();
+        let pretty = String::from_utf8(w).unwrap();
+        println!("{}", pretty)
+    }
+}
+
+#[derive(Debug, StructOpt)]
 pub enum Query {
     /// Get value for specific host
     Get(Get),
     /// Checks subcommand
     Check(Check),
+    /// Pretty printing subcommand
+    PrettyPrint(PrettyPrint),
     /// Dump *.pp files
     Dump(Dump),
     /// Generates default config
@@ -433,6 +474,7 @@ fn main() {
         Query::Get(v) => v.get(&opt.repo_path),
         Query::Dump(v) => v.dump(),
         Query::Check(v) => v.check(&opt.repo_path, config),
+        Query::PrettyPrint(v) => v.pretty_print(),
         Query::GenerateConfig => {
             print!(
                 "Below is default configuration. Save it to {}\n\n{}",

@@ -238,6 +238,7 @@ dependencies = [
  "puppet-lang",
  "puppet-parser",
  "puppet-pp-lint",
+ "puppet-pp-printer",
  "regex",
  "serde",
  "serde_json",

@@ -13,6 +13,7 @@ path = "src/main.rs"
 puppet-lang = { path = "../puppet_lang" }
 puppet-parser = { path = "../puppet_parser" }
 puppet-pp-lint = { path = "../puppet_pp_lint" }
+puppet-pp-printer = { path = "../puppet_pp_printer" }
 yaml-rust = "0"
 located_yaml = "0"
 linked-hash-map = {version = "0", features = ["serde_impl"] }
