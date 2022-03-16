@@ -31,6 +31,33 @@ impl<EXTRA> Printer for puppet_lang::expression::Regexp<EXTRA> {
     }
 }
 
+impl<EXTRA> Printer for puppet_lang::expression::MapKV<EXTRA> {
+    fn to_doc(&self) -> RcDoc<()> {
+        crate::expression::to_doc(&self.key, false)
+            .append(RcDoc::softline())
+            .append(RcDoc::text("=>"))
+            .append(RcDoc::softline())
+            .append(crate::expression::to_doc(&self.value, false))
+    }
+}
+
+impl<EXTRA> Printer for puppet_lang::expression::Map<EXTRA> {
+    fn to_doc(&self) -> RcDoc<()> {
+        let inner = RcDoc::intersperse(
+            self.value.value.iter().map(|elt| elt.to_doc()),
+            RcDoc::text(",").append(RcDoc::hardline()),
+        )
+        .append(self.value.last_comment.to_doc());
+
+        RcDoc::text("{")
+            .append(RcDoc::softline())
+            .append(inner)
+            .nest(2)
+            .append(RcDoc::hardline())
+            .append(RcDoc::text("}"))
+    }
+}
+
 pub fn to_doc<EXTRA>(
     term: &puppet_lang::expression::Term<EXTRA>,
     hide_variable_tag: bool,
@@ -61,7 +88,7 @@ pub fn to_doc<EXTRA>(
             .append(RcDoc::text("]"))
             .group(),
         puppet_lang::expression::TermVariant::Identifier(v) => v.to_doc(),
-        puppet_lang::expression::TermVariant::Map(_) => todo!(),
+        puppet_lang::expression::TermVariant::Map(v) => v.to_doc(),
         puppet_lang::expression::TermVariant::Variable(v) => {
             if hide_variable_tag {
                 v.identifier.to_doc()
