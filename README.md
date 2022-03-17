@@ -1,7 +1,6 @@
 # About
 
-Shadowplay is a utility that has the functionality of checking pappet syntax, a pappet manifest linter, a pretty printer, and a utility for
-exploring the Hiera.
+Shadowplay is a utility for checking puppet syntax, a puppet manifest linter, a pretty printer, and a utility for exploring the Hiera.
 
 # Usage
 
