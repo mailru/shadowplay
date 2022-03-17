@@ -1,4 +1,30 @@
 * Changelog
+** [2022-03-17] v0.11.0
+
+*** New features
+
+ - Added unit tests for wide lines (6f94b61)
+ - Added unit tests for builtin (07cb599)
+ - Improved manifests parser (86f8270)
+ - Improved error reporting for brackets and parens (de5cdae)
+ - Added pretty printer integration with Emacs (eca027d)
+
+*** Bugfixes
+
+ - Comma is prohibited here (9430032)
+ - Unit test (16a1483)
+ - Added implicit space before args list (ba5c78d)
+ - Allow type specification with empty arguments list in brackets (c5a74c6)
+ - Protect infix operators (ba3dd59)
+ - Improved formatter for delimited lists (30ac8c2)
+ - Always parse file till EOF (350a74a)
+
+*** Other changes
+
+ - Cleanup (522b391)
+ - Updated deps (e923c29)
+
+
 ** [2022-03-16] v0.10.2
 
 *** Other changes
