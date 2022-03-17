@@ -10,7 +10,7 @@ use puppet_lang::ExtraGetter;
 
 use crate::{
     common::{
-        capture_comment, comma_separated_list_with_last_comment, comma_separator,
+        capture_comment, comma_separated_list1_with_last_comment, comma_separator,
         curly_brackets_delimimited, space0_delimimited, spaced0_separator, spaced_word,
         square_brackets_delimimited,
     },
@@ -54,7 +54,7 @@ fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Range
         |(_, term)| puppet_lang::statement::ResourceAttributeVariant::Group(term),
     );
 
-    let parse_arguments = crate::common::comma_separated_list_with_last_comment(map(
+    let parse_attributes = crate::common::comma_separated_list0_with_last_comment(map(
         pair(
             capture_comment,
             alt((parse_attribute, parse_attribute_group)),
@@ -65,7 +65,7 @@ fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Range
     let mut parser = map(
         tuple((
             space0_delimimited(crate::expression::parse_expression),
-            preceded(tag(":"), space0_delimimited(parse_arguments)),
+            preceded(tag(":"), space0_delimimited(parse_attributes)),
         )),
         |(title, attributes)| {
             let last_range = match attributes.value.last() {
@@ -96,6 +96,7 @@ fn parse_resource_set(input: Span) -> IResult<puppet_lang::statement::ResourceSe
             crate::identifier::anycase_identifier_with_ns,
         )),
         space0_delimimited(crate::common::curly_brackets_delimimited(
+            false,
             crate::common::list_with_last_comment(terminated(
                 separated_list0(spaced0_separator(";"), parse_resource),
                 opt(spaced0_separator(";")),
@@ -153,8 +154,9 @@ fn parse_relation_type(input: Span) -> IResult<puppet_lang::statement::RelationT
 fn parse_relation(input: Span) -> IResult<puppet_lang::statement::RelationList<Range>> {
     let head_parser = alt((
         map(
-            square_brackets_delimimited(crate::common::comma_separated_list_with_last_comment(
-                alt((
+            square_brackets_delimimited(
+                false,
+                crate::common::comma_separated_list0_with_last_comment(alt((
                     map(
                         parse_resource_set,
                         puppet_lang::statement::RelationEltVariant::ResourceSet,
@@ -163,8 +165,8 @@ fn parse_relation(input: Span) -> IResult<puppet_lang::statement::RelationList<R
                         crate::resource_collection::parse_resource_collection,
                         puppet_lang::statement::RelationEltVariant::ResourceCollection,
                     ),
-                )),
-            )),
+                ))),
+            ),
             |(left_curly, data, right_curly)| puppet_lang::statement::RelationElt {
                 data,
                 extra: Range::from((left_curly, right_curly)),
@@ -379,7 +381,10 @@ fn parse_case(input: Span) -> IResult<StatementVariant<Range>> {
 
     let parser = pair(
         parser_header,
-        curly_brackets_delimimited(crate::common::list_with_last_comment(many0(parser_element))),
+        curly_brackets_delimimited(
+            true,
+            crate::common::list_with_last_comment(many0(parser_element)),
+        ),
     );
 
     let parser = map(
@@ -414,7 +419,8 @@ fn parse_resource_defaults(
         pair(
             crate::identifier::camel_case_identifier,
             space0_delimimited(curly_brackets_delimimited(
-                comma_separated_list_with_last_comment(kv_parser),
+                true,
+                comma_separated_list1_with_last_comment(kv_parser),
             )),
         ),
         |(name, (_left_curly, args, right_curly))| puppet_lang::statement::ResourceDefaults {
@@ -430,8 +436,8 @@ fn parse_statement_variant(input: Span) -> IResult<StatementVariant<Range>> {
         parse_if_else,
         parse_unless,
         parse_case,
-        map(parse_resource_defaults, StatementVariant::ResourceDefaults),
         map(parse_relation, StatementVariant::RelationList),
+        map(parse_resource_defaults, StatementVariant::ResourceDefaults),
         map(crate::toplevel::parse, StatementVariant::Toplevel),
         parse_expression,
     ))(input)

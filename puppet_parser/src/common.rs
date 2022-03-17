@@ -55,7 +55,7 @@ where
     })
 }
 
-pub fn comma_separated_list_with_last_comment<'a, O, F>(
+pub fn comma_separated_list0_with_last_comment<'a, O, F>(
     parser: F,
 ) -> impl FnMut(Span<'a>) -> IResult<puppet_lang::List<Range, O>>
 where
@@ -64,6 +64,19 @@ where
 {
     list_with_last_comment(terminated(
         separated_list0(comma_separator, parser),
+        opt(comma_separator),
+    ))
+}
+
+pub fn comma_separated_list1_with_last_comment<'a, O, F>(
+    parser: F,
+) -> impl FnMut(Span<'a>) -> IResult<puppet_lang::List<Range, O>>
+where
+    F: Parser<Span<'a>, O, ParseError<'a>>,
+    O: Clone,
+{
+    list_with_last_comment(terminated(
+        separated_list1(comma_separator, parser),
         opt(comma_separator),
     ))
 }
@@ -116,8 +129,8 @@ where
     O: Clone,
 {
     move |input| {
-        let (input, _) = opt(separator0)(input)?;
         let (input, left_paren) = tag("(")(input)?;
+        let (input, _) = multispace0(input)?;
         let (input, inner) = parser(input)?;
         let (input, right_paren) = ParseError::protect(
             |_| {
@@ -128,13 +141,14 @@ where
                     left_paren_location.column()
                 )
             },
-            preceded(separator0, tag(")")),
+            preceded(multispace0, tag(")")),
         )(input)?;
         Ok((input, (left_paren, inner, right_paren)))
     }
 }
 
 pub fn square_brackets_delimimited<'a, O, F>(
+    fatal_on_missing_closing_bracket: bool,
     mut parser: F,
 ) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, O, Span<'a>)>
 where
@@ -142,25 +156,30 @@ where
     O: Clone,
 {
     move |input| {
-        let (input, _) = opt(separator0)(input)?;
         let (input, left_bracket) = tag("[")(input)?;
+        let (input, _) = multispace0(input)?;
         let (input, inner) = parser(input)?;
-        let (input, right_bracket) = ParseError::protect(
-            |_| {
-                let left_bracket_location = crate::range::Location::from(left_bracket);
-                format!(
-                    "Closing ']' expected, which was opened at line {} col {}",
-                    left_bracket_location.line(),
-                    left_bracket_location.column()
-                )
-            },
-            preceded(separator0, tag("]")),
-        )(input)?;
+        let (input, right_bracket) = if fatal_on_missing_closing_bracket {
+            ParseError::protect(
+                |_| {
+                    let left_bracket_location = crate::range::Location::from(left_bracket);
+                    format!(
+                        "Closing ']' expected, which was opened at line {} col {}",
+                        left_bracket_location.line(),
+                        left_bracket_location.column()
+                    )
+                },
+                preceded(multispace0, tag("]")),
+            )(input)?
+        } else {
+            preceded(multispace0, tag("]"))(input)?
+        };
         Ok((input, (left_bracket, inner, right_bracket)))
     }
 }
 
 pub fn curly_brackets_delimimited<'a, O, F>(
+    fatal_on_missing_closing_curly: bool,
     mut parser: F,
 ) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, O, Span<'a>)>
 where
@@ -168,20 +187,24 @@ where
     O: Clone,
 {
     move |input| {
-        let (input, _) = opt(separator0)(input)?;
         let (input, left_curly) = tag("{")(input)?;
+        let (input, _) = multispace0(input)?;
         let (input, inner) = parser(input)?;
-        let (input, right_curly) = ParseError::protect(
-            |_| {
-                let left_curly_location = crate::range::Location::from(left_curly);
-                format!(
-                    "Closing '}}' expected, which was opened at line {} col {}",
-                    left_curly_location.line(),
-                    left_curly_location.column()
-                )
-            },
-            preceded(separator0, tag("}")),
-        )(input)?;
+        let (input, right_curly) = if fatal_on_missing_closing_curly {
+            ParseError::protect(
+                |_| {
+                    let left_curly_location = crate::range::Location::from(left_curly);
+                    format!(
+                        "Closing '}}' expected, which was opened at line {} col {}",
+                        left_curly_location.line(),
+                        left_curly_location.column()
+                    )
+                },
+                preceded(multispace0, tag("}")),
+            )(input)?
+        } else {
+            preceded(multispace0, tag("}"))(input)?
+        };
         Ok((input, (left_curly, inner, right_curly)))
     }
 }
@@ -194,8 +217,8 @@ where
     O: Clone,
 {
     move |input| {
-        let (input, _) = opt(separator0)(input)?;
         let (input, left_pipe) = tag("|")(input)?;
+        let (input, _) = multispace0(input)?;
         let (input, inner) = parser(input)?;
         let (input, right_pipe) = ParseError::protect(
             |_| {
@@ -206,7 +229,7 @@ where
                     left_pipe_location.column()
                 )
             },
-            preceded(separator0, tag("|")),
+            preceded(multispace0, tag("|")),
         )(input)?;
         Ok((input, (left_pipe, inner, right_pipe)))
     }
@@ -258,45 +281,57 @@ pub fn spaced_word<'a>(searchword: &'static str) -> impl FnMut(Span<'a>) -> IRes
 }
 
 pub fn square_brackets_comma_separated0<'a, O, F>(
+    fatal_on_missing_closing_bracket: bool,
     parser: F,
 ) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, Vec<O>, Span<'a>)>
 where
     F: Parser<Span<'a>, O, ParseError<'a>>,
     O: Clone,
 {
-    square_brackets_delimimited(terminated(
-        separated_list0(comma_separator, parser),
-        // Optional comma at the end
-        opt(comma_separator),
-    ))
+    square_brackets_delimimited(
+        fatal_on_missing_closing_bracket,
+        terminated(
+            separated_list0(comma_separator, parser),
+            // Optional comma at the end
+            opt(comma_separator),
+        ),
+    )
 }
 
 pub fn square_brackets_comma_separated1<'a, O, F>(
+    fatal_on_missing_closing_bracket: bool,
     parser: F,
 ) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, Vec<O>, Span<'a>)>
 where
     F: Parser<Span<'a>, O, ParseError<'a>>,
     O: Clone,
 {
-    square_brackets_delimimited(terminated(
-        separated_list1(comma_separator, parser),
-        // Optional comma at the end
-        opt(comma_separator),
-    ))
+    square_brackets_delimimited(
+        fatal_on_missing_closing_bracket,
+        terminated(
+            separated_list1(comma_separator, parser),
+            // Optional comma at the end
+            opt(comma_separator),
+        ),
+    )
 }
 
 pub fn curly_brackets_comma_separated0<'a, O, F>(
+    fatal_on_missing_closing_curly: bool,
     parser: F,
 ) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, Vec<O>, Span<'a>)>
 where
     F: Parser<Span<'a>, O, ParseError<'a>>,
     O: Clone,
 {
-    curly_brackets_delimimited(terminated(
-        separated_list0(comma_separator, parser),
-        // Optional comma at the end
-        opt(comma_separator),
-    ))
+    curly_brackets_delimimited(
+        fatal_on_missing_closing_curly,
+        terminated(
+            separated_list0(comma_separator, parser),
+            // Optional comma at the end
+            opt(comma_separator),
+        ),
+    )
 }
 
 pub fn pipes_comma_separated0<'a, O, F>(
@@ -384,7 +419,7 @@ fn test_round_brackets_comma_separated0() {
 #[test]
 fn test_square_brackets_comma_separated0() {
     assert_eq!(
-        square_brackets_comma_separated0(tag("a"))(Span::new("[a]"))
+        square_brackets_comma_separated0(true, tag("a"))(Span::new("[a]"))
             .unwrap()
             .1
              .1
@@ -394,7 +429,7 @@ fn test_square_brackets_comma_separated0() {
         vec!["a"]
     );
     assert_eq!(
-        square_brackets_comma_separated0(tag("a"))(Span::new("[a,]"))
+        square_brackets_comma_separated0(true, tag("a"))(Span::new("[a,]"))
             .unwrap()
             .1
              .1

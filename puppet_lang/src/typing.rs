@@ -92,6 +92,8 @@ pub struct TypeStructKV<EXTRA> {
 pub struct TypeStruct<EXTRA> {
     pub keys: crate::List<EXTRA, TypeStructKV<EXTRA>>,
     pub extra: EXTRA,
+    pub left_inner_comment: Vec<crate::comment::Comment<EXTRA>>,
+    pub right_inner_comment: Vec<crate::comment::Comment<EXTRA>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]

@@ -21,10 +21,10 @@ use nom::{branch::alt, combinator::map};
 
 pub fn parse_accessor(input: Span) -> IResult<Option<Accessor<Range>>> {
     opt(map(
-        many1(square_brackets_comma_separated1(map(
-            crate::expression::parse_expression,
-            Box::new,
-        ))),
+        many1(square_brackets_comma_separated1(
+            false,
+            map(crate::expression::parse_expression, Box::new),
+        )),
         |list| Accessor {
             extra: Range::from((list.first().unwrap().0, list.last().unwrap().2)),
             list: list.into_iter().map(|(_, elt, _)| elt).collect(),
@@ -157,7 +157,7 @@ pub fn parse_lambda(input: Span) -> IResult<puppet_lang::expression::Lambda<Rang
     map(
         pair(
             crate::common::pipes_delimimited(
-                crate::common::comma_separated_list_with_last_comment(crate::argument::parse),
+                crate::common::comma_separated_list0_with_last_comment(crate::argument::parse),
             ),
             space0_delimimited(ParseError::protect(
                 |_| "'{' expected".to_string(),
@@ -512,7 +512,7 @@ fn parse_selector(input: Span) -> IResult<puppet_lang::expression::Expression<Ra
                 |_| "Opening '{' of selector is expected".to_string(),
                 tag("{"),
             ),
-            space0_delimimited(crate::common::comma_separated_list_with_last_comment(
+            space0_delimimited(crate::common::comma_separated_list0_with_last_comment(
                 parse_selector_case,
             )),
             ParseError::protect(

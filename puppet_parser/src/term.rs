@@ -5,7 +5,7 @@ use crate::common::{
 use crate::expression::{parse_accessor, parse_expression};
 use crate::range::Range;
 use crate::{IResult, ParseError, Span};
-use nom::character::complete::anychar;
+use nom::character::complete::{anychar, multispace0};
 use nom::combinator::{eof, map_res, peek, verify};
 use nom::sequence::{terminated, tuple};
 use nom::{
@@ -123,8 +123,8 @@ pub fn parse_sensitive(input: Span) -> IResult<puppet_lang::expression::TermVari
     map(
         pair(
             tag("Sensitive"),
-            ParseError::protect(
-                |_| "Expected round brackets after Sensitive value".to_string(),
+            preceded(
+                multispace0,
                 round_parens_delimimited(ParseError::protect(
                     |_| "Expected term".to_string(),
                     parse_term,
@@ -173,9 +173,10 @@ fn parse_map(input: Span) -> IResult<puppet_lang::expression::TermVariant<Range>
     );
 
     map(
-        curly_brackets_delimimited(crate::common::comma_separated_list_with_last_comment(
-            kv_parser,
-        )),
+        curly_brackets_delimimited(
+            false,
+            crate::common::comma_separated_list0_with_last_comment(kv_parser),
+        ),
         |(tag_left, value, tag_right)| {
             puppet_lang::expression::TermVariant::Map(puppet_lang::expression::Map {
                 extra: (&tag_left, &tag_right).into(),
@@ -187,9 +188,12 @@ fn parse_map(input: Span) -> IResult<puppet_lang::expression::TermVariant<Range>
 
 fn parse_array(input: Span) -> IResult<puppet_lang::expression::TermVariant<Range>> {
     map(
-        square_brackets_delimimited(crate::common::comma_separated_list_with_last_comment(
-            crate::expression::parse_expression,
-        )),
+        square_brackets_delimimited(
+            false,
+            crate::common::comma_separated_list0_with_last_comment(
+                crate::expression::parse_expression,
+            ),
+        ),
         |(tag_left, value, tag_right)| {
             puppet_lang::expression::TermVariant::Array(puppet_lang::expression::Array {
                 extra: (&tag_left, &tag_right).into(),

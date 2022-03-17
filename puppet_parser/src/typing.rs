@@ -2,6 +2,7 @@ use crate::{common::capture_comment, range::Range, IResult, ParseError, Span};
 use nom::{
     branch::alt,
     bytes::complete::tag,
+    character::complete::multispace0,
     combinator::{map, opt, value},
     multi::separated_list0,
     sequence::{pair, preceded, terminated, tuple},
@@ -47,9 +48,13 @@ where
     map(
         pair(
             tag(keyword),
-            opt(crate::common::square_brackets_delimimited(parse_min_max(
-                parser,
-            ))),
+            preceded(
+                multispace0,
+                opt(crate::common::square_brackets_delimimited(
+                    true,
+                    parse_min_max(parser),
+                )),
+            ),
         ),
         // move |args: Option<(Span<'a>, (Option<O>, Option<O>), Span<'a>)>| {
         move |(kw, args)| match args {
@@ -120,7 +125,10 @@ fn parse_array(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVar
     let (input, keyword) = tag("Array")(input)?;
 
     let parser = map(
-        opt(crate::common::square_brackets_delimimited(parser)),
+        preceded(
+            multispace0,
+            opt(crate::common::square_brackets_delimimited(true, parser)),
+        ),
         move |args| match args {
             None => puppet_lang::typing::TypeArray {
                 inner: None,
@@ -159,7 +167,10 @@ fn parse_hash(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVari
     let (input, keyword) = tag("Hash")(input)?;
 
     let parser = map(
-        opt(crate::common::square_brackets_delimimited(args_parser)),
+        opt(preceded(
+            multispace0,
+            crate::common::square_brackets_delimimited(true, args_parser),
+        )),
         move |args| match args {
             None => puppet_lang::typing::TypeHash {
                 key: None,
@@ -189,14 +200,20 @@ fn parse_optional(input: Span) -> IResult<puppet_lang::typing::TypeSpecification
 
     let parser = alt((
         map(
-            crate::common::square_brackets_delimimited(parse_type_specification),
+            preceded(
+                multispace0,
+                crate::common::square_brackets_delimimited(true, parse_type_specification),
+            ),
             move |(_left_bracket, v, right_bracket)| puppet_lang::typing::TypeOptional {
                 value: puppet_lang::typing::TypeOptionalVariant::TypeSpecification(Box::new(v)),
                 extra: Range::from((keyword, right_bracket)),
             },
         ),
         map(
-            crate::common::square_brackets_delimimited(crate::term::parse_term),
+            preceded(
+                multispace0,
+                crate::common::square_brackets_delimimited(true, crate::term::parse_term),
+            ),
             move |(_left_bracket, v, right_bracket)| puppet_lang::typing::TypeOptional {
                 value: puppet_lang::typing::TypeOptionalVariant::Term(Box::new(v)),
                 extra: Range::from((keyword, right_bracket)),
@@ -215,14 +232,20 @@ fn parse_sensitive(input: Span) -> IResult<puppet_lang::typing::TypeSpecificatio
 
     let parser = alt((
         map(
-            crate::common::square_brackets_delimimited(parse_type_specification),
+            preceded(
+                multispace0,
+                crate::common::square_brackets_delimimited(true, parse_type_specification),
+            ),
             move |(_left_bracket, v, right_bracket)| puppet_lang::typing::TypeSensitive {
                 value: puppet_lang::typing::TypeSensitiveVariant::TypeSpecification(Box::new(v)),
                 extra: Range::from((keyword, right_bracket)),
             },
         ),
         map(
-            crate::common::square_brackets_delimimited(crate::term::parse_term),
+            preceded(
+                multispace0,
+                crate::common::square_brackets_delimimited(true, crate::term::parse_term),
+            ),
             move |(_left_bracket, v, right_bracket)| puppet_lang::typing::TypeSensitive {
                 value: puppet_lang::typing::TypeSensitiveVariant::Term(Box::new(v)),
                 extra: Range::from((keyword, right_bracket)),
@@ -238,10 +261,13 @@ fn parse_sensitive(input: Span) -> IResult<puppet_lang::typing::TypeSpecificatio
 
 fn parse_struct_key(input: Span) -> IResult<puppet_lang::typing::TypeStructKey<Range>> {
     let inner_parse = || {
-        crate::common::square_brackets_delimimited(alt((
-            crate::double_quoted::parse,
-            crate::single_quoted::parse,
-        )))
+        preceded(
+            multispace0,
+            crate::common::square_brackets_delimimited(
+                true,
+                alt((crate::double_quoted::parse, crate::single_quoted::parse)),
+            ),
+        )
     };
 
     alt((
@@ -297,16 +323,37 @@ fn parse_struct(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVa
     let parser = map(
         pair(
             tag("Struct"),
-            crate::common::square_brackets_delimimited(crate::common::curly_brackets_delimimited(
-                crate::common::comma_separated_list_with_last_comment(kv_parser),
-            )),
+            preceded(
+                multispace0,
+                crate::common::square_brackets_delimimited(
+                    true,
+                    tuple((
+                        crate::common::capture_comment,
+                        crate::common::curly_brackets_delimimited(
+                            true,
+                            crate::common::comma_separated_list0_with_last_comment(kv_parser),
+                        ),
+                        crate::common::capture_comment,
+                    )),
+                ),
+            ),
         ),
         |(
             tag_kw,
-            (_left_bracket, (_inner_left_curly, keys, _inner_right_curly), right_bracket),
+            (
+                _left_bracket,
+                (
+                    left_inner_comment,
+                    (_inner_left_curly, keys, _inner_right_curly),
+                    right_inner_comment,
+                ),
+                right_bracket,
+            ),
         )| puppet_lang::typing::TypeStruct {
             keys,
             extra: (tag_kw, right_bracket).into(),
+            left_inner_comment,
+            right_inner_comment,
         },
     );
 
@@ -319,16 +366,22 @@ fn parse_struct(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVa
 fn parse_tuple(input: Span) -> IResult<puppet_lang::typing::TypeSpecificationVariant<Range>> {
     let (input, tag_kw) = tag("Tuple")(input)?;
 
-    let parser = crate::common::square_brackets_delimimited(pair(
-        separated_list0(crate::common::comma_separator, parse_type_specification),
-        opt(preceded(
-            crate::common::comma_separator,
-            terminated(
-                parse_min_max(crate::term::parse_usize_term),
-                opt(crate::common::comma_separator),
+    let parser = preceded(
+        multispace0,
+        crate::common::square_brackets_delimimited(
+            true,
+            pair(
+                separated_list0(crate::common::comma_separator, parse_type_specification),
+                opt(preceded(
+                    crate::common::comma_separator,
+                    terminated(
+                        parse_min_max(crate::term::parse_usize_term),
+                        opt(crate::common::comma_separator),
+                    ),
+                )),
             ),
-        )),
-    ));
+        ),
+    );
 
     let parser = map(
         parser,
@@ -351,10 +404,13 @@ fn parse_external_type(
 ) -> IResult<puppet_lang::typing::TypeSpecificationVariant<Range>> {
     let parser = pair(
         crate::identifier::camelcase_identifier_with_ns,
-        opt(crate::common::square_brackets_comma_separated0(alt((
-            crate::expression::parse_expression,
-            // TODO parse values like Class[some::class::name]
-        )))),
+        opt(crate::common::square_brackets_comma_separated0(
+            false,
+            alt((
+                crate::expression::parse_expression,
+                // TODO parse values like Class[some::class::name]
+            )),
+        )),
     );
 
     map(parser, |(name, arguments)| {
@@ -381,7 +437,10 @@ pub fn parse_type_specification(
     let parse_variant = map(
         pair(
             tag("Variant"),
-            crate::common::square_brackets_comma_separated1(parse_type_specification),
+            preceded(
+                multispace0,
+                crate::common::square_brackets_comma_separated1(true, parse_type_specification),
+            ),
         ),
         |(tag_kw, (_left_bracket, list, right_bracket))| {
             puppet_lang::typing::TypeSpecificationVariant::Variant(puppet_lang::typing::Variant {
@@ -394,7 +453,10 @@ pub fn parse_type_specification(
     let parse_enum = map(
         pair(
             tag("Enum"),
-            crate::common::square_brackets_comma_separated1(crate::term::parse_term),
+            preceded(
+                multispace0,
+                crate::common::square_brackets_comma_separated1(true, crate::term::parse_term),
+            ),
         ),
         |(tag_kw, (_left_bracket, list, right_bracket))| {
             puppet_lang::typing::TypeSpecificationVariant::Enum(puppet_lang::typing::Enum {
@@ -407,7 +469,10 @@ pub fn parse_type_specification(
     let parse_pattern = map(
         pair(
             tag("Pattern"),
-            crate::common::square_brackets_comma_separated1(crate::regex::parse),
+            preceded(
+                multispace0,
+                crate::common::square_brackets_comma_separated1(true, crate::regex::parse),
+            ),
         ),
         |(tag_kw, (_left_bracket, list, right_bracket))| {
             puppet_lang::typing::TypeSpecificationVariant::Pattern(puppet_lang::typing::Pattern {
@@ -420,7 +485,10 @@ pub fn parse_type_specification(
     let parse_regex = map(
         pair(
             tag("Regex"),
-            crate::common::square_brackets_delimimited(crate::regex::parse),
+            preceded(
+                multispace0,
+                crate::common::square_brackets_delimimited(true, crate::regex::parse),
+            ),
         ),
         |(tag_kw, (_left_bracket, data, right_bracket))| {
             puppet_lang::typing::TypeSpecificationVariant::Regex(puppet_lang::typing::Regex {
@@ -647,6 +715,8 @@ fn test_struct() {
             .unwrap()
             .1,
         puppet_lang::typing::TypeSpecificationVariant::Struct(puppet_lang::typing::TypeStruct {
+            left_inner_comment: vec![],
+            right_inner_comment: vec![],
             extra: Range::new(0, 1, 1, 31, 1, 32),
             keys: puppet_lang::List {
                 last_comment: vec![],
