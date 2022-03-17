@@ -1,18 +1,15 @@
 use pretty::{Doc, RcDoc};
 
 pub fn to_doc<EXTRA>(comment: &[puppet_lang::comment::Comment<EXTRA>]) -> RcDoc<()> {
-    if comment
-        .iter()
-        .flat_map(|v| v.value.split('\n'))
-        .next()
-        .is_none()
-    {
+    let comment: Vec<_> = comment.iter().flat_map(|v| v.value.split('\n')).collect();
+
+    if comment.is_empty() {
         RcDoc::nil()
     } else {
         RcDoc::hardline().append(RcDoc::intersperse(
             comment
-                .iter()
-                .map(|line| RcDoc::text("#").append(&line.value)),
+                .into_iter()
+                .map(|line| RcDoc::text("#").append(line)),
             Doc::hardline(),
         ))
     }
