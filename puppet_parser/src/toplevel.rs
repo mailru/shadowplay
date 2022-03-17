@@ -6,8 +6,8 @@ use crate::{
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    combinator::{map, opt},
-    sequence::{pair, preceded, tuple},
+    combinator::{eof, map, opt},
+    sequence::{pair, preceded, terminated, tuple},
 };
 use puppet_lang::toplevel::{FunctionDef, Toplevel, ToplevelVariant};
 
@@ -83,6 +83,12 @@ pub fn parse(input: Span) -> IResult<Toplevel<Range>> {
             data: ToplevelVariant::FunctionDef(v),
         }),
     )))(input)
+}
+
+pub fn parse_file(
+    input: Span,
+) -> IResult<puppet_lang::List<Range, puppet_lang::statement::Statement<Range>>> {
+    terminated(crate::statement::parse_statement_list, eof)(input)
 }
 
 #[test]
