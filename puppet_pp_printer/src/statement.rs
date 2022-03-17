@@ -200,3 +200,25 @@ fn test_idempotence_short() {
         assert_eq!(&generated, case)
     }
 }
+
+#[test]
+fn test_idempotence_long() {
+    let cases = vec![
+        "unless !$a {\n  $a = 1\n  unless (($a + $a + $a)) {\n    $b = $a + 1\n    unless (($a + $a + $a)) {\n      $b = $a + 1\n      unless (($a + $a + $a)) {\n        $b = $a + 1\n      }\n    }\n  }\n}",
+        "Exec\n{\n  command  => test,\n  provider           => shell,\n  # comment\n  #line2\n  #line3\n}",
+    ];
+
+    for case in cases {
+        let (_, v) =
+            puppet_parser::statement::parse_statement_list(puppet_parser::Span::new(case)).unwrap();
+
+        let mut w = Vec::new();
+        statement_block_to_doc(&v, false)
+            .render(80, &mut w)
+            .unwrap();
+        let generated = String::from_utf8(w).unwrap();
+        println!("{} ==>\n------\n{}\n------", case, generated);
+
+        assert_eq!(&generated, case)
+    }
+}
