@@ -1,6 +1,6 @@
-use nom::combinator::opt;
+use nom::combinator::{not, opt, peek};
 use nom::multi::many1;
-use nom::sequence::tuple;
+use nom::sequence::{terminated, tuple};
 ///
 /// https://puppet.com/docs/puppet/6/lang_expressions.html#lang_expressions-order-of-operations
 ///
@@ -544,7 +544,11 @@ pub(crate) fn parse_l1(input: Span) -> IResult<puppet_lang::expression::Expressi
     let (input, left_expr) = parse_selector(input)?;
     let mut parser = fold_many0_with_const_init(
         pair(
-            alt((tag("*"), tag("/"), tag("%"))),
+            alt((
+                tag("*"),
+                terminated(tag("/"), peek(not(tag("*")))),
+                tag("%"),
+            )),
             space0_delimimited(ParseError::protect(
                 |_| "Second argument of operator is expected".to_string(),
                 parse_l1,
@@ -592,7 +596,7 @@ fn parse_l2(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> 
     let (input, left_expr) = space0_delimimited(parse_l1)(input)?;
     let mut parser = fold_many0_with_const_init(
         pair(
-            alt((tag("+"), tag("-"))),
+            alt((tag("+"), terminated(tag("-"), peek(not(tag(">")))))),
             space0_delimimited(ParseError::protect(
                 |_| "Second argument of operator is expected".to_string(),
                 parse_l1,
@@ -673,7 +677,7 @@ fn parse_l4(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> 
                 tag("!="),
                 tag(">="),
                 tag("<="),
-                tag(">"),
+                terminated(tag(">"), peek(not(tag(">")))),
                 tag("<"),
             )),
             space0_delimimited(ParseError::protect(
@@ -790,7 +794,10 @@ fn parse_l5(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> 
 pub fn parse_expression(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> {
     let (input, left_expr) = space0_delimimited(parse_l5)(input)?;
     let mut parser = fold_many0_with_const_init(
-        pair(tag("="), space0_delimimited(parse_l5)),
+        pair(
+            terminated(tag("="), peek(not(alt((tag(">"), tag("~")))))),
+            space0_delimimited(parse_l5),
+        ),
         left_expr,
         |prev, (op, cur)| match *op {
             "=" => puppet_lang::expression::Expression {
