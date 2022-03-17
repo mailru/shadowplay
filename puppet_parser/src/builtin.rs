@@ -7,7 +7,7 @@ use puppet_lang::builtin::BuiltinVariant;
 use puppet_lang::expression::{Expression, ExpressionVariant};
 
 use crate::common::{
-    capture_comment, comma_separator, round_brackets_delimimited, space0_delimimited, spaced_word,
+    capture_comment, comma_separator, round_parens_delimimited, space0_delimimited, spaced_word,
 };
 
 use crate::range::Range;
@@ -39,7 +39,7 @@ where
     move |i| {
         let parse_with_parens = pair(
             map(
-                round_brackets_delimimited(terminated(
+                round_parens_delimimited(terminated(
                     &args_parser,
                     // В конце не обязательная запятая
                     opt(comma_separator),

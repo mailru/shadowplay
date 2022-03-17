@@ -1,5 +1,5 @@
 use crate::common::{
-    capture_comment, curly_brackets_delimimited, round_brackets_delimimited, space0_delimimited,
+    capture_comment, curly_brackets_delimimited, round_parens_delimimited, space0_delimimited,
     square_brackets_delimimited,
 };
 use crate::expression::{parse_accessor, parse_expression};
@@ -125,7 +125,7 @@ pub fn parse_sensitive(input: Span) -> IResult<puppet_lang::expression::TermVari
             tag("Sensitive"),
             ParseError::protect(
                 |_| "Expected round brackets after Sensitive value".to_string(),
-                round_brackets_delimimited(ParseError::protect(
+                round_parens_delimimited(ParseError::protect(
                     |_| "Expected term".to_string(),
                     parse_term,
                 )),

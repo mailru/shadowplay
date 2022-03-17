@@ -18,7 +18,7 @@ type Header = (
 
 pub fn parse_header(input: Span) -> IResult<Header> {
     let arguments_parser = map(
-        opt(crate::common::round_brackets_delimimited(
+        opt(crate::common::round_parens_delimimited(
             crate::common::comma_separated_list_with_last_comment(crate::argument::parse),
         )),
         |v: Option<(Span, puppet_lang::List<Range, Argument<Range>>, Span)>| {

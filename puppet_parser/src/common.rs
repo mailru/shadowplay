@@ -108,81 +108,108 @@ pub fn comma_separator(input: Span) -> IResult<()> {
     spaced0_separator(",")(input)
 }
 
-pub fn round_brackets_delimimited<'a, O, F>(
-    parser: F,
+pub fn round_parens_delimimited<'a, O, F>(
+    mut parser: F,
 ) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, O, Span<'a>)>
 where
-    F: Parser<Span<'a>, O, ParseError<'a>>,
+    F: FnMut(Span<'a>) -> IResult<O>,
     O: Clone,
 {
-    preceded(
-        separator0,
-        tuple((
-            terminated(tag("("), separator0),
-            parser,
-            ParseError::protect(
-                |_| "Closing ')' expected".to_string(),
-                preceded(separator0, tag(")")),
-            ),
-        )),
-    )
+    move |input| {
+        let (input, _) = opt(separator0)(input)?;
+        let (input, left_paren) = tag("(")(input)?;
+        let (input, inner) = parser(input)?;
+        let (input, right_paren) = ParseError::protect(
+            |_| {
+                let left_paren_location = crate::range::Location::from(left_paren);
+                format!(
+                    "Closing ')' expected, which was opened at line {} col {}",
+                    left_paren_location.line(),
+                    left_paren_location.column()
+                )
+            },
+            preceded(separator0, tag(")")),
+        )(input)?;
+        Ok((input, (left_paren, inner, right_paren)))
+    }
 }
 
 pub fn square_brackets_delimimited<'a, O, F>(
-    parser: F,
+    mut parser: F,
 ) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, O, Span<'a>)>
 where
-    F: Parser<Span<'a>, O, ParseError<'a>>,
+    F: FnMut(Span<'a>) -> IResult<O>,
     O: Clone,
 {
-    preceded(
-        separator0,
-        tuple((
-            terminated(tag("["), separator0),
-            parser,
-            ParseError::protect(
-                |_| "Closing ']' expected".to_string(),
-                preceded(separator0, tag("]")),
-            ),
-        )),
-    )
+    move |input| {
+        let (input, _) = opt(separator0)(input)?;
+        let (input, left_bracket) = tag("[")(input)?;
+        let (input, inner) = parser(input)?;
+        let (input, right_bracket) = ParseError::protect(
+            |_| {
+                let left_bracket_location = crate::range::Location::from(left_bracket);
+                format!(
+                    "Closing ']' expected, which was opened at line {} col {}",
+                    left_bracket_location.line(),
+                    left_bracket_location.column()
+                )
+            },
+            preceded(separator0, tag("]")),
+        )(input)?;
+        Ok((input, (left_bracket, inner, right_bracket)))
+    }
 }
 
 pub fn curly_brackets_delimimited<'a, O, F>(
-    parser: F,
+    mut parser: F,
 ) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, O, Span<'a>)>
 where
-    F: Parser<Span<'a>, O, ParseError<'a>>,
+    F: FnMut(Span<'a>) -> IResult<O>,
     O: Clone,
 {
-    preceded(
-        separator0,
-        tuple((
-            terminated(tag("{"), separator0),
-            parser,
+    move |input| {
+        let (input, _) = opt(separator0)(input)?;
+        let (input, left_curly) = tag("{")(input)?;
+        let (input, inner) = parser(input)?;
+        let (input, right_curly) = ParseError::protect(
+            |_| {
+                let left_curly_location = crate::range::Location::from(left_curly);
+                format!(
+                    "Closing '}}' expected, which was opened at line {} col {}",
+                    left_curly_location.line(),
+                    left_curly_location.column()
+                )
+            },
             preceded(separator0, tag("}")),
-        )),
-    )
+        )(input)?;
+        Ok((input, (left_curly, inner, right_curly)))
+    }
 }
 
 pub fn pipes_delimimited<'a, O, F>(
-    parser: F,
+    mut parser: F,
 ) -> impl FnMut(Span<'a>) -> IResult<(Span<'a>, O, Span<'a>)>
 where
-    F: Parser<Span<'a>, O, ParseError<'a>>,
+    F: FnMut(Span<'a>) -> IResult<O>,
     O: Clone,
 {
-    preceded(
-        separator0,
-        tuple((
-            terminated(tag("|"), separator0),
-            parser,
-            ParseError::protect(
-                |_| "Closing '|' expected".to_string(),
-                preceded(separator0, tag("|")),
-            ),
-        )),
-    )
+    move |input| {
+        let (input, _) = opt(separator0)(input)?;
+        let (input, left_pipe) = tag("|")(input)?;
+        let (input, inner) = parser(input)?;
+        let (input, right_pipe) = ParseError::protect(
+            |_| {
+                let left_pipe_location = crate::range::Location::from(left_pipe);
+                format!(
+                    "Closing '|' expected, which was opened at line {} col {}",
+                    left_pipe_location.line(),
+                    left_pipe_location.column()
+                )
+            },
+            preceded(separator0, tag("|")),
+        )(input)?;
+        Ok((input, (left_pipe, inner, right_pipe)))
+    }
 }
 
 pub fn round_brackets_comma_separated0<'a, O, F>(
@@ -192,7 +219,7 @@ where
     F: Parser<Span<'a>, O, ParseError<'a>>,
     O: Clone,
 {
-    round_brackets_delimimited(terminated(
+    round_parens_delimimited(terminated(
         separated_list0(comma_separator, parser),
         // Optional comma at the end
         opt(comma_separator),
@@ -206,7 +233,7 @@ where
     F: Parser<Span<'a>, O, ParseError<'a>>,
     O: Clone,
 {
-    round_brackets_delimimited(terminated(
+    round_parens_delimimited(terminated(
         separated_list1(comma_separator, parser),
         // Optional comma at the end
         opt(comma_separator),
