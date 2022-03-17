@@ -351,7 +351,7 @@ fn parse_external_type(
 ) -> IResult<puppet_lang::typing::TypeSpecificationVariant<Range>> {
     let parser = pair(
         crate::identifier::camelcase_identifier_with_ns,
-        opt(crate::common::square_brackets_comma_separated1(alt((
+        opt(crate::common::square_brackets_comma_separated0(alt((
             crate::expression::parse_expression,
             // TODO parse values like Class[some::class::name]
         )))),
