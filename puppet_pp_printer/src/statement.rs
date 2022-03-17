@@ -181,7 +181,7 @@ fn test_idempotence_short() {
         "if $a {\n  undef\n} elsif !$a {\n  $a\n}",
         "case $a {\n  \n  #comment\n  1: {\n    $b\n  }\n}",
         "case $a {\n  \n  #comment\n  1: {\n    $b\n  }\n  default: {\n    \n  }\n}",
-        "Exec {\n  command => test,\n  provider => shell,\n  # comment\n  #line2\n  #line3\n}",
+        "Exec\n{\n  command  => test,\n  provider           =>\n    shell,\n  # comment\n  #line2\n  #line3\n}",
     ];
 
     for case in cases {
