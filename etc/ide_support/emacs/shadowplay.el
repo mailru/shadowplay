@@ -1,4 +1,4 @@
-;; flycheck-shadowplay.el --- Flycheck binding to shadowplay -*- lexical-binding: t; -*-
+;; shadowplay.el --- Flycheck binding to shadowplay -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2021-2022 Evgenii Lepikhin
 ;; Copyright (C) 2021-2022 VK Company
@@ -49,11 +49,6 @@
 (add-to-list 'flycheck-checkers 'puppet-shadowplay)
 
 (defun shadowplay-format-buffer ()
-  "Formats the selected text with shadowplay pretty printer."
-  (interactive)
-  (call-process-region (point-min) (point-max) "shadowplay" t t nil "pretty-print"))
-
-(defun shadowplay-format-buffer ()
   "Call shadowplay formatter for whole buffer."
   (interactive)
   (shadowplay-format-region (point-min) (point-max)))
@@ -71,6 +66,6 @@
            (append (list beg end shadowplay-program t t nil ) shadowplay-run-list)))
   t)
 
-(provide 'flycheck-shadowplay)
+(provide 'shadowplay)
 
-;;; flycheck-shadowplay.el ends here
+;;; shadowplay.el ends here
