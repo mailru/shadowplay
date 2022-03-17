@@ -47,10 +47,8 @@ impl<EXTRA> Printer for puppet_lang::typing::Pattern<EXTRA> {
             .append(RcDoc::softline())
             .append(
                 RcDoc::intersperse(
-                    self.list
-                        .iter()
-                        .map(|x| x.to_doc().append(RcDoc::text(","))),
-                    RcDoc::softline(),
+                    self.list.iter().map(|x| x.to_doc()),
+                    RcDoc::text(",").append(RcDoc::softline()),
                 )
                 .group(),
             )
@@ -114,11 +112,7 @@ impl<EXTRA> Printer for puppet_lang::typing::TypeArray<EXTRA> {
             RcDoc::text("[")
                 .append(RcDoc::softline())
                 .append(
-                    RcDoc::intersperse(
-                        args.into_iter().map(|x| x.append(RcDoc::text(","))),
-                        RcDoc::softline(),
-                    )
-                    .group(),
+                    RcDoc::intersperse(args, RcDoc::text(",").append(RcDoc::softline())).group(),
                 )
                 .nest(2)
                 .append(RcDoc::softline())
@@ -137,10 +131,8 @@ impl<EXTRA> Printer for puppet_lang::typing::Variant<EXTRA> {
             .append(RcDoc::softline())
             .append(
                 RcDoc::intersperse(
-                    self.list
-                        .iter()
-                        .map(|x| x.to_doc().append(RcDoc::text(","))),
-                    RcDoc::softline(),
+                    self.list.iter().map(|x| x.to_doc()),
+                    RcDoc::text(",").append(RcDoc::softline()),
                 )
                 .group(),
             )
@@ -158,10 +150,8 @@ impl<EXTRA> Printer for puppet_lang::typing::Enum<EXTRA> {
             .append(RcDoc::softline())
             .append(
                 RcDoc::intersperse(
-                    self.list
-                        .iter()
-                        .map(|x| crate::term::to_doc(x, false).append(RcDoc::text(","))),
-                    RcDoc::softline(),
+                    self.list.iter().map(|x| crate::term::to_doc(x, false)),
+                    RcDoc::text(",").append(RcDoc::softline()),
                 )
                 .group(),
             )
@@ -179,24 +169,13 @@ impl<EXTRA> Printer for puppet_lang::typing::ExternalType<EXTRA> {
         } else {
             RcDoc::text("[")
                 .append(RcDoc::softline())
-                .append(
-                    RcDoc::intersperse(
-                        self.arguments
-                            .iter()
-                            .map(|x| crate::expression::to_doc(x, false).append(RcDoc::text(","))),
-                        RcDoc::softline(),
-                    )
-                    .group()
-                    .flat_alt(
-                        RcDoc::intersperse(
-                            self.arguments
-                                .iter()
-                                .map(|x| crate::expression::to_doc(x, false)),
-                            RcDoc::text(",").append(RcDoc::softline()),
-                        )
-                        .group(),
-                    ),
-                )
+                .append(RcDoc::intersperse(
+                    self.arguments
+                        .iter()
+                        .map(|x| crate::expression::to_doc(x, false)),
+                    RcDoc::text(",").append(RcDoc::softline()),
+                ))
+                .group()
                 .nest(2)
                 .append(RcDoc::softline())
                 .append(RcDoc::text("]"))
@@ -232,11 +211,7 @@ impl<EXTRA> Printer for puppet_lang::typing::TypeHash<EXTRA> {
             RcDoc::text("[")
                 .append(RcDoc::softline())
                 .append(
-                    RcDoc::intersperse(
-                        args.into_iter().map(|x| x.append(RcDoc::text(","))),
-                        RcDoc::softline(),
-                    )
-                    .group(),
+                    RcDoc::intersperse(args, RcDoc::text(",").append(RcDoc::softline())).group(),
                 )
                 .nest(2)
                 .append(RcDoc::softline())
@@ -289,11 +264,8 @@ impl<EXTRA> Printer for puppet_lang::typing::TypeStruct<EXTRA> {
             .append(RcDoc::hardline())
             .append(
                 RcDoc::intersperse(
-                    self.keys
-                        .value
-                        .iter()
-                        .map(|x| x.to_doc().append(RcDoc::text(","))),
-                    RcDoc::hardline(),
+                    self.keys.value.iter().map(|x| x.to_doc()),
+                    RcDoc::text(",").append(RcDoc::hardline()),
                 )
                 .group()
                 .append(crate::comment::to_doc(&self.keys.last_comment)),
@@ -335,13 +307,7 @@ impl<EXTRA> Printer for puppet_lang::typing::TypeTuple<EXTRA> {
 
         let args = RcDoc::text("[")
             .append(RcDoc::softline())
-            .append(
-                RcDoc::intersperse(
-                    args.into_iter().map(|x| x.append(RcDoc::text(","))),
-                    RcDoc::softline(),
-                )
-                .group(),
-            )
+            .append(RcDoc::intersperse(args, RcDoc::text(",").append(RcDoc::softline())).group())
             .nest(2)
             .append(RcDoc::softline())
             .append(RcDoc::text("]"))
@@ -398,24 +364,24 @@ fn test_idempotence_short() {
         "Float[\n  default,\n  2]",
         "Integer",
         "String[1,\n  2]",
-        "Pattern[\n  /a/, /b/,\n]",
+        "Pattern[\n  /a/, /b/\n]",
         "Regex[ // ]",
         "Regex[\n  /aaaaaaaaaaa/\n]",
         "Optional[\n  #comment\n  Regex[\n    /aaaaaaaaaaa/\n  ]]",
-        "Array[\n  Integer,\n]",
-        "Array[\n  Integer,\n  2, ]",
-        "Array[\n  Integer,\n  2, 4, ]",
-        "Variant[\n  String[1,\n    2],\n  Integer,\n]",
-        "Enum[ 1,\n  aaaaaa,\n  3, ]",
+        "Array[\n  Integer ]",
+        "Array[\n  Integer,\n  2 ]",
+        "Array[\n  Integer,\n  2, 4 ]",
+        "Variant[\n  String[1,\n    2],\n  Integer ]",
+        "Enum[ 1,\n  aaaaaa, 3\n]",
         "Some::Type",
-        "Some::Type[\n  1, ]",
-        "Hash[\n  String,\n  Integer,\n  default,\n  1, ]",
-        "Struct[{\n  a =>\n  Integer,\n}]",
-        "Struct[{\n  Optional[\n    a] =>\n  Integer,\n}]",
-        "Struct[{\n  NotUndef[\n    a] =>\n  Integer,\n}]",
+        "Some::Type[\n  1 ]",
+        "Hash[\n  String,\n  Integer,\n  default,\n  1 ]",
+        "Struct[{\n  a =>\n  Integer\n}]",
+        "Struct[{\n  Optional[\n    a] =>\n  Integer\n}]",
+        "Struct[{\n  NotUndef[\n    a] =>\n  Integer\n}]",
         "Sensitive[\n  1 ]",
         "Sensitive[\n  String ]",
-        "Tuple[\n  String,\n  Integer,\n  default,\n  100, ]",
+        "Tuple[\n  String,\n  Integer,\n  default,\n  100 ]",
     ];
 
     for case in cases {
