@@ -44,18 +44,16 @@ impl<EXTRA> Printer for puppet_lang::expression::FunctionCall<EXTRA> {
         } else {
             RcDoc::text("(")
                 .append(RcDoc::softline_())
-                .append(
-                    RcDoc::intersperse(
-                        self.args
-                            .iter()
-                            .map(|x| crate::expression::to_doc(x, false).append(RcDoc::text(","))),
-                        Doc::line(),
-                    )
-                    .group()
-                    // .append(v.args.last_comment.to_doc())
-                    .nest(2),
-                )
+                .append(RcDoc::intersperse(
+                    self.args
+                        .iter()
+                        .map(|x| crate::expression::to_doc(x, false)),
+                    RcDoc::text(",").append(Doc::line()),
+                ))
+                // .append(self.args.last_comment.to_doc())
+                .nest(2)
                 .append(RcDoc::softline_())
+                .group()
                 .append(RcDoc::text(")"))
         };
 
@@ -281,7 +279,7 @@ fn test_idempotence_short() {
         "\"hello ${::universe}\"",
         "\"hello ${universe[\n    0\n  ]}\"",
         "\"hello ${funcall()} suffix\"",
-        "\"hello ${funcall(\n1, 2,\n)} suffix\"",
+        "\"hello ${funcall(\n  1,\n  2\n)} suffix\"",
         "123.45 * 1\n- 2",
         "123[1][\n    2, 3\n  ][4][5]",
         "[\n  (123.45),\n  146,\n]",
@@ -294,12 +292,12 @@ fn test_idempotence_short() {
         "$z\n  = 11111111\n    + 2222\n    + 3333",
         "1 + 1 + 1\n+ 1 + 1 + 1\n+ 1 + 1 + 1\n+ 1 + 1 + 1\n+ 1",
         "(1 or 2)\nand (3 + 4\n  * 5)\nor (true\n  and (!true\n    and false))",
-        "$v.call1()\n.call2(1,\n  2,)\n.call3withlongname()",
+        "$v.call1()\n.call2(1,\n  2)\n.call3withlongname()",
+        "fn(1, 2)\n|$a, $b| {\n  1\n}",
         "$v ? {\n  1 => a,\n  \n  #comment\n  2 => b,\n  default\n  => c,\n}",
         "undef",
         "require\na::b, c",
         "create_resources\n(1, 2)",
-        "fn(1, 2,) |\n  $a, $b| {\n  1\n}",
         "realize(1,\n  2) |$a,\n  $b| {\n  1\n}",
     ];
 

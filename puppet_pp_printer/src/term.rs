@@ -52,35 +52,64 @@ pub fn mapkv_to_doc<EXTRA>(
 
 impl<EXTRA> Printer for puppet_lang::expression::Map<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
+        if self.value.value.is_empty() && self.value.last_comment.is_empty() {
+            return RcDoc::text("{}");
+        }
         if self.value.value.len() < 2 && self.value.last_comment.is_empty() {
             let inner = RcDoc::intersperse(
                 self.value.value.iter().map(|elt| mapkv_to_doc(elt, false)),
                 RcDoc::text(",").append(RcDoc::softline()),
             )
             .append(crate::comment::to_doc(&self.value.last_comment));
-            RcDoc::text("{")
+            return RcDoc::text("{")
                 .append(RcDoc::softline())
                 .append(inner)
                 .nest(2)
                 .append(RcDoc::softline())
-                .append(RcDoc::text("}"))
-        } else {
-            let inner = RcDoc::intersperse(
-                self.value
-                    .value
-                    .iter()
-                    .map(|elt| mapkv_to_doc(elt, true).append(RcDoc::text(","))),
-                RcDoc::hardline(),
-            )
-            .append(crate::comment::to_doc(&self.value.last_comment));
-
-            RcDoc::text("{")
-                .append(RcDoc::hardline())
-                .append(inner)
-                .nest(2)
-                .append(RcDoc::hardline())
-                .append(RcDoc::text("}"))
+                .append(RcDoc::text("}"));
         }
+
+        let inner = RcDoc::intersperse(
+            self.value
+                .value
+                .iter()
+                .map(|elt| mapkv_to_doc(elt, true).append(RcDoc::text(","))),
+            RcDoc::hardline(),
+        )
+        .append(crate::comment::to_doc(&self.value.last_comment));
+
+        RcDoc::text("{")
+            .append(RcDoc::hardline())
+            .append(inner)
+            .nest(2)
+            .append(RcDoc::hardline())
+            .append(RcDoc::text("}"))
+    }
+}
+
+impl<EXTRA> Printer for puppet_lang::expression::Array<EXTRA> {
+    fn to_doc(&self) -> RcDoc<()> {
+        if self.value.value.is_empty() && self.value.last_comment.is_empty() {
+            return RcDoc::text("[]");
+        }
+
+        RcDoc::text("[")
+            .append(RcDoc::line().nest(2))
+            .append(
+                RcDoc::intersperse(
+                    self.value
+                        .value
+                        .iter()
+                        .map(|x| crate::expression::to_doc(x, false).append(RcDoc::text(","))),
+                    Doc::line(),
+                )
+                .group()
+                .append(crate::comment::to_doc(&self.value.last_comment))
+                .nest(2),
+            )
+            .append(RcDoc::line())
+            .append(RcDoc::text("]"))
+            .group()
     }
 }
 
@@ -96,23 +125,7 @@ pub fn to_doc<EXTRA>(
             .append(crate::expression::to_doc(&v.value, false).nest(2))
             .append(RcDoc::text(")"))
             .group(),
-        puppet_lang::expression::TermVariant::Array(v) => RcDoc::text("[")
-            .append(RcDoc::line().nest(2))
-            .append(
-                RcDoc::intersperse(
-                    v.value
-                        .value
-                        .iter()
-                        .map(|x| crate::expression::to_doc(x, false).append(RcDoc::text(","))),
-                    Doc::line(),
-                )
-                .group()
-                .append(crate::comment::to_doc(&v.value.last_comment))
-                .nest(2),
-            )
-            .append(RcDoc::line())
-            .append(RcDoc::text("]"))
-            .group(),
+        puppet_lang::expression::TermVariant::Array(v) => v.to_doc(),
         puppet_lang::expression::TermVariant::Identifier(v) => v.to_doc(),
         puppet_lang::expression::TermVariant::Map(v) => v.to_doc(),
         puppet_lang::expression::TermVariant::Variable(v) => {

@@ -68,9 +68,9 @@ pub fn list_to_piped_doc<EXTRA>(
     .append(crate::comment::to_doc(&elt.last_comment));
 
     RcDoc::text("|")
-        .append(RcDoc::softline_())
         .append(list)
-        .nest(2)
         .append(RcDoc::softline_())
         .append(RcDoc::text("|"))
+        .group()
+        .nest(2)
 }
