@@ -145,7 +145,7 @@ fn builtin_many1_to_doc<'a, EXTRA>(
             .append(args_list)
             .append(RcDoc::softline_())
             .append(RcDoc::text(")")),
-        (false, false) => RcDoc::softline_()
+        (false, false) => RcDoc::softline()
             .append(args_list)
             .append(RcDoc::softline_()),
     };
