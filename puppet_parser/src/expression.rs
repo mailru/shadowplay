@@ -141,12 +141,33 @@ pub fn parse_case_variant(input: Span) -> IResult<CaseVariant<Range>> {
     })(input)
 }
 
-fn parse_term_expr(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> {
+pub fn parse_term_expr(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> {
     map(
         tuple((capture_comment, crate::term::parse_term, parse_accessor)),
         |(comment, term, accessor)| puppet_lang::expression::Expression {
             extra: Range::from((&term.extra, &accessor, &term.extra)),
             value: puppet_lang::expression::ExpressionVariant::Term(term),
+            comment,
+            accessor,
+        },
+    )(input)
+}
+
+pub fn parse_string_expr(input: Span) -> IResult<puppet_lang::expression::Expression<Range>> {
+    map(
+        tuple((
+            capture_comment,
+            crate::term::parse_string_variant,
+            parse_accessor,
+        )),
+        |(comment, term, accessor)| puppet_lang::expression::Expression {
+            extra: Range::from((&term.extra, &accessor, &term.extra)),
+            value: puppet_lang::expression::ExpressionVariant::Term(
+                puppet_lang::expression::Term {
+                    extra: Range::from((&term.extra, &accessor, &term.extra)),
+                    value: puppet_lang::expression::TermVariant::String(term),
+                },
+            ),
             comment,
             accessor,
         },

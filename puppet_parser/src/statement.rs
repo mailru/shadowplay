@@ -64,7 +64,11 @@ fn parse_resource(input: Span) -> IResult<puppet_lang::statement::Resource<Range
 
     let mut parser = map(
         tuple((
-            space0_delimimited(crate::expression::parse_expression),
+            space0_delimimited(alt((
+                // string is the first priority here to protect from parsing 'String' to type String
+                crate::expression::parse_string_expr,
+                crate::expression::parse_expression,
+            ))),
             preceded(tag(":"), space0_delimimited(parse_attributes)),
         )),
         |(title, attributes)| {
