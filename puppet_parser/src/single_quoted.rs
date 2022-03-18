@@ -66,13 +66,10 @@ fn parse_fragment(input: Span) -> IResult<StringFragment<Range>> {
 }
 
 pub fn bareword(input: Span) -> IResult<Literal<Range>> {
-    let parser = verify(
-        recognize(separated_list1(
-            tag("-"),
-            many1(alt((alphanumeric1, tag("_")))),
-        )),
-        |s: &Span| s.chars().next().unwrap().is_ascii_lowercase(),
-    );
+    let parser = recognize(separated_list1(
+        tag("-"),
+        many1(alt((alphanumeric1, tag("_")))),
+    ));
 
     map(parser, |data: Span| Literal {
         extra: Range::from((data, data)),
