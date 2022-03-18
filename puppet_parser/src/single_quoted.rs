@@ -163,5 +163,8 @@ fn test() {
         }
     );
     assert!(parse(Span::new("-")).is_err());
-    assert!(parse(Span::new("BEDA")).is_err());
+
+    // Puppet bug. According to specification, it CANNOT be a bare-word
+    // https://puppet.com/docs/puppet/7/lang_data_string.html#lang_data_string_bare_words
+    assert!(parse(Span::new("BEDA")).is_ok());
 }
