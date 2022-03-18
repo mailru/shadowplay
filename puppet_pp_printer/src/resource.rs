@@ -109,6 +109,33 @@ impl<EXTRA> Printer for puppet_lang::statement::ResourceSet<EXTRA> {
             RcDoc::nil()
         };
 
+        // just one-liner
+        if self.list.value.len() == 1
+            && self.list.value.first().unwrap().attributes.value.is_empty()
+            && self
+                .list
+                .value
+                .first()
+                .unwrap()
+                .attributes
+                .last_comment
+                .is_empty()
+        {
+            return crate::comment::comment_or(&self.comment, RcDoc::hardline(), RcDoc::nil())
+                .append(is_virtual)
+                .append(self.name.to_doc())
+                .append(RcDoc::softline())
+                .append(RcDoc::text("{"))
+                .append(RcDoc::softline())
+                .append(RcDoc::intersperse(
+                    self.list.value.iter().map(|elt| elt.to_doc()),
+                    RcDoc::nil(),
+                ))
+                .nest(2)
+                .append(RcDoc::softline())
+                .append(RcDoc::text("}"));
+        }
+
         let inner = RcDoc::intersperse(
             self.list.value.iter().map(|elt| elt.to_doc()),
             RcDoc::text(";").append(RcDoc::hardline()),
