@@ -195,6 +195,8 @@ impl<'a> From<&std::path::Path> for Range {
 pub struct Error {
     pub error_type: Type,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_subtype: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
@@ -209,6 +211,7 @@ impl<'a> From<(&std::path::Path, &puppet_parser::ParseError<'a>)> for Error {
             message: parse_error.message().clone(),
             url: parse_error.url().clone(),
             range: Range::from((path, parse_error.span())),
+            error_subtype: None,
         }
     }
 }
@@ -221,6 +224,7 @@ impl From<(&std::path::Path, &puppet_pp_lint::lint::LintError)> for Error {
             message: Some(lint_error.message.clone()),
             url: lint_error.url.clone(),
             range: Range::from((path, &lint_error.location)),
+            error_subtype: Some(lint_error.linter.name().to_string()),
         }
     }
 }
@@ -233,6 +237,7 @@ impl From<(&std::path::Path, &located_yaml::error::Error)> for Error {
             message: Some(yaml_error.to_string()),
             url: None,
             range: Range::from((path, &yaml_error.mark())),
+            error_subtype: None,
         }
     }
 }
@@ -245,6 +250,7 @@ impl From<(&std::path::Path, Type, &str, &located_yaml::Marker)> for Error {
             message: Some(message.to_string()),
             url: None,
             range: Range::from((path, marker)),
+            error_subtype: None,
         }
     }
 }
@@ -257,6 +263,7 @@ impl From<(&std::path::Path, &yaml_rust::scanner::ScanError)> for Error {
             message: Some(yaml_error.to_string()),
             url: None,
             range: Range::from((path, yaml_error.marker())),
+            error_subtype: Some("scan_error".to_string()),
         }
     }
 }
@@ -268,6 +275,7 @@ impl Error {
             message: Some(message.to_string()),
             url: None,
             range: Range::from(path),
+            error_subtype: None,
         }
     }
 
