@@ -400,3 +400,26 @@ impl EarlyLintPass for NegationOfEquation {
         Vec::new()
     }
 }
+
+#[derive(Clone)]
+pub struct ConstantExpressionInCondition;
+
+impl LintPass for ConstantExpressionInCondition {
+    fn name(&self) -> &str {
+        "constant_expression_in_condition"
+    }
+}
+
+impl EarlyLintPass for ConstantExpressionInCondition {
+    fn check_condition_expression(&self, elt: &Expression<Range>) -> Vec<super::lint::LintError> {
+        if crate::tool::expression::is_constant(elt) {
+            return vec![LintError::new(
+                Box::new(self.clone()),
+                "Constant expression in condition",
+                &elt.extra,
+            )];
+        }
+
+        Vec::new()
+    }
+}

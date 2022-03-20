@@ -102,3 +102,95 @@ pub fn priority<EXTRA>(expr: &puppet_lang::expression::Expression<EXTRA>) -> u32
         | puppet_lang::expression::ExpressionVariant::Term(_) => 4,
     }
 }
+
+pub fn is_constant<EXTRA>(expr: &puppet_lang::expression::Expression<EXTRA>) -> bool {
+    match &expr.value {
+        puppet_lang::expression::ExpressionVariant::Assign((left, right)) => {
+            is_constant(left) && is_constant(right)
+        }
+        puppet_lang::expression::ExpressionVariant::And((left, right)) => {
+            is_constant(left) && is_constant(right)
+        }
+        puppet_lang::expression::ExpressionVariant::Or((left, right)) => {
+            is_constant(left) && is_constant(right)
+        }
+        puppet_lang::expression::ExpressionVariant::Equal((left, right)) => {
+            is_constant(left) && is_constant(right)
+        }
+        puppet_lang::expression::ExpressionVariant::NotEqual((left, right)) => {
+            is_constant(left) && is_constant(right)
+        }
+        puppet_lang::expression::ExpressionVariant::Gt((left, right)) => {
+            is_constant(left) && is_constant(right)
+        }
+        puppet_lang::expression::ExpressionVariant::GtEq((left, right)) => {
+            is_constant(left) && is_constant(right)
+        }
+        puppet_lang::expression::ExpressionVariant::Lt((left, right)) => {
+            is_constant(left) && is_constant(right)
+        }
+        puppet_lang::expression::ExpressionVariant::LtEq((left, right)) => {
+            is_constant(left) && is_constant(right)
+        }
+        puppet_lang::expression::ExpressionVariant::ShiftLeft((left, right)) => {
+            is_constant(left) && is_constant(right)
+        }
+        puppet_lang::expression::ExpressionVariant::ShiftRight((left, right)) => {
+            is_constant(left) && is_constant(right)
+        }
+        puppet_lang::expression::ExpressionVariant::Plus((left, right)) => {
+            is_constant(left) && is_constant(right)
+        }
+        puppet_lang::expression::ExpressionVariant::Minus((left, right)) => {
+            is_constant(left) && is_constant(right)
+        }
+        puppet_lang::expression::ExpressionVariant::Multiply((left, right)) => {
+            is_constant(left) && is_constant(right)
+        }
+        puppet_lang::expression::ExpressionVariant::Divide((left, right)) => {
+            is_constant(left) && is_constant(right)
+        }
+        puppet_lang::expression::ExpressionVariant::Modulo((left, right)) => {
+            is_constant(left) && is_constant(right)
+        }
+        puppet_lang::expression::ExpressionVariant::ChainCall(_) => {
+            // TODO
+            false
+        }
+        puppet_lang::expression::ExpressionVariant::MatchRegex((left, _right)) => is_constant(left),
+        puppet_lang::expression::ExpressionVariant::NotMatchRegex((left, _right)) => {
+            is_constant(left)
+        }
+        puppet_lang::expression::ExpressionVariant::MatchType((left, _right)) => is_constant(left),
+        puppet_lang::expression::ExpressionVariant::NotMatchType((left, _right)) => {
+            is_constant(left)
+        }
+        puppet_lang::expression::ExpressionVariant::In((left, right)) => {
+            is_constant(left) && is_constant(right)
+        }
+        puppet_lang::expression::ExpressionVariant::Not(inner) => is_constant(inner),
+        puppet_lang::expression::ExpressionVariant::Selector(v) => {
+            if !is_constant(&v.condition) {
+                return false;
+            }
+            for case in &v.cases.value {
+                if let puppet_lang::expression::CaseVariant::Term(term) = &case.case {
+                    if !crate::tool::term::is_constant(term) {
+                        return false;
+                    }
+                }
+            }
+            true
+        }
+        puppet_lang::expression::ExpressionVariant::FunctionCall(_) => {
+            // TODO
+            false
+        }
+        puppet_lang::expression::ExpressionVariant::BuiltinFunction(v) => {
+            crate::tool::builtin::is_constant(v)
+        }
+        puppet_lang::expression::ExpressionVariant::Term(inner) => {
+            crate::tool::term::is_constant(inner)
+        }
+    }
+}

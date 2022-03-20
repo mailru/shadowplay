@@ -126,6 +126,12 @@ pub trait EarlyLintPass: LintPass {
     ) -> Vec<LintError> {
         Vec::new()
     }
+    fn check_condition_expression(
+        &self,
+        _: &puppet_lang::expression::Expression<Range>,
+    ) -> Vec<LintError> {
+        Vec::new()
+    }
 }
 
 #[derive(Default)]
@@ -162,6 +168,9 @@ impl Storage {
         ));
         v.register_early_pass(Box::new(super::lint_expression::DoubleNegation));
         v.register_early_pass(Box::new(super::lint_expression::NegationOfEquation));
+        v.register_early_pass(Box::new(
+            super::lint_expression::ConstantExpressionInCondition,
+        ));
         v.register_early_pass(Box::new(super::lint_string_expr::UselessDoubleQuotes));
         v.register_early_pass(Box::new(super::lint_term::LowerCaseVariable));
         v.register_early_pass(Box::new(super::lint_resource_set::UpperCaseName));
@@ -487,6 +496,7 @@ impl AstLinter {
             }
             ExpressionVariant::Selector(elt) => {
                 errors.append(&mut self.check_expression(storage, false, &elt.condition));
+                errors.append(&mut self.check_condition_expression(storage, &elt.condition));
                 for case in &elt.cases.value {
                     match &case.case {
                         puppet_lang::expression::CaseVariant::Term(term) => {
@@ -534,12 +544,26 @@ impl AstLinter {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
             errors.append(&mut lint.check_unless(elt));
+            errors.append(&mut lint.check_condition_expression(&elt.condition));
         }
 
         errors.append(&mut self.check_expression(storage, true, &elt.condition));
         errors.append(&mut self.check_statement_set(storage, elt.body.value.as_ref()));
         for statement in &elt.body.value {
             errors.append(&mut self.check_statement(storage, statement));
+        }
+
+        errors
+    }
+
+    pub fn check_condition_expression(
+        &self,
+        storage: &Storage,
+        elt: &puppet_lang::expression::Expression<Range>,
+    ) -> Vec<LintError> {
+        let mut errors = Vec::new();
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_condition_expression(elt));
         }
 
         errors
@@ -554,6 +578,7 @@ impl AstLinter {
         for lint in storage.early_pass() {
             errors.append(&mut lint.check_if_else(elt));
         }
+        errors.append(&mut self.check_condition_expression(storage, &elt.condition.condition));
 
         errors.append(&mut self.check_expression(storage, true, &elt.condition.condition));
         errors.append(&mut self.check_statement_set(storage, elt.condition.body.value.as_ref()));
@@ -563,6 +588,7 @@ impl AstLinter {
 
         for elsif_block in &elt.elsif_list {
             errors.append(&mut self.check_expression(storage, true, &elsif_block.condition));
+            errors.append(&mut self.check_condition_expression(storage, &elsif_block.condition));
             errors.append(&mut self.check_statement_set(storage, elsif_block.body.value.as_ref()));
             for statement in &elsif_block.body.value {
                 errors.append(&mut self.check_statement(storage, statement));
@@ -688,7 +714,7 @@ impl AstLinter {
         for lint in storage.early_pass() {
             errors.append(&mut lint.check_case_statement(elt));
         }
-
+        errors.append(&mut self.check_condition_expression(storage, &elt.condition));
         errors.append(&mut self.check_expression(storage, true, &elt.condition));
 
         for case in &elt.elements.value {
