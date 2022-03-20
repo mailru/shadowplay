@@ -350,6 +350,128 @@ impl EarlyLintPass for UnconditionalExec {
 }
 
 #[derive(Clone)]
+pub struct ExecAttributes;
+
+impl LintPass for ExecAttributes {
+    fn name(&self) -> &str {
+        "exec_attributes"
+    }
+}
+
+impl EarlyLintPass for ExecAttributes {
+    fn check_resource_set(
+        &self,
+        elt: &puppet_lang::statement::ResourceSet<Range>,
+    ) -> Vec<LintError> {
+        if elt.name.name.len() != 1 || elt.name.name.first().unwrap() != "exec" {
+            return vec![];
+        }
+
+        let mut errors = Vec::new();
+
+        for resource in &elt.list.value {
+            let mut command = None;
+            let mut provider = None;
+            let mut path = None;
+            for attribute in &resource.attributes.value {
+                if let puppet_lang::statement::ResourceAttributeVariant::Name(attribute) =
+                    &attribute.value
+                {
+                    let name = puppet_ast_tool::string::raw_content(&attribute.0);
+                    match name.as_str() {
+                        "command" => command = Some(&attribute.1),
+                        "provider" => provider = Some(&attribute.1),
+                        "path" => path = Some(&attribute.1),
+                        "creates" | "cwd" | "environment" | "group" | "logoutput" | "onlyif"
+                        | "refresh" | "refreshonly" | "returns" | "timeout" | "tries"
+                        | "try_sleep" | "umask" | "unless" | "user" => (),
+                        name => {
+                            match crate::tool::resource_set::is_valid_metaparameter_value(
+                                name,
+                                &attribute.1,
+                            ) {
+                                Some(false) => errors.push(LintError::new(
+                                    Box::new(self.clone()),
+                                    &format!("Invalid metaparameter {:?} value", name),
+                                    &attribute.0.extra,
+                                )),
+                                Some(true) => (),
+                                None => errors.push(LintError::new(
+                                    Box::new(self.clone()),
+                                    &format!("Parameter {:?} is not applicable to exec {{}}", name),
+                                    &attribute.0.extra,
+                                )),
+                            }
+                        }
+                    }
+                }
+            }
+            if command.is_none() {
+                errors.push(LintError::new(
+                    Box::new(self.clone()),
+                    "exec {} with implicit 'command' attribute which value defaults to resource name",
+                    &resource.extra,
+                ));
+                command = Some(&resource.title)
+            }
+
+            #[derive(PartialEq)]
+            enum Provider {
+                Posix,
+                Shell,
+                Windows,
+                Unknown,
+            }
+
+            let provider = match &provider {
+                Some(expr) => {
+                    let provider_str = puppet_ast_tool::expression::string_constant_value(expr);
+                    match provider_str {
+                        None => Provider::Unknown,
+                        Some(provider_str) => match provider_str.as_str() {
+                            "posix" => Provider::Posix,
+                            "shell" => Provider::Shell,
+                            "windows" => Provider::Windows,
+                            other => {
+                                errors.push(LintError::new(
+                                    Box::new(self.clone()),
+                                    &format!("Unexpected provider value {:?}", other),
+                                    &expr.extra,
+                                ));
+                                Provider::Unknown
+                            }
+                        },
+                    }
+                }
+                None => {
+                    // TODO under Windows default is Windows
+                    Provider::Posix
+                }
+            };
+
+            let command_starts_with_path =
+                match command.and_then(puppet_ast_tool::expression::string_constant_value) {
+                    None => {
+                        // TODO detect possible set of values with static analyzer
+                        true
+                    }
+                    Some(v) => v.starts_with('/'),
+                };
+
+            if !command_starts_with_path && provider == Provider::Posix && path.is_none() {
+                errors.push(LintError::new(
+                    Box::new(self.clone()),
+                    "'path' is not set, 'provider' is not 'shell', thus 'command' attribute of exec {} must start with absolute path",
+                    &resource.extra,
+                ));
+            }
+        }
+
+        errors
+    }
+}
+
+#[derive(Clone)]
 pub struct PerExpressionResourceDefaults;
 
 impl LintPass for PerExpressionResourceDefaults {
