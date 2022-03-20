@@ -172,6 +172,7 @@ impl Storage {
             super::lint_expression::ConstantExpressionInCondition,
         ));
         v.register_early_pass(Box::new(super::lint_string_expr::UselessDoubleQuotes));
+        v.register_early_pass(Box::new(super::lint_string_expr::ExpressionInSingleQuotes));
         v.register_early_pass(Box::new(super::lint_term::LowerCaseVariable));
         v.register_early_pass(Box::new(super::lint_resource_set::UpperCaseName));
         v.register_early_pass(Box::new(super::lint_resource_set::UniqueAttributeName));

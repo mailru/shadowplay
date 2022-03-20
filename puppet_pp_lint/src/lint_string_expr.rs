@@ -116,3 +116,52 @@ impl EarlyLintPass for UselessDoubleQuotes {
         vec![]
     }
 }
+
+#[derive(Clone)]
+pub struct ExpressionInSingleQuotes;
+
+impl LintPass for ExpressionInSingleQuotes {
+    fn name(&self) -> &str {
+        "expression_in_single_quotes"
+    }
+}
+
+impl EarlyLintPass for ExpressionInSingleQuotes {
+    fn check_string_expression(
+        &self,
+        elt: &puppet_lang::string::StringExpr<Range>,
+    ) -> Vec<super::lint::LintError> {
+        let v = match &elt.data {
+            puppet_lang::string::StringVariant::SingleQuoted(v) => v,
+            puppet_lang::string::StringVariant::DoubleQuoted(_) => return vec![],
+        };
+
+        for fragment in v {
+            match fragment {
+                puppet_lang::string::StringFragment::Literal(elt) => {
+                    if !elt.data.contains('$') {
+                        continue;
+                    }
+
+                    for v in elt.data.split('$') {
+                        match v.chars().next() {
+                            None => (),
+                            Some(c) => {
+                                if c.is_alphanumeric() || c == '_' {
+                                    return vec![LintError::new(
+                                        Box::new(self.clone()),
+                                        "Interpolated expression in single quotes. Either escape dollar sign with backslash or use double quotes",
+                                        &elt.extra,
+                                    )];
+                                }
+                            }
+                        }
+                    }
+                }
+                puppet_lang::string::StringFragment::EscapedUTF(_) => (),
+                puppet_lang::string::StringFragment::Escaped(_) => (),
+            }
+        }
+        vec![]
+    }
+}
