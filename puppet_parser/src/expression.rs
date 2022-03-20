@@ -1085,6 +1085,7 @@ fn test_in_with_parens() {
                                                             is_toplevel: false,
                                                             extra: Range::new(7,1,8, 7, 1, 8)
                                                         },
+                                                    is_local_scope: false,
                                                     extra: Range::new(6,1,7, 7, 1, 8)
                                                 }
                                             ),
@@ -1167,6 +1168,7 @@ fn test_accessor() {
                                 is_toplevel: false,
                                 extra: Range::new(1, 1, 2, 1, 1, 2)
                             },
+                            is_local_scope: false,
                             extra: Range::new(0, 1, 1, 1, 1, 2),
                         }
                     )

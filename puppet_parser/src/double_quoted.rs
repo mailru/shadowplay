@@ -37,6 +37,7 @@ fn parse_interpolation(input: Span) -> IResult<DoubleQuotedFragment<Range>> {
                         value: puppet_lang::expression::TermVariant::Variable(
                             puppet_lang::expression::Variable {
                                 extra: (&identifier.extra, &accessor, &identifier.extra).into(),
+                                is_local_scope: identifier.name.last().unwrap().starts_with('_'),
                                 identifier,
                             },
                         ),
@@ -187,6 +188,7 @@ fn test_interpolatad_variable() {
                                                 is_toplevel: false,
                                                 extra: Range::new(3, 1, 4, 9, 1, 10)
                                             },
+                                            is_local_scope: false,
                                             extra: Range::new(3, 1, 4, 9, 1, 10)
                                         }
                                     ),

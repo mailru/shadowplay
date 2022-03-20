@@ -10,6 +10,7 @@ pub struct Accessor<EXTRA> {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct Variable<EXTRA> {
     pub identifier: LowerIdentifier<EXTRA>,
+    pub is_local_scope: bool,
     pub extra: EXTRA,
 }
 

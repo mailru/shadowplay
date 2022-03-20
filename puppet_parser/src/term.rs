@@ -23,6 +23,7 @@ pub fn parse_variable(input: Span) -> IResult<puppet_lang::expression::Variable<
         pair(tag("$"), crate::identifier::identifier_with_toplevel),
         |(dollar_sign, identifier)| puppet_lang::expression::Variable {
             extra: (dollar_sign, &identifier.extra).into(),
+            is_local_scope: identifier.name.last().unwrap().starts_with('_'),
             identifier,
         },
     )(input)
@@ -561,7 +562,20 @@ fn test_variable() {
                 is_toplevel: false,
                 extra: Range::new(1, 1, 2, 1, 1, 2)
             },
+            is_local_scope: false,
             extra: Range::new(0, 1, 1, 1, 1, 2)
+        }
+    );
+    assert_eq!(
+        parse_variable(Span::new("$_a")).unwrap().1,
+        puppet_lang::expression::Variable {
+            identifier: puppet_lang::identifier::LowerIdentifier {
+                name: vec!["_a".to_owned()],
+                is_toplevel: false,
+                extra: Range::new(1, 1, 2, 2, 1, 3)
+            },
+            is_local_scope: true,
+            extra: Range::new(0, 1, 1, 2, 1, 3)
         }
     );
     assert_eq!(
@@ -572,6 +586,7 @@ fn test_variable() {
                 is_toplevel: true,
                 extra: Range::new(1, 1, 2, 6, 1, 7)
             },
+            is_local_scope: false,
             extra: Range::new(0, 1, 1, 6, 1, 7)
         }
     );
