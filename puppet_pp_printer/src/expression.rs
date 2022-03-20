@@ -179,6 +179,7 @@ impl<EXTRA> Printer for puppet_lang::builtin::BuiltinVariant<EXTRA> {
                     .append(RcDoc::text("("))
                     .append(RcDoc::softline_())
                     .append(crate::expression::to_doc(v, false))
+                    .nest(2)
                     .append(RcDoc::softline_())
                     .append(RcDoc::text(")")),
             },
