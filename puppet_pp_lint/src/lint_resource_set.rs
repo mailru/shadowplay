@@ -302,6 +302,54 @@ impl EarlyLintPass for SelectorInAttributeValue {
 }
 
 #[derive(Clone)]
+pub struct UnconditionalExec;
+
+impl LintPass for UnconditionalExec {
+    fn name(&self) -> &str {
+        "unconditional_exec"
+    }
+}
+
+impl EarlyLintPass for UnconditionalExec {
+    fn check_resource_set(
+        &self,
+        elt: &puppet_lang::statement::ResourceSet<Range>,
+    ) -> Vec<LintError> {
+        if elt.name.name.len() != 1 || elt.name.name.first().unwrap() != "exec" {
+            return vec![];
+        }
+
+        let mut errors = Vec::new();
+        for resource in &elt.list.value {
+            let mut found = false;
+            for attribute in &resource.attributes.value {
+                if let puppet_lang::statement::ResourceAttributeVariant::Name(attribute) =
+                    &attribute.value
+                {
+                    let name = puppet_ast_tool::string::raw_content(&attribute.0);
+                    if name == "unless"
+                        || name == "onlyif"
+                        || name == "creates"
+                        || name == "refreshonly"
+                    {
+                        found = true
+                    }
+                }
+            }
+            if !found {
+                errors.push(LintError::new(
+                    Box::new(self.clone()),
+                    "exec {} resource without attribute 'unless', 'onlyif', 'creates' or 'refreshonly'",
+                    &resource.extra,
+                ));
+            }
+        }
+
+        errors
+    }
+}
+
+#[derive(Clone)]
 pub struct PerExpressionResourceDefaults;
 
 impl LintPass for PerExpressionResourceDefaults {
