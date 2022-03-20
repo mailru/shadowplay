@@ -10,6 +10,7 @@ pub struct Many1<EXTRA> {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum BuiltinVariant<EXTRA> {
     Undef,
+    Return(Box<Option<Expression<EXTRA>>>),
     Tag(Many1<EXTRA>),
     Require(Many1<EXTRA>),
     Include(Many1<EXTRA>),

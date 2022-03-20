@@ -173,6 +173,15 @@ impl<EXTRA> Printer for puppet_lang::builtin::BuiltinVariant<EXTRA> {
             puppet_lang::builtin::BuiltinVariant::CreateResources(v) => {
                 builtin_many1_to_doc("create_resources", v, true)
             }
+            puppet_lang::builtin::BuiltinVariant::Return(v) => match v.as_ref() {
+                None => RcDoc::text("return()"),
+                Some(v) => RcDoc::text("return")
+                    .append(RcDoc::text("("))
+                    .append(RcDoc::softline_())
+                    .append(crate::expression::to_doc(v, false))
+                    .append(RcDoc::softline_())
+                    .append(RcDoc::text(")")),
+            },
         }
     }
 }
@@ -299,6 +308,8 @@ fn test_idempotence_short() {
         "require\na::b, c",
         "create_resources\n(1, 2)",
         "realize(1,\n  2) |$a,\n  $b| {\n  1\n}",
+        "return()",
+        "return(\n  aaaaaaaaaaaaaaa\n)",
     ];
 
     for case in cases {

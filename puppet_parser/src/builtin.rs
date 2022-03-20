@@ -41,7 +41,7 @@ where
             map(
                 round_parens_delimimited(terminated(
                     &args_parser,
-                    // В конце не обязательная запятая
+                    // Optional trailing comma
                     opt(comma_separator),
                 )),
                 |(_left_paren, (body, _end_range), right_paren)| {
@@ -118,6 +118,18 @@ where
 // where
 //     MAPPER: Fn(
 //         (
+//             Vec<puppet_lang::comment::Comment<Range>>,
+//             Span<'a>,
+//             (
+//                 (Expression<Range>, crate::range::Range),
+//                 Option<puppet_lang::expression::Lambda<Range>>,
+//             ),
+//             Option<puppet_lang::expression::Accessor<Range>>,
+//         ),
+//     ) -> O,
+
+//     MAPPER: Fn(
+//         (
 //             Span<'a>,
 //             (
 //                 (Expression<Range>, crate::range::Range),
@@ -180,6 +192,24 @@ fn parse_undef(input: Span) -> IResult<Expression<Range>> {
             extra: range,
             comment,
             accessor,
+        },
+    )(input)
+}
+
+fn parse_return(input: Span) -> IResult<Expression<Range>> {
+    builtin_variant_parser(
+        "return",
+        |i| {
+            map(opt(crate::expression::parse_expression), |expr| {
+                let range = expr.as_ref().map(|v| v.extra.clone());
+                (expr, range)
+            })(i)
+        },
+        |(comment, _kw, ((arg, range), _lambda), _accessor)| Expression {
+            value: ExpressionVariant::BuiltinFunction(BuiltinVariant::Return(Box::new(arg))),
+            extra: range,
+            comment,
+            accessor: None,
         },
     )(input)
 }
@@ -261,10 +291,82 @@ fn parse_create_resources(input: Span) -> IResult<Expression<Range>> {
 pub fn parse_builtin(input: Span) -> IResult<Expression<Range>> {
     alt((
         parse_undef,
+        parse_return,
         parse_tag,
         parse_require,
         parse_include,
         parse_realize,
         parse_create_resources,
     ))(input)
+}
+
+#[test]
+fn test_undef() {
+    assert_eq!(
+        parse_builtin(Span::new("undef")).unwrap().1,
+        puppet_lang::expression::Expression {
+            accessor: None,
+            comment: vec![],
+            value: puppet_lang::expression::ExpressionVariant::BuiltinFunction(
+                puppet_lang::builtin::BuiltinVariant::Undef
+            ),
+            extra: Range::new(0, 1, 1, 4, 1, 5)
+        }
+    );
+
+    assert_eq!(
+        parse_builtin(Span::new("undef()")).unwrap().1,
+        puppet_lang::expression::Expression {
+            accessor: None,
+            comment: vec![],
+            value: puppet_lang::expression::ExpressionVariant::BuiltinFunction(
+                puppet_lang::builtin::BuiltinVariant::Undef
+            ),
+            extra: Range::new(0, 1, 1, 6, 1, 7)
+        }
+    );
+}
+
+#[test]
+fn test_return() {
+    assert_eq!(
+        parse_builtin(Span::new("return")).unwrap().1,
+        puppet_lang::expression::Expression {
+            accessor: None,
+            comment: vec![],
+            value: puppet_lang::expression::ExpressionVariant::BuiltinFunction(
+                puppet_lang::builtin::BuiltinVariant::Return(Box::new(None))
+            ),
+            extra: Range::new(0, 1, 1, 5, 1, 6)
+        }
+    );
+
+    assert_eq!(
+        parse_builtin(Span::new("return(100)")).unwrap().1,
+        puppet_lang::expression::Expression {
+            accessor: None,
+            comment: vec![],
+            value: puppet_lang::expression::ExpressionVariant::BuiltinFunction(
+                puppet_lang::builtin::BuiltinVariant::Return(Box::new(Some(
+                    puppet_lang::expression::Expression {
+                        value: puppet_lang::expression::ExpressionVariant::Term(
+                            puppet_lang::expression::Term {
+                                value: puppet_lang::expression::TermVariant::Integer(
+                                    puppet_lang::expression::Integer {
+                                        value: 100,
+                                        extra: Range::new(7, 1, 8, 9, 1, 10),
+                                    }
+                                ),
+                                extra: Range::new(7, 1, 8, 9, 1, 10),
+                            }
+                        ),
+                        extra: Range::new(7, 1, 8, 9, 1, 10),
+                        accessor: None,
+                        comment: vec![]
+                    }
+                )))
+            ),
+            extra: Range::new(0, 1, 1, 10, 1, 11)
+        }
+    );
 }

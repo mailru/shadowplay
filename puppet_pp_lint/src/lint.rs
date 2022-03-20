@@ -394,6 +394,11 @@ impl AstLinter {
                     errors.append(&mut self.check_lambda(storage, lambda))
                 }
             }
+            puppet_lang::builtin::BuiltinVariant::Return(arg) => {
+                if let Some(arg) = arg.as_ref() {
+                    errors.append(&mut self.check_expression(storage, true, arg));
+                }
+            }
         }
 
         errors
