@@ -252,11 +252,12 @@ impl<EXTRA> Printer for puppet_lang::typing::TypeStructKV<EXTRA> {
             .to_doc()
             .append(RcDoc::softline())
             .append(RcDoc::column(|w| {
-                let offset = (w / 30 + 1) * 30;
+                let offset = (w / 20 + 1) * 20;
                 RcDoc::text(format!("{} =>", " ".repeat(offset - w)))
             }))
             .append(RcDoc::softline())
             .append(self.value.to_doc())
+            .nest(2)
             .group()
     }
 }
@@ -379,9 +380,9 @@ fn test_idempotence_short() {
         "Some::Type",
         "Some::Type[\n  1 ]",
         "Hash[\n  String,\n  Integer,\n  default,\n  1 ]",
-        "Struct[{\n  a =>\n  Integer\n}]",
-        "Struct[{\n  Optional[\n    a] =>\n  Integer\n}]",
-        "Struct[{\n  NotUndef[\n    a] =>\n  Integer\n}]",
+        "Struct[{\n  a\n                     =>\n    Integer\n}]",
+        "Struct[{\n  Optional[\n      a]\n                     =>\n    Integer\n}]",
+        "Struct[{\n  NotUndef[\n      a]\n                     =>\n    Integer\n}]",
         "Sensitive[\n  1 ]",
         "Sensitive[\n  String ]",
         "Tuple[\n  String,\n  Integer,\n  default,\n  100 ]",
