@@ -267,41 +267,6 @@ impl EarlyLintPass for UselessParens {
 }
 
 #[derive(Clone)]
-pub struct AssignmentToInvalidExpression;
-
-impl LintPass for AssignmentToInvalidExpression {
-    fn name(&self) -> &str {
-        "assignment_to_invalid_expression"
-    }
-}
-
-impl EarlyLintPass for AssignmentToInvalidExpression {
-    fn check_expression(
-        &self,
-        _is_toplevel_expr: bool,
-        elt: &Expression<Range>,
-    ) -> Vec<super::lint::LintError> {
-        if let ExpressionVariant::Assign((left, _)) = &elt.value {
-            if !matches!(
-                left.value,
-                ExpressionVariant::Term(Term {
-                    value: TermVariant::Variable(_),
-                    ..
-                })
-            ) {
-                return vec![LintError::new(
-                    Box::new(self.clone()),
-                    "Left operand of assignment operator must be a variable",
-                    &elt.extra,
-                )];
-            }
-        }
-
-        Vec::new()
-    }
-}
-
-#[derive(Clone)]
 pub struct DoubleNegation;
 
 impl LintPass for DoubleNegation {
@@ -416,6 +381,83 @@ impl EarlyLintPass for ConstantExpressionInCondition {
             return vec![LintError::new(
                 Box::new(self.clone()),
                 "Constant expression in condition",
+                &elt.extra,
+            )];
+        }
+
+        Vec::new()
+    }
+}
+
+#[derive(Clone)]
+pub struct InvalidVariableAssignment;
+
+impl LintPass for InvalidVariableAssignment {
+    fn name(&self) -> &str {
+        "invalid_variable_assignment"
+    }
+}
+
+impl EarlyLintPass for InvalidVariableAssignment {
+    fn check_expression(
+        &self,
+        _is_toplevel_expr: bool,
+        elt: &Expression<Range>,
+    ) -> Vec<super::lint::LintError> {
+        let left = match &elt.value {
+            ExpressionVariant::Assign((left, _)) => left,
+            _ => return vec![],
+        };
+
+        let term = match &left.value {
+            ExpressionVariant::Term(term) => term,
+            _ => {
+                return vec![LintError::new(
+                    Box::new(self.clone()),
+                    "Assignment to unexpected expression type",
+                    &elt.extra,
+                )];
+            }
+        };
+
+        let variable = match &term.value {
+            TermVariant::Variable(v) => v,
+            TermVariant::Array(_) => {
+                // TODO check recursively
+                return vec![];
+            }
+            _ => {
+                return vec![LintError::new(
+                    Box::new(self.clone()),
+                    "Assignment to unexpected expression type",
+                    &elt.extra,
+                )];
+            }
+        };
+
+        if variable.identifier.is_toplevel {
+            return vec![LintError::new(
+                Box::new(self.clone()),
+                "Assignment to variable in global scope",
+                &elt.extra,
+            )];
+        }
+
+        let name = match &variable.identifier.name.as_slice() {
+            &[name] => name,
+            _ => {
+                return vec![LintError::new(
+                    Box::new(self.clone()),
+                    "Assignment to variable with namespace",
+                    &elt.extra,
+                )];
+            }
+        };
+
+        if name == "name" || name == "facts" || name == "trusted" || name == "server_facts" {
+            return vec![LintError::new(
+                Box::new(self.clone()),
+                "Assignment to reserved variable name",
                 &elt.extra,
             )];
         }
