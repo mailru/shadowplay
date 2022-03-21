@@ -150,7 +150,7 @@ impl EarlyLintPass for ExpressionInSingleQuotes {
                                 if c.is_alphanumeric() || c == '_' {
                                     return vec![LintError::new(
                                         Box::new(self.clone()),
-                                        "Interpolated expression in single quotes. Either escape dollar sign with backslash or use double quotes",
+                                        "Possibly interpolated expression in single quotes",
                                         &elt.extra,
                                     )];
                                 }
