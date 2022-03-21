@@ -33,7 +33,7 @@ impl EarlyLintPass for InvalidStringEscape {
             if let puppet_lang::string::StringFragment::Escaped(c) = fragment {
                 match &elt.data {
                     puppet_lang::string::StringVariant::SingleQuoted(_) => {
-                        if c.data != '\'' && c.data != '\\' && c.data != '$' {
+                        if c.data != '\'' && c.data != '\\' {
                             errors.push(LintError::new_with_url(
                                 Box::new(self.clone()),
                                 &format!("Unexpected escaped character {:?}", c.data),
