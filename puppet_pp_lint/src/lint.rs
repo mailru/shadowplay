@@ -301,23 +301,75 @@ impl AstLinter {
                     errors.append(&mut self.check_expression(storage, true, arg));
                 }
             }
+            puppet_lang::typing::TypeSpecificationVariant::Enum(list) => {
+                for elt in &list.list {
+                    errors.append(&mut self.check_term(storage, elt));
+                }
+            }
+            puppet_lang::typing::TypeSpecificationVariant::Array(elt) => {
+                if let Some(inner) = &elt.inner {
+                    errors.append(&mut self.check_type_specification(storage, inner))
+                }
+            }
+            puppet_lang::typing::TypeSpecificationVariant::Hash(elt) => {
+                if let Some(key) = &elt.key {
+                    errors.append(&mut self.check_type_specification(storage, key))
+                }
+                if let Some(value) = &elt.value {
+                    errors.append(&mut self.check_type_specification(storage, value))
+                }
+            }
+            puppet_lang::typing::TypeSpecificationVariant::Optional(elt) => match &elt.value {
+                puppet_lang::typing::TypeOptionalVariant::TypeSpecification(elt) => {
+                    errors.append(&mut self.check_type_specification(storage, elt))
+                }
+                puppet_lang::typing::TypeOptionalVariant::Term(elt) => {
+                    errors.append(&mut self.check_term(storage, elt));
+                }
+            },
+            puppet_lang::typing::TypeSpecificationVariant::Variant(elt) => {
+                for elt in &elt.list {
+                    errors.append(&mut self.check_type_specification(storage, elt));
+                }
+            }
+            puppet_lang::typing::TypeSpecificationVariant::Struct(elt) => {
+                for elt in &elt.keys.value {
+                    match &elt.key {
+                        puppet_lang::typing::TypeStructKey::String(elt) => {
+                            errors.append(&mut self.check_string_expression(storage, elt));
+                        }
+                        puppet_lang::typing::TypeStructKey::Optional(elt) => {
+                            errors.append(&mut self.check_string_expression(storage, &elt.value));
+                        }
+                        puppet_lang::typing::TypeStructKey::NotUndef(elt) => {
+                            errors.append(&mut self.check_string_expression(storage, &elt.value));
+                        }
+                    }
+                    errors.append(&mut self.check_type_specification(storage, &elt.value));
+                }
+            }
+            puppet_lang::typing::TypeSpecificationVariant::Sensitive(elt) => match &elt.value {
+                puppet_lang::typing::TypeSensitiveVariant::TypeSpecification(elt) => {
+                    errors.append(&mut self.check_type_specification(storage, elt));
+                }
+                puppet_lang::typing::TypeSensitiveVariant::Term(elt) => {
+                    errors.append(&mut self.check_term(storage, elt));
+                }
+            },
+            puppet_lang::typing::TypeSpecificationVariant::Tuple(elt) => {
+                for elt in &elt.list {
+                    errors.append(&mut self.check_type_specification(storage, elt))
+                }
+            }
             puppet_lang::typing::TypeSpecificationVariant::Float(_)
             | puppet_lang::typing::TypeSpecificationVariant::Integer(_)
             | puppet_lang::typing::TypeSpecificationVariant::Numeric(_)
             | puppet_lang::typing::TypeSpecificationVariant::String(_)
             | puppet_lang::typing::TypeSpecificationVariant::Pattern(_)
             | puppet_lang::typing::TypeSpecificationVariant::Regex(_)
-            | puppet_lang::typing::TypeSpecificationVariant::Hash(_)
             | puppet_lang::typing::TypeSpecificationVariant::Boolean(_)
-            | puppet_lang::typing::TypeSpecificationVariant::Array(_)
             | puppet_lang::typing::TypeSpecificationVariant::Undef(_)
-            | puppet_lang::typing::TypeSpecificationVariant::Any(_)
-            | puppet_lang::typing::TypeSpecificationVariant::Optional(_)
-            | puppet_lang::typing::TypeSpecificationVariant::Variant(_)
-            | puppet_lang::typing::TypeSpecificationVariant::Enum(_)
-            | puppet_lang::typing::TypeSpecificationVariant::Struct(_)
-            | puppet_lang::typing::TypeSpecificationVariant::Sensitive(_)
-            | puppet_lang::typing::TypeSpecificationVariant::Tuple(_) => { // TODO }
+            | puppet_lang::typing::TypeSpecificationVariant::Any(_) => { // TODO
             }
         }
 
@@ -836,6 +888,9 @@ impl AstLinter {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
             errors.append(&mut lint.check_argument(elt));
+        }
+        if let Some(type_spec) = &elt.type_spec {
+            errors.append(&mut self.check_type_specification(storage, type_spec));
         }
         if let Some(default) = &elt.default {
             errors.append(&mut self.check_expression(storage, true, default));
