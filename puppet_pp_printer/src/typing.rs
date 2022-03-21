@@ -251,7 +251,10 @@ impl<EXTRA> Printer for puppet_lang::typing::TypeStructKV<EXTRA> {
         self.key
             .to_doc()
             .append(RcDoc::softline())
-            .append(RcDoc::text("=>"))
+            .append(RcDoc::column(|w| {
+                let offset = (w / 30 + 1) * 30;
+                RcDoc::text(format!("{} =>", " ".repeat(offset - w)))
+            }))
             .append(RcDoc::softline())
             .append(self.value.to_doc())
             .group()
