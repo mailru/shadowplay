@@ -3,8 +3,8 @@ pub fn is_valid_metaparameter_value<EXTRA>(
     value: &puppet_lang::expression::Expression<EXTRA>,
 ) -> Option<bool> {
     match name {
-        "alias" => Some(puppet_ast_tool::expression::string_constant_value(value).is_some()),
-        "loglevel" => match puppet_ast_tool::expression::string_constant_value(value) {
+        "alias" => Some(puppet_tool::expression::string_constant_value(value).is_some()),
+        "loglevel" => match puppet_tool::expression::string_constant_value(value) {
             None => Some(true),
             Some(v) => match v.as_str() {
                 "emerg" | "alert" | "crit" | "err" | "warning" | "notice" | "info" | "verbose"

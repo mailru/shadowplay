@@ -1,4 +1,4 @@
-package.name = "puppet-ast-tool"
+package.name = "puppet-tool"
 package.version = "0.1.0"
 package.edition = "2021"
 package.authors = ["Evgenii Lepikhin <e.lepikhin@corp.mail.ru>", "VK Company / mail.ru"]

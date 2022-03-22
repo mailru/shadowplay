@@ -53,7 +53,7 @@ impl EarlyLintPass for UniqueAttributeName {
                 if let puppet_lang::statement::ResourceAttributeVariant::Name(pair) =
                     &attribute.value
                 {
-                    let name = puppet_ast_tool::string::raw_content(&pair.0);
+                    let name = puppet_tool::string::raw_content(&pair.0);
                     if names.contains(&name) {
                         errors.push(LintError::new(
                             Box::new(self.clone()),
@@ -90,7 +90,7 @@ impl EarlyLintPass for EnsureAttributeIsNotTheFirst {
                 if let puppet_lang::statement::ResourceAttributeVariant::Name(pair) =
                     &attribute.value
                 {
-                    let name = puppet_ast_tool::string::raw_content(&pair.0);
+                    let name = puppet_tool::string::raw_content(&pair.0);
                     if name == "ensure" && pos > 0 {
                         errors.push(LintError::new_with_url(
                             Box::new(self.clone()),
@@ -186,7 +186,7 @@ impl EarlyLintPass for FileModeAttributeIsString {
                 if let puppet_lang::statement::ResourceAttributeVariant::Name(attribute) =
                     &attribute.value
                 {
-                    let name = puppet_ast_tool::string::raw_content(&attribute.0);
+                    let name = puppet_tool::string::raw_content(&attribute.0);
                     if name == "mode" {
                         if let puppet_lang::expression::ExpressionVariant::Term(term) =
                             &attribute.1.value
@@ -233,7 +233,7 @@ impl EarlyLintPass for MultipleResourcesWithoutDefault {
         for resource in &elt.list.value {
             if let puppet_lang::expression::ExpressionVariant::Term(term) = &resource.title.value {
                 if let puppet_lang::expression::TermVariant::String(v) = &term.value {
-                    if puppet_ast_tool::string::raw_content(v) == "default" {
+                    if puppet_tool::string::raw_content(v) == "default" {
                         has_default = true
                     }
                 }
@@ -326,7 +326,7 @@ impl EarlyLintPass for UnconditionalExec {
                 if let puppet_lang::statement::ResourceAttributeVariant::Name(attribute) =
                     &attribute.value
                 {
-                    let name = puppet_ast_tool::string::raw_content(&attribute.0);
+                    let name = puppet_tool::string::raw_content(&attribute.0);
                     if name == "unless"
                         || name == "onlyif"
                         || name == "creates"
@@ -377,7 +377,7 @@ impl EarlyLintPass for ExecAttributes {
                 if let puppet_lang::statement::ResourceAttributeVariant::Name(attribute) =
                     &attribute.value
                 {
-                    let name = puppet_ast_tool::string::raw_content(&attribute.0);
+                    let name = puppet_tool::string::raw_content(&attribute.0);
                     match name.as_str() {
                         "command" => command = Some(&attribute.1),
                         "provider" => provider = Some(&attribute.1),
@@ -425,7 +425,7 @@ impl EarlyLintPass for ExecAttributes {
 
             let provider = match &provider {
                 Some(expr) => {
-                    let provider_str = puppet_ast_tool::expression::string_constant_value(expr);
+                    let provider_str = puppet_tool::expression::string_constant_value(expr);
                     match provider_str {
                         None => Provider::Unknown,
                         Some(provider_str) => match provider_str.as_str() {
@@ -450,7 +450,7 @@ impl EarlyLintPass for ExecAttributes {
             };
 
             let command_starts_with_path =
-                match command.and_then(puppet_ast_tool::expression::string_constant_value) {
+                match command.and_then(puppet_tool::expression::string_constant_value) {
                     None => {
                         // TODO detect possible set of values with static analyzer
                         true

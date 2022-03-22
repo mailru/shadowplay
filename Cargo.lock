@@ -263,13 +263,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "puppet-ast-tool"
-version = "0.1.0"
-dependencies = [
- "puppet-lang",
-]
-
-[[package]]
 name = "puppet-lang"
 version = "0.1.0"
 dependencies = [
@@ -283,8 +276,8 @@ dependencies = [
  "lazy_static",
  "nom",
  "nom_locate",
- "puppet-ast-tool",
  "puppet-lang",
+ "puppet-tool",
  "regex",
  "serde",
 ]
@@ -293,9 +286,9 @@ dependencies = [
 name = "puppet-pp-lint"
 version = "0.1.0"
 dependencies = [
- "puppet-ast-tool",
  "puppet-lang",
  "puppet-parser",
+ "puppet-tool",
 ]
 
 [[package]]
@@ -305,6 +298,13 @@ dependencies = [
  "pretty",
  "puppet-lang",
  "puppet-parser",
+]
+
+[[package]]
+name = "puppet-tool"
+version = "0.1.0"
+dependencies = [
+ "puppet-lang",
 ]
 
 [[package]]

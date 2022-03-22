@@ -132,7 +132,7 @@ pub fn parse_case_variant(input: Span) -> IResult<CaseVariant<Range>> {
     map(parse_term, |t| {
         if matches!(
             &t.value,
-            puppet_lang::expression::TermVariant::String(s) if puppet_ast_tool::string::raw_content(s) == "default"
+            puppet_lang::expression::TermVariant::String(s) if puppet_tool::string::raw_content(s) == "default"
         ) {
             CaseVariant::Default(puppet_lang::expression::Default { extra: t.extra })
         } else {

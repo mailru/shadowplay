@@ -5,5 +5,5 @@ package.authors = ["Evgenii Lepikhin <e.lepikhin@corp.mail.ru>"]
 
 [dependencies]
 puppet-lang = { path = "../puppet_lang" }
-puppet-ast-tool = { path = "../puppet_ast_tool" }
+puppet-tool = { path = "../puppet_tool" }
 puppet-parser = { path = "../puppet_parser" }
