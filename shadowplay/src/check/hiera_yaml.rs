@@ -234,7 +234,7 @@ impl Check {
                 )));
             }
 
-            match puppet_tool::module::Module::of_hiera(&hiera_key) {
+            match puppet_tool::module::Module::of_hiera(hiera_key) {
                 Err(err) => {
                     errors.push(error::Error::from((
                         file_path,

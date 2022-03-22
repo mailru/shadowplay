@@ -23,7 +23,7 @@ impl std::fmt::Display for Error {
 impl Module {
     pub fn of_identifier(identifier: &[String]) -> Option<Self> {
         match identifier {
-            [] => return None,
+            [] => None,
             [module_name, subclasses @ ..] => Some(Self {
                 module_name: module_name.clone(),
                 subclasses: subclasses.to_vec(),
@@ -32,7 +32,7 @@ impl Module {
     }
 
     /// From string "norisk::client::install::version" extracts: ["norisk", "client", "install"] + parameter name
-    pub fn of_hiera<'a>(hiera_key: &'a str) -> Result<Option<(Self, &'a str)>, Error> {
+    pub fn of_hiera(hiera_key: &str) -> Result<Option<(Self, &str)>, Error> {
         let elts = hiera_key.split("::").collect::<Vec<&str>>();
         match elts.as_slice() {
             [] => {
