@@ -1,14 +1,39 @@
-use anyhow::{bail, Result};
-
 pub struct Module {
     pub module_name: String,
     pub subclasses: Vec<String>,
 }
 
+#[derive(Debug, Clone)]
+pub enum Error {
+    InvalidCharacters(String),
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Error::InvalidCharacters(name) => write!(
+                f,
+                "Module or class name {:?} contains invalid characters",
+                name
+            ),
+        }
+    }
+}
+
 impl Module {
-    /// Из строчки вида "norisk::client::install::version" получает имя модуля: ["norisk", "client", "install"] и имя параметра
-    pub fn of_hiera<'a>(hiera_key: &'a str) -> Result<Option<(Self, &'a str)>> {
-        let elts = hiera_key.split("::").collect::<Vec<&'a str>>();
+    pub fn of_identifier(identifier: &[String]) -> Option<Self> {
+        match identifier {
+            [] => return None,
+            [module_name, subclasses @ ..] => Some(Self {
+                module_name: module_name.clone(),
+                subclasses: subclasses.to_vec(),
+            }),
+        }
+    }
+
+    /// From string "norisk::client::install::version" extracts: ["norisk", "client", "install"] + parameter name
+    pub fn of_hiera<'a>(hiera_key: &'a str) -> Result<Option<(Self, &'a str)>, Error> {
+        let elts = hiera_key.split("::").collect::<Vec<&str>>();
         match elts.as_slice() {
             [] => {
                 // empty key name
@@ -23,17 +48,14 @@ impl Module {
                     .chars()
                     .all(|c| char::is_alphanumeric(c) || c == '_')
                 {
-                    bail!("Module name {:?} contains invalid characters", module_name)
+                    return Err(Error::InvalidCharacters(module_name.to_string()));
                 }
                 for subclass in subclasses {
                     if !subclass
                         .chars()
                         .all(|c| char::is_alphanumeric(c) || c == '_')
                     {
-                        bail!(
-                            "Module subclass name {:?} contains invalid characters",
-                            subclass
-                        )
+                        return Err(Error::InvalidCharacters(subclass.to_string()));
                     }
                 }
                 let module = Self {
@@ -45,7 +67,7 @@ impl Module {
         }
     }
 
-    /// Возвращает файл модуля:
+    /// Returns file path:
     ///  - some_module/init.pp
     ///  - some_module/subclass.pp
     ///  - some_module/subclass/subsubclass.pp

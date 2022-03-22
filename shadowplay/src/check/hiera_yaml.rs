@@ -54,7 +54,7 @@ impl Check {
         repo_path: &std::path::Path,
         yaml_path: &std::path::Path,
         yaml_marker: &located_yaml::Marker,
-        puppet_module: &crate::puppet::module::Module,
+        puppet_module: &puppet_tool::module::Module,
         argument: &str,
         state: &mut State,
         config: &crate::config::Config,
@@ -234,7 +234,7 @@ impl Check {
                 )));
             }
 
-            match crate::puppet::module::Module::of_hiera(hiera_key) {
+            match puppet_tool::module::Module::of_hiera(&hiera_key) {
                 Err(err) => {
                     errors.push(error::Error::from((
                         file_path,

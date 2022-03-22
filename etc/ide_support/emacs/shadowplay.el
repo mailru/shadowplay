@@ -19,6 +19,11 @@
   :type 'string
   :group 'shadowplay)
 
+(defcustom shadowplay-repository-path "./"
+  "*Path to the root of Puppet repository"
+  :type 'string
+  :group 'shadowplay)
+
 (defun flycheck-parse-shadowplay-lint (output checker buffer)
   "Parse JSON OUTPUT of CHECKER on BUFFER as Shadowplay errors."
   (mapcar (lambda (err)
@@ -42,7 +47,13 @@
 
 (flycheck-define-checker puppet-shadowplay
   "A Puppet DSL linter using shadowplay."
-  :command ("shadowplay" "check" "-f" "json" "pp" source)
+  :command ("shadowplay"
+            "--repo-path" (eval shadowplay-repository-path)
+            "check"
+            "-f"
+            "json"
+            "pp"
+            source)
   :error-parser flycheck-parse-shadowplay-lint
   :modes puppet-mode)
 

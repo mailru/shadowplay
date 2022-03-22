@@ -12,6 +12,7 @@ path = "src/main.rs"
 [dependencies]
 puppet-lang = { path = "../puppet_lang" }
 puppet-parser = { path = "../puppet_parser" }
+puppet-tool = { path = "../puppet_tool" }
 puppet-pp-lint = { path = "../puppet_pp_lint" }
 puppet-pp-printer = { path = "../puppet_pp_printer" }
 yaml-rust = "0"

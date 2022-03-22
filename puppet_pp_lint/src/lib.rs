@@ -9,3 +9,4 @@ mod lint_term;
 mod lint_toplevel;
 mod lint_unless;
 mod tool;
+pub mod ctx;

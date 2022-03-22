@@ -14,6 +14,7 @@ impl LintPass for UpperCaseName {
 impl EarlyLintPass for UpperCaseName {
     fn check_resource_set(
         &self,
+        _ctx: &mut crate::ctx::Ctx,
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         if elt
@@ -44,6 +45,7 @@ impl LintPass for UniqueAttributeName {
 impl EarlyLintPass for UniqueAttributeName {
     fn check_resource_set(
         &self,
+        _ctx: &mut crate::ctx::Ctx,
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -82,6 +84,7 @@ impl LintPass for EnsureAttributeIsNotTheFirst {
 impl EarlyLintPass for EnsureAttributeIsNotTheFirst {
     fn check_resource_set(
         &self,
+        _ctx: &mut crate::ctx::Ctx,
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -175,6 +178,7 @@ impl FileModeAttributeIsString {
 impl EarlyLintPass for FileModeAttributeIsString {
     fn check_resource_set(
         &self,
+        _ctx: &mut crate::ctx::Ctx,
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         if elt.name.name.len() != 1 || elt.name.name[0] != "file" {
@@ -227,6 +231,7 @@ impl LintPass for MultipleResourcesWithoutDefault {
 impl EarlyLintPass for MultipleResourcesWithoutDefault {
     fn check_resource_set(
         &self,
+        _ctx: &mut crate::ctx::Ctx,
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut has_default = false;
@@ -274,6 +279,7 @@ impl LintPass for SelectorInAttributeValue {
 impl EarlyLintPass for SelectorInAttributeValue {
     fn check_resource_set(
         &self,
+        _ctx: &mut crate::ctx::Ctx,
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -313,6 +319,7 @@ impl LintPass for UnconditionalExec {
 impl EarlyLintPass for UnconditionalExec {
     fn check_resource_set(
         &self,
+        _ctx: &mut crate::ctx::Ctx,
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         if elt.name.name.len() != 1 || elt.name.name.first().unwrap() != "exec" {
@@ -361,6 +368,7 @@ impl LintPass for ExecAttributes {
 impl EarlyLintPass for ExecAttributes {
     fn check_resource_set(
         &self,
+        _ctx: &mut crate::ctx::Ctx,
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         if elt.name.name.len() != 1 || elt.name.name.first().unwrap() != "exec" {
@@ -491,5 +499,35 @@ impl EarlyLintPass for PerExpressionResourceDefaults {
             "https://puppet.com/docs/puppet/7/lang_resources.html#lang_resource_syntax-local-resource-defaults",
             &elt.extra,
         )]
+    }
+}
+
+#[derive(Clone)]
+pub struct UnknownResource;
+
+impl LintPass for UnknownResource {
+    fn name(&self) -> &str {
+        "unknown_resource"
+    }
+}
+
+impl EarlyLintPass for UnknownResource {
+    fn check_resource_set(
+        &self,
+        ctx: &mut crate::ctx::Ctx,
+        elt: &puppet_lang::statement::ResourceSet<Range>,
+    ) -> Vec<LintError> {
+        match ctx.block_of_name(elt.name.name.as_slice()) {
+            None => {
+                return vec![LintError::new(
+                    Box::new(self.clone()),
+                    "Reference to undefined resource",
+                    &elt.name.extra,
+                )]
+            }
+            Some(_) => (),
+        }
+
+        Vec::new()
     }
 }

@@ -1,7 +1,6 @@
 pub mod check;
 pub mod config;
 pub mod hiera_config;
-pub mod puppet;
 
 use std::io::Read;
 

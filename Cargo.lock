@@ -407,6 +407,7 @@ dependencies = [
  "puppet-parser",
  "puppet-pp-lint",
  "puppet-pp-printer",
+ "puppet-tool",
  "regex",
  "serde",
  "serde_json",
