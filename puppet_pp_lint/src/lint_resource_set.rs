@@ -521,7 +521,10 @@ impl EarlyLintPass for UnknownResource {
             None => {
                 return vec![LintError::new(
                     Box::new(self.clone()),
-                    "Reference to undefined resource",
+                    &format!(
+                        "Reference to undefined resource {:?}",
+                        elt.name.name.join("::")
+                    ),
                     &elt.name.extra,
                 )]
             }
