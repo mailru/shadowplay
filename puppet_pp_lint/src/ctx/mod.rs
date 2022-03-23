@@ -41,29 +41,35 @@ impl Ctx {
         }
     }
 
-    fn calculate_named_block(
-        repository_path: &std::path::Path,
-        name: &[String],
-    ) -> Option<NamedBlock> {
+    fn fill_named_blocks(&self, name: &[String]) {
+        // Lookup recursively
+        if name.len() > 1 {
+            match &name {
+                &[list @ .., _suffix] => self.fill_named_blocks(&list),
+                _ => (),
+            }
+        }
+
         let module = match puppet_tool::module::Module::of_identifier(name) {
             None => {
-                return None;
+                return;
             }
             Some(v) => v,
         };
 
-        let file_content = match std::fs::read_to_string(module.full_file_path(repository_path)) {
-            Err(_err) => {
-                return None;
-            }
-            Ok(v) => v,
-        };
+        let file_content =
+            match std::fs::read_to_string(module.full_file_path(&self.repository_path)) {
+                Err(_err) => {
+                    return;
+                }
+                Ok(v) => v,
+            };
 
         let (_, statement_list) = match puppet_parser::toplevel::parse_file(
             puppet_parser::Span::new(file_content.as_str()),
         ) {
             Err(_err) => {
-                return None;
+                return;
             }
             Ok(v) => v,
         };
@@ -71,24 +77,22 @@ impl Ctx {
         for statement in statement_list.value {
             match statement.value {
                 puppet_lang::statement::StatementVariant::Toplevel(toplevel) => {
-                    match &toplevel.data {
-                        puppet_lang::toplevel::ToplevelVariant::Class(v)
-                            if v.identifier.name.as_slice() == name =>
-                        {
-                            return Some(NamedBlock { value: toplevel })
+                    let name = match &toplevel.data {
+                        puppet_lang::toplevel::ToplevelVariant::Class(v) => {
+                            Some(&v.identifier.name)
                         }
-                        puppet_lang::toplevel::ToplevelVariant::Definition(v)
-                            if v.identifier.name.as_slice() == name =>
-                        {
-                            return Some(NamedBlock { value: toplevel })
+                        puppet_lang::toplevel::ToplevelVariant::Definition(v) => {
+                            Some(&v.identifier.name)
                         }
-                        puppet_lang::toplevel::ToplevelVariant::Plan(v)
-                            if v.identifier.name.as_slice() == name =>
-                        {
-                            return Some(NamedBlock { value: toplevel })
-                        }
+                        puppet_lang::toplevel::ToplevelVariant::Plan(v) => Some(&v.identifier.name),
                         // TODO
-                        _ => (),
+                        _ => None,
+                    };
+
+                    if let Some(name) = name {
+                        let mut resources = self.resources.borrow_mut();
+                        let _ =
+                            resources.insert(name.clone(), Some(NamedBlock { value: toplevel }));
                     }
                 }
                 puppet_lang::statement::StatementVariant::Expression(_)
@@ -99,16 +103,22 @@ impl Ctx {
                 | puppet_lang::statement::StatementVariant::ResourceDefaults(_) => (),
             }
         }
-
-        None
     }
 
     pub fn block_of_name(&self, name: &[String]) -> Option<NamedBlock> {
+        {
+            if let Some(v) = self.resources.borrow().get(&name.to_vec()) {
+                return v.as_ref().cloned();
+            }
+        }
+
+        self.fill_named_blocks(name);
+
         let mut resources = self.resources.borrow_mut();
 
         resources
             .entry(name.to_vec())
-            .or_insert_with(|| Self::calculate_named_block(&self.repository_path, name))
+            .or_insert(None)
             .as_ref()
             .cloned()
     }

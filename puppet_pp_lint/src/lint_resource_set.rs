@@ -525,22 +525,24 @@ impl InvalidResourceInvocation {
                     puppet_lang::statement::ResourceAttributeVariant::Name((name, _)) => name,
                     puppet_lang::statement::ResourceAttributeVariant::Group(_) => continue,
                 };
-                let name = match puppet_tool::string::constant_value(name) {
+                let const_name = match puppet_tool::string::constant_value(name) {
                     None => continue,
                     Some(v) => v,
                 };
 
-                if !builtin.attributes.contains_key(name.as_str())
-                    && !ctx.resource_metaparameters.contains_key(name.as_str())
+                if !builtin.attributes.contains_key(const_name.as_str())
+                    && !ctx
+                        .resource_metaparameters
+                        .contains_key(const_name.as_str())
                 {
                     errors.push(LintError::new(
                         Box::new(self.clone()),
                         &format!(
                             "Builtin resource {:?} does not accept argument {:?}",
                             elt.name.name.join("::"),
-                            name
+                            const_name
                         ),
-                        &elt.name.extra,
+                        &name.extra,
                     ))
                 }
             }
@@ -568,22 +570,24 @@ impl InvalidResourceInvocation {
                     puppet_lang::statement::ResourceAttributeVariant::Name((name, _)) => name,
                     puppet_lang::statement::ResourceAttributeVariant::Group(_) => continue,
                 };
-                let name = match puppet_tool::string::constant_value(name) {
+                let const_name = match puppet_tool::string::constant_value(name) {
                     None => continue,
                     Some(v) => v,
                 };
 
-                if !arguments.iter().any(|arg| arg.name == name)
-                    && !ctx.resource_metaparameters.contains_key(name.as_str())
+                if !arguments.iter().any(|arg| arg.name == const_name)
+                    && !ctx
+                        .resource_metaparameters
+                        .contains_key(const_name.as_str())
                 {
                     errors.push(LintError::new(
                         Box::new(self.clone()),
                         &format!(
                             "Resource {:?} does not accept argument {:?}",
                             elt.name.name.join("::"),
-                            name
+                            const_name
                         ),
-                        &elt.name.extra,
+                        &name.extra,
                     ))
                 }
             }
