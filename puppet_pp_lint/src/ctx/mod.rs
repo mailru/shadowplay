@@ -44,9 +44,8 @@ impl Ctx {
     fn fill_named_blocks(&self, name: &[String]) {
         // Lookup recursively
         if name.len() > 1 {
-            match &name {
-                &[list @ .., _suffix] => self.fill_named_blocks(&list),
-                _ => (),
+            if let &[list @ .., _suffix] = &name {
+                self.fill_named_blocks(list)
             }
         }
 
