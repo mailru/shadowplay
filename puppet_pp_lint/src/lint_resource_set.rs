@@ -607,9 +607,9 @@ impl EarlyLintPass for InvalidResourceInvocation {
 
         let mut known_resource = false;
 
-        if let Some(named_block) = ctx.block_of_name(name.as_slice()) {
+        if let Some(named_block) = ctx.block_of_name(name.as_slice()).as_ref() {
             known_resource = true;
-            self.check_resource_invocation(ctx, &mut errors, elt, &named_block)
+            self.check_resource_invocation(ctx, &mut errors, elt, named_block)
         }
 
         if !known_resource && name.len() == 1 {
@@ -639,7 +639,7 @@ impl EarlyLintPass for InvalidResourceInvocation {
                     let title = title.strip_prefix("::").unwrap_or(&title);
                     let title_as_list: Vec<_> = title.split("::").map(|v| v.to_string()).collect();
 
-                    match ctx.block_of_name(title_as_list.as_slice()) {
+                    match ctx.block_of_name(title_as_list.as_slice()).as_ref() {
                         Some(_) => (),
                         None => {
                             errors.push(LintError::new(

@@ -1,19 +1,18 @@
 pub mod builtin_resources;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use puppet_parser::range::Range;
 
 use crate::ctx::builtin_resources::Attribute;
 
-#[derive(Clone)]
 pub struct NamedBlock {
     pub value: puppet_lang::toplevel::Toplevel<Range>,
 }
 
 pub struct Ctx {
     pub repository_path: std::path::PathBuf,
-    pub resources: std::cell::RefCell<HashMap<Vec<String>, Option<NamedBlock>>>,
+    pub resources: std::cell::RefCell<HashMap<Vec<String>, Rc<Option<NamedBlock>>>>,
     pub builtin_resources: HashMap<&'static str, crate::ctx::builtin_resources::Resource>,
     pub resource_metaparameters: HashMap<&'static str, Attribute>,
 }
@@ -90,8 +89,8 @@ impl Ctx {
 
                     if let Some(name) = name {
                         let mut resources = self.resources.borrow_mut();
-                        let _ =
-                            resources.insert(name.clone(), Some(NamedBlock { value: toplevel }));
+                        let _ = resources
+                            .insert(name.clone(), Rc::new(Some(NamedBlock { value: toplevel })));
                     }
                 }
                 puppet_lang::statement::StatementVariant::Expression(_)
@@ -104,10 +103,10 @@ impl Ctx {
         }
     }
 
-    pub fn block_of_name(&self, name: &[String]) -> Option<NamedBlock> {
+    pub fn block_of_name(&self, name: &[String]) -> Rc<Option<NamedBlock>> {
         {
             if let Some(v) = self.resources.borrow().get(&name.to_vec()) {
-                return v.as_ref().cloned();
+                return v.clone();
             }
         }
 
@@ -117,8 +116,7 @@ impl Ctx {
 
         resources
             .entry(name.to_vec())
-            .or_insert(None)
-            .as_ref()
-            .cloned()
+            .or_insert_with(|| Rc::new(None))
+            .clone()
     }
 }
