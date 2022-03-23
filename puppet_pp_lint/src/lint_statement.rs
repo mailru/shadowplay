@@ -16,6 +16,7 @@ impl EarlyLintPass for StatementWithNoEffect {
     // TODO сделать менее наивную реализацию, с сохранением в EXTRA состояния
     fn check_statement_set(
         &self,
+        _ctx: &crate::ctx::Ctx,
         list: &[puppet_lang::statement::Statement<Range>],
     ) -> Vec<LintError> {
         let list_len = list.len();

@@ -14,6 +14,8 @@ impl LintPass for LowerCaseVariable {
 impl EarlyLintPass for LowerCaseVariable {
     fn check_term(
         &self,
+        _ctx: &crate::ctx::Ctx,
+        _is_assignment: bool,
         elt: &puppet_lang::expression::Term<Range>,
     ) -> Vec<super::lint::LintError> {
         if let puppet_lang::expression::TermVariant::Variable(var) = &elt.value {
@@ -32,5 +34,40 @@ impl EarlyLintPass for LowerCaseVariable {
             }
         }
         vec![]
+    }
+}
+
+#[derive(Clone)]
+pub struct ReferenceToUndefinedValue;
+
+impl LintPass for ReferenceToUndefinedValue {
+    fn name(&self) -> &str {
+        "reference_to_undefined_value"
+    }
+}
+
+impl EarlyLintPass for ReferenceToUndefinedValue {
+    fn check_term(
+        &self,
+        ctx: &crate::ctx::Ctx,
+        is_assignment: bool,
+        elt: &puppet_lang::expression::Term<Range>,
+    ) -> Vec<super::lint::LintError> {
+        let variable = match &elt.value {
+            puppet_lang::expression::TermVariant::Variable(v) => v,
+            _ => return Vec::new(),
+        };
+
+        if !is_assignment && !ctx.has_variable(variable) {
+            return vec![LintError::new(
+                Box::new(self.clone()),
+                &format!(
+                    "Reference to undefined value {:?}",
+                    variable.identifier.name.join("::")
+                ),
+                &elt.extra,
+            )];
+        }
+        Vec::new()
     }
 }
