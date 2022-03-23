@@ -603,21 +603,15 @@ impl EarlyLintPass for InvalidResourceInvocation {
 
         let mut known_resource = false;
 
-        match ctx.block_of_name(name.as_slice()) {
-            Some(named_block) => {
-                known_resource = true;
-                self.check_resource_invocation(ctx, &mut errors, elt, &named_block)
-            }
-            None => (),
+        if let Some(named_block) = ctx.block_of_name(name.as_slice()) {
+            known_resource = true;
+            self.check_resource_invocation(ctx, &mut errors, elt, &named_block)
         }
 
         if !known_resource && name.len() == 1 {
-            match ctx.builtin_resources.get(name.first().unwrap().as_str()) {
-                Some(builtin) => {
-                    known_resource = true;
-                    self.check_builtin_invocation(ctx, &mut errors, elt, builtin)
-                }
-                None => (),
+            if let Some(builtin) = ctx.builtin_resources.get(name.first().unwrap().as_str()) {
+                known_resource = true;
+                self.check_builtin_invocation(ctx, &mut errors, elt, builtin)
             }
 
             if name.first().unwrap() == "class" {
