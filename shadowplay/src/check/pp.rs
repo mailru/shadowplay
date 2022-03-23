@@ -59,10 +59,7 @@ impl Check {
         _config: &crate::config::Config,
         format: &error::OutputFormat,
     ) -> crate::check::Summary {
-        let mut ctx = puppet_pp_lint::ctx::Ctx {
-            repository_path: repo_path.to_path_buf(),
-            resources: std::collections::HashMap::new(),
-        };
+        let mut ctx = puppet_pp_lint::ctx::Ctx::new(repo_path);
 
         let mut errors = 0;
         for file_path in &self.paths {

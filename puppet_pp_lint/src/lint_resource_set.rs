@@ -14,7 +14,7 @@ impl LintPass for UpperCaseName {
 impl EarlyLintPass for UpperCaseName {
     fn check_resource_set(
         &self,
-        _ctx: &mut crate::ctx::Ctx,
+        _ctx: &crate::ctx::Ctx,
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         if elt
@@ -45,7 +45,7 @@ impl LintPass for UniqueAttributeName {
 impl EarlyLintPass for UniqueAttributeName {
     fn check_resource_set(
         &self,
-        _ctx: &mut crate::ctx::Ctx,
+        _ctx: &crate::ctx::Ctx,
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -84,7 +84,7 @@ impl LintPass for EnsureAttributeIsNotTheFirst {
 impl EarlyLintPass for EnsureAttributeIsNotTheFirst {
     fn check_resource_set(
         &self,
-        _ctx: &mut crate::ctx::Ctx,
+        _ctx: &crate::ctx::Ctx,
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -178,7 +178,7 @@ impl FileModeAttributeIsString {
 impl EarlyLintPass for FileModeAttributeIsString {
     fn check_resource_set(
         &self,
-        _ctx: &mut crate::ctx::Ctx,
+        _ctx: &crate::ctx::Ctx,
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         if elt.name.name.len() != 1 || elt.name.name[0] != "file" {
@@ -231,7 +231,7 @@ impl LintPass for MultipleResourcesWithoutDefault {
 impl EarlyLintPass for MultipleResourcesWithoutDefault {
     fn check_resource_set(
         &self,
-        _ctx: &mut crate::ctx::Ctx,
+        _ctx: &crate::ctx::Ctx,
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut has_default = false;
@@ -279,7 +279,7 @@ impl LintPass for SelectorInAttributeValue {
 impl EarlyLintPass for SelectorInAttributeValue {
     fn check_resource_set(
         &self,
-        _ctx: &mut crate::ctx::Ctx,
+        _ctx: &crate::ctx::Ctx,
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -319,7 +319,7 @@ impl LintPass for UnconditionalExec {
 impl EarlyLintPass for UnconditionalExec {
     fn check_resource_set(
         &self,
-        _ctx: &mut crate::ctx::Ctx,
+        _ctx: &crate::ctx::Ctx,
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         if elt.name.name.len() != 1 || elt.name.name.first().unwrap() != "exec" {
@@ -368,7 +368,7 @@ impl LintPass for ExecAttributes {
 impl EarlyLintPass for ExecAttributes {
     fn check_resource_set(
         &self,
-        _ctx: &mut crate::ctx::Ctx,
+        _ctx: &crate::ctx::Ctx,
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         if elt.name.name.len() != 1 || elt.name.name.first().unwrap() != "exec" {
@@ -503,34 +503,169 @@ impl EarlyLintPass for PerExpressionResourceDefaults {
 }
 
 #[derive(Clone)]
-pub struct UnknownResource;
+pub struct InvalidResourceInvocation;
 
-impl LintPass for UnknownResource {
+impl LintPass for InvalidResourceInvocation {
     fn name(&self) -> &str {
-        "unknown_resource"
+        "invalid_resource_invocation"
     }
 }
 
-impl EarlyLintPass for UnknownResource {
+impl InvalidResourceInvocation {
+    fn check_builtin_invocation(
+        &self,
+        ctx: &crate::ctx::Ctx,
+        errors: &mut Vec<super::lint::LintError>,
+        elt: &puppet_lang::statement::ResourceSet<Range>,
+        builtin: &crate::ctx::builtin_resources::Resource,
+    ) {
+        for resource in &elt.list.value {
+            for attribute in &resource.attributes.value {
+                let name = match &attribute.value {
+                    puppet_lang::statement::ResourceAttributeVariant::Name((name, _)) => name,
+                    puppet_lang::statement::ResourceAttributeVariant::Group(_) => continue,
+                };
+                let name = match puppet_tool::string::constant_value(name) {
+                    None => continue,
+                    Some(v) => v,
+                };
+
+                if !builtin.attributes.contains_key(name.as_str())
+                    && !ctx.resource_metaparameters.contains_key(name.as_str())
+                {
+                    errors.push(LintError::new(
+                        Box::new(self.clone()),
+                        &format!(
+                            "Builtin resource {:?} does not accept argument {:?}",
+                            elt.name.name.join("::"),
+                            name
+                        ),
+                        &elt.name.extra,
+                    ))
+                }
+            }
+        }
+    }
+
+    fn check_resource_invocation(
+        &self,
+        ctx: &crate::ctx::Ctx,
+        errors: &mut Vec<super::lint::LintError>,
+        elt: &puppet_lang::statement::ResourceSet<Range>,
+        named_block: &crate::ctx::NamedBlock,
+    ) {
+        let arguments = match &named_block.value.data {
+            puppet_lang::toplevel::ToplevelVariant::Class(v) => &v.arguments.value,
+            puppet_lang::toplevel::ToplevelVariant::Definition(v) => &v.arguments.value,
+            puppet_lang::toplevel::ToplevelVariant::Plan(v) => &v.arguments.value,
+            puppet_lang::toplevel::ToplevelVariant::TypeDef(_) => return,
+            puppet_lang::toplevel::ToplevelVariant::FunctionDef(_) => return,
+        };
+
+        for resource in &elt.list.value {
+            for attribute in &resource.attributes.value {
+                let name = match &attribute.value {
+                    puppet_lang::statement::ResourceAttributeVariant::Name((name, _)) => name,
+                    puppet_lang::statement::ResourceAttributeVariant::Group(_) => continue,
+                };
+                let name = match puppet_tool::string::constant_value(name) {
+                    None => continue,
+                    Some(v) => v,
+                };
+
+                if !arguments.iter().any(|arg| arg.name == name)
+                    && !ctx.resource_metaparameters.contains_key(name.as_str())
+                {
+                    errors.push(LintError::new(
+                        Box::new(self.clone()),
+                        &format!(
+                            "Resource {:?} does not accept argument {:?}",
+                            elt.name.name.join("::"),
+                            name
+                        ),
+                        &elt.name.extra,
+                    ))
+                }
+            }
+        }
+    }
+}
+
+impl EarlyLintPass for InvalidResourceInvocation {
     fn check_resource_set(
         &self,
-        ctx: &mut crate::ctx::Ctx,
+        ctx: &crate::ctx::Ctx,
         elt: &puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
-        match ctx.block_of_name(elt.name.name.as_slice()) {
-            None => {
-                return vec![LintError::new(
-                    Box::new(self.clone()),
-                    &format!(
-                        "Reference to undefined resource {:?}",
-                        elt.name.name.join("::")
-                    ),
-                    &elt.name.extra,
-                )]
+        let mut errors = Vec::new();
+
+        let name: Vec<_> = elt.name.name.iter().map(|v| v.to_lowercase()).collect();
+
+        let mut known_resource = false;
+
+        match ctx.block_of_name(name.as_slice()) {
+            Some(named_block) => {
+                known_resource = true;
+                self.check_resource_invocation(ctx, &mut errors, elt, &named_block)
             }
-            Some(_) => (),
+            None => (),
         }
 
-        Vec::new()
+        if !known_resource && name.len() == 1 {
+            match ctx.builtin_resources.get(name.first().unwrap().as_str()) {
+                Some(builtin) => {
+                    known_resource = true;
+                    self.check_builtin_invocation(ctx, &mut errors, elt, builtin)
+                }
+                None => (),
+            }
+
+            if name.first().unwrap() == "class" {
+                known_resource = true;
+                for resource in &elt.list.value {
+                    let title = match &resource.title.value {
+                        puppet_lang::expression::ExpressionVariant::Term(term) => {
+                            match &term.value {
+                                puppet_lang::expression::TermVariant::String(v) => {
+                                    match puppet_tool::string::constant_value(v) {
+                                        None => continue,
+                                        Some(v) => v,
+                                    }
+                                }
+                                _ => continue,
+                            }
+                        }
+                        _ => continue,
+                    };
+
+                    let title = title.strip_prefix("::").unwrap_or(&title);
+                    let title_as_list: Vec<_> = title.split("::").map(|v| v.to_string()).collect();
+
+                    match ctx.block_of_name(title_as_list.as_slice()) {
+                        Some(_) => (),
+                        None => {
+                            errors.push(LintError::new(
+                                Box::new(self.clone()),
+                                &format!("Reference to undefined class {:?}", title,),
+                                &resource.title.extra,
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+
+        if !known_resource {
+            errors.push(LintError::new(
+                Box::new(self.clone()),
+                &format!(
+                    "Reference to undefined resource {:?}",
+                    elt.name.name.join("::")
+                ),
+                &elt.name.extra,
+            ))
+        }
+
+        errors
     }
 }

@@ -1,21 +1,43 @@
+pub mod builtin_resources;
+
 use std::collections::HashMap;
 
 use puppet_parser::range::Range;
 
+use crate::ctx::builtin_resources::Attribute;
+
+#[derive(Clone)]
 pub struct NamedBlock {
     pub value: puppet_lang::toplevel::Toplevel<Range>,
 }
 
 pub struct Ctx {
     pub repository_path: std::path::PathBuf,
-    pub resources: HashMap<Vec<String>, Option<NamedBlock>>,
+    pub resources: std::cell::RefCell<HashMap<Vec<String>, Option<NamedBlock>>>,
+    pub builtin_resources: HashMap<&'static str, crate::ctx::builtin_resources::Resource>,
+    pub resource_metaparameters: HashMap<&'static str, Attribute>,
 }
 
 impl Ctx {
     pub fn new(repository_path: &std::path::Path) -> Self {
+        let mut resource_metaparameters = HashMap::new();
+        let _ = resource_metaparameters.insert("alias", Attribute::default());
+        let _ = resource_metaparameters.insert("audit", Attribute::default());
+        let _ = resource_metaparameters.insert("before", Attribute::default());
+        let _ = resource_metaparameters.insert("loglevel", Attribute::default());
+        let _ = resource_metaparameters.insert("noop", Attribute::default());
+        let _ = resource_metaparameters.insert("notify", Attribute::default());
+        let _ = resource_metaparameters.insert("require", Attribute::default());
+        let _ = resource_metaparameters.insert("schedule", Attribute::default());
+        let _ = resource_metaparameters.insert("stage", Attribute::default());
+        let _ = resource_metaparameters.insert("subscribe", Attribute::default());
+        let _ = resource_metaparameters.insert("tag", Attribute::default());
+
         Self {
             repository_path: repository_path.to_path_buf(),
-            resources: HashMap::new(),
+            resources: std::cell::RefCell::new(HashMap::new()),
+            builtin_resources: crate::ctx::builtin_resources::generate(),
+            resource_metaparameters,
         }
     }
 
@@ -81,10 +103,13 @@ impl Ctx {
         None
     }
 
-    pub fn block_of_name<'a>(&'a mut self, name: &[String]) -> Option<&'a NamedBlock> {
-        self.resources
+    pub fn block_of_name(&self, name: &[String]) -> Option<NamedBlock> {
+        let mut resources = self.resources.borrow_mut();
+
+        resources
             .entry(name.to_vec())
             .or_insert_with(|| Self::calculate_named_block(&self.repository_path, name))
             .as_ref()
+            .cloned()
     }
 }
