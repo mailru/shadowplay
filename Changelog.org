@@ -1,4 +1,49 @@
 * Changelog
+** [2022-03-23] v0.12.0
+
+*** New features
+
+ - Linter for resource/builtin invocation (fc3c329)
+ - Improved error message (47a0f8f)
+ - Initial linter context support (cfa646b)
+ - [WIP] Experimental VIM support (ba77277)
+ - Better assignments linter (f895881)
+ - Better indentation of Struct values (f31dc05)
+ - Linter digs deeper into AST (d5194b2)
+ - Added variable flag is_local_scope (adb8a9e)
+ - Added lint expression_in_single_quotes (1bab824)
+ - Added error_subtype to resulting JSON (a7cb230)
+ - Added complex lint exec_attributes (b99d9c5)
+ - Added lint constant_expression_in_condition (5962ecf)
+ - Added support of 'return()' builtin function (0ed0dda)
+ - Added lint unconditional_exec (dbffaf0)
+ - one-line resource printer (d3ab0f5)
+
+*** Bugfixes
+
+ - Issues reported by linter (265a0a5)
+ - Accurate error location, dig deeper into modules (fd3f9ed)
+ - Issues reported by linter (01abe40)
+ - Issues reported by linter (02054e3)
+ - Print correct position of duplicate key in yaml files (68e0e49)
+ - Improved pretty printer of Structs (9c7bb74)
+ - Error message (5345a59)
+ - Dollar escapes are now allowed in single-quoted strings (4141691)
+ - Lint invalid_string_escape (f8306da)
+ - Nested return() value (d72a87f)
+ - Changed unittest to match BUG of official Puppet parser (925dee8)
+ - Bareword pretty printer (d6976ea)
+ - Strings are first-priority key types in resources (31ff689)
+ - Bareword parser (8508f2a)
+ - Split C-style comments by newline (2d2c7b5)
+
+*** Other changes
+
+ - puppet_ast_tool renamed into puppet_tool (cd47e37)
+ - Cleanup (1962950)
+ - Fixed description (a0b1563)
+
+
 ** [2022-03-17] v0.11.0
 
 *** New features
