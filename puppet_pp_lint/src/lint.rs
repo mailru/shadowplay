@@ -123,6 +123,7 @@ pub trait EarlyLintPass: LintPass {
     }
     fn check_resource_collection(
         &self,
+        _ctx: &crate::ctx::Ctx,
         _: &puppet_lang::resource_collection::ResourceCollection<Range>,
     ) -> Vec<LintError> {
         Vec::new()
@@ -201,7 +202,10 @@ impl Storage {
         v.register_early_pass(Box::new(super::lint_resource_set::SelectorInAttributeValue));
         v.register_early_pass(Box::new(super::lint_resource_set::UnconditionalExec));
         v.register_early_pass(Box::new(
-            super::lint_resource_set::InvalidResourceInvocation,
+            super::lint_resource_set::InvalidResourceSetInvocation,
+        ));
+        v.register_early_pass(Box::new(
+            super::lint_resource_set::InvalidResourceCollectionInvocation,
         ));
         v.register_early_pass(Box::new(super::lint_case_statement::EmptyCasesList));
         v.register_early_pass(Box::new(super::lint_case_statement::DefaultCaseIsNotLast));
@@ -889,7 +893,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_resource_collection(elt));
+            errors.append(&mut lint.check_resource_collection(ctx, elt));
         }
 
         errors.append(&mut self.check_type_specification(storage, ctx, &elt.type_specification));
