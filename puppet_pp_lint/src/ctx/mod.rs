@@ -1,4 +1,5 @@
 pub mod builtin_resources;
+pub mod erb_template;
 
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -48,15 +49,19 @@ pub struct NamedBlock {
     pub value: puppet_lang::toplevel::Toplevel<Range>,
 }
 
-type KnownResource = Rc<std::cell::RefCell<HashMap<Vec<String>, Rc<Option<NamedBlock>>>>>;
+type KnownResources = Rc<std::cell::RefCell<HashMap<Vec<String>, Rc<Option<NamedBlock>>>>>;
+type KnownErbTemplates = Rc<
+    std::cell::RefCell<HashMap<std::path::PathBuf, Rc<Option<crate::ctx::erb_template::Template>>>>,
+>;
 
 #[derive(Clone)]
 pub struct Ctx {
     pub repository_path: Rc<std::path::PathBuf>,
-    pub resources: KnownResource,
+    pub resources: KnownResources,
     pub builtin_resources: Rc<HashMap<&'static str, crate::ctx::builtin_resources::Resource>>,
     pub resource_metaparameters: Rc<HashMap<&'static str, Attribute>>,
     pub variables: std::cell::RefCell<HashMap<String, Rc<Variable>>>,
+    pub erb_templates: KnownErbTemplates,
 }
 
 impl Ctx {
@@ -317,6 +322,7 @@ impl Ctx {
             builtin_resources: Rc::new(crate::ctx::builtin_resources::generate()),
             resource_metaparameters: Rc::new(resource_metaparameters),
             variables: RefCell::new(variables),
+            erb_templates: Rc::new(std::cell::RefCell::new(HashMap::new())),
         }
     }
 
@@ -363,8 +369,14 @@ impl Ctx {
                             Some(&v.identifier.name)
                         }
                         puppet_lang::toplevel::ToplevelVariant::Plan(v) => Some(&v.identifier.name),
-                        // TODO
-                        _ => None,
+                        puppet_lang::toplevel::ToplevelVariant::TypeDef(_) => {
+                            // TODO
+                            None
+                        }
+                        puppet_lang::toplevel::ToplevelVariant::FunctionDef(_) => {
+                            // TODO
+                            None
+                        }
                     };
 
                     if let Some(name) = name {
@@ -442,10 +454,6 @@ impl Ctx {
         let _ = variables.insert(argument.name.clone(), Rc::new(Variable::argument(argument)));
     }
 
-    // pub fn has_variable(&self, name: &str) -> bool {
-    //     self.variables.borrow().contains_key(name)
-    // }
-
     pub fn has_variable<EXTRA>(&self, variable: &puppet_lang::expression::Variable<EXTRA>) -> bool {
         // TODO lookup into foreign modules
         if variable.identifier.is_toplevel || variable.identifier.name.len() != 1 {
@@ -455,5 +463,33 @@ impl Ctx {
         let name = variable.identifier.name.first().unwrap();
 
         self.variables.borrow().contains_key(name)
+    }
+
+    pub fn erb_of_path(&self, path: &str) -> Rc<Option<crate::ctx::erb_template::Template>> {
+        let path = std::path::Path::new(path);
+        let mut path_components = path.components();
+
+        let module_name = match path_components.next() {
+            Some(v) => v,
+            None => return Rc::new(None),
+        };
+
+        let full_path = self
+            .repository_path
+            .join("modules")
+            .join(module_name)
+            .join("templates")
+            .join(path_components);
+
+        {
+            if let Some(v) = self.erb_templates.borrow().get(path) {
+                return v.clone();
+            }
+        }
+
+        let template = Rc::new(crate::ctx::erb_template::Template::read(&full_path));
+        let mut erb_templates = self.erb_templates.borrow_mut();
+        let _ = erb_templates.insert(full_path, template.clone());
+        template
     }
 }

@@ -1,5 +1,7 @@
+pub mod ctx;
 pub mod lint;
 mod lint_argument;
+mod lint_builtin;
 mod lint_case_statement;
 mod lint_expression;
 mod lint_resource_set;
@@ -9,4 +11,3 @@ mod lint_term;
 mod lint_toplevel;
 mod lint_unless;
 mod tool;
-pub mod ctx;

@@ -214,6 +214,24 @@ fn parse_return(input: Span) -> IResult<Expression<Range>> {
     )(input)
 }
 
+fn parse_template(input: Span) -> IResult<Expression<Range>> {
+    builtin_variant_parser(
+        "template",
+        |i| {
+            map(crate::expression::parse_expression, |expr| {
+                let range = expr.extra.clone();
+                (expr, Some(range))
+            })(i)
+        },
+        |(comment, _kw, ((arg, range), _lambda), _accessor)| Expression {
+            value: ExpressionVariant::BuiltinFunction(BuiltinVariant::Template(Box::new(arg))),
+            extra: range,
+            comment,
+            accessor: None,
+        },
+    )(input)
+}
+
 fn parse_tag(input: Span) -> IResult<Expression<Range>> {
     builtin_many1(
         "tag",
@@ -292,6 +310,7 @@ pub fn parse_builtin(input: Span) -> IResult<Expression<Range>> {
     alt((
         parse_undef,
         parse_return,
+        parse_template,
         parse_tag,
         parse_require,
         parse_include,

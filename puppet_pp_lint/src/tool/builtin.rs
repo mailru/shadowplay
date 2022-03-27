@@ -6,6 +6,7 @@ pub fn is_constant<EXTRA>(f: &puppet_lang::builtin::BuiltinVariant<EXTRA>) -> bo
         | puppet_lang::builtin::BuiltinVariant::Require(_)
         | puppet_lang::builtin::BuiltinVariant::Include(_)
         | puppet_lang::builtin::BuiltinVariant::Realize(_)
+        | puppet_lang::builtin::BuiltinVariant::Template(_)
         | puppet_lang::builtin::BuiltinVariant::CreateResources(_) => {
             // TODO check lambda statement
             false

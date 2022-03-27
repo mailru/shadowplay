@@ -68,6 +68,7 @@ impl UselessParens {
 impl EarlyLintPass for UselessParens {
     fn check_expression(
         &self,
+        _ctx: &crate::ctx::Ctx,
         is_toplevel_expr: bool,
         elt: &Expression<Range>,
     ) -> Vec<super::lint::LintError> {
@@ -278,6 +279,7 @@ impl LintPass for DoubleNegation {
 impl EarlyLintPass for DoubleNegation {
     fn check_expression(
         &self,
+        _ctx: &crate::ctx::Ctx,
         _is_toplevel_expr: bool,
         elt: &Expression<Range>,
     ) -> Vec<super::lint::LintError> {
@@ -310,6 +312,7 @@ impl LintPass for NegationOfEquation {
 impl EarlyLintPass for NegationOfEquation {
     fn check_expression(
         &self,
+        _ctx: &crate::ctx::Ctx,
         _is_toplevel_expr: bool,
         elt: &Expression<Range>,
     ) -> Vec<super::lint::LintError> {
@@ -401,6 +404,7 @@ impl LintPass for InvalidVariableAssignment {
 impl EarlyLintPass for InvalidVariableAssignment {
     fn check_expression(
         &self,
+        _ctx: &crate::ctx::Ctx,
         _is_toplevel_expr: bool,
         elt: &Expression<Range>,
     ) -> Vec<super::lint::LintError> {

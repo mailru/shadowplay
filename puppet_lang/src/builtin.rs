@@ -11,6 +11,7 @@ pub struct Many1<EXTRA> {
 pub enum BuiltinVariant<EXTRA> {
     Undef,
     Return(Box<Option<Expression<EXTRA>>>),
+    Template(Box<Expression<EXTRA>>),
     Tag(Many1<EXTRA>),
     Require(Many1<EXTRA>),
     Include(Many1<EXTRA>),

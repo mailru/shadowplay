@@ -7,3 +7,4 @@ package.authors = ["Evgenii Lepikhin <e.lepikhin@corp.mail.ru>"]
 puppet-lang = { path = "../puppet_lang" }
 puppet-tool = { path = "../puppet_tool" }
 puppet-parser = { path = "../puppet_parser" }
+nom = "7"

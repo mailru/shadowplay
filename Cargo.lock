@@ -286,6 +286,7 @@ dependencies = [
 name = "puppet-pp-lint"
 version = "0.1.0"
 dependencies = [
+ "nom",
  "puppet-lang",
  "puppet-parser",
  "puppet-tool",

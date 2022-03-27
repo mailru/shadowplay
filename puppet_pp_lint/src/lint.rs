@@ -79,6 +79,7 @@ pub trait EarlyLintPass: LintPass {
     }
     fn check_expression(
         &self,
+        _ctx: &crate::ctx::Ctx,
         _is_toplevel_expr: bool,
         _: &puppet_lang::expression::Expression<Range>,
     ) -> Vec<LintError> {
@@ -179,6 +180,9 @@ impl Storage {
         v.register_early_pass(Box::new(super::lint_expression::NegationOfEquation));
         v.register_early_pass(Box::new(
             super::lint_expression::ConstantExpressionInCondition,
+        ));
+        v.register_early_pass(Box::new(
+            super::lint_builtin::ErbReferencesToUnknownVariable,
         ));
         v.register_early_pass(Box::new(super::lint_string_expr::UselessDoubleQuotes));
         v.register_early_pass(Box::new(super::lint_string_expr::ExpressionInSingleQuotes));
@@ -492,6 +496,9 @@ impl AstLinter {
                     errors.append(&mut self.check_expression(storage, ctx, true, false, arg));
                 }
             }
+            puppet_lang::builtin::BuiltinVariant::Template(arg) => {
+                errors.append(&mut self.check_expression(storage, ctx, true, false, arg));
+            }
         }
 
         errors
@@ -531,7 +538,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_expression(is_toplevel_expr, elt));
+            errors.append(&mut lint.check_expression(ctx, is_toplevel_expr, elt));
         }
 
         use puppet_lang::expression::ExpressionVariant;
