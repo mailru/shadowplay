@@ -65,15 +65,18 @@ impl EarlyLintPass for ErbReferencesToUnknownVariable {
 
         let variables = ctx.variables.borrow();
         for var in &template.referenced_variables {
-            if !variables.contains_key(var) {
-                errors.push(LintError::new(
-                    Box::new(self.clone()),
-                    &format!(
-                        "ERB template references to undefined in this context variable {:?}",
-                        var
-                    ),
-                    &elt.extra,
-                ));
+            match variables.get(var) {
+                None => {
+                    errors.push(LintError::new(
+                        Box::new(self.clone()),
+                        &format!(
+                            "ERB template references to undefined in this context variable {:?}",
+                            var
+                        ),
+                        &elt.extra,
+                    ));
+                }
+                Some(var) => var.incr_use_count(),
             }
         }
 

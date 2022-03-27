@@ -58,15 +58,23 @@ impl EarlyLintPass for ReferenceToUndefinedValue {
             _ => return Vec::new(),
         };
 
-        if !is_assignment && !ctx.has_variable(variable) {
-            return vec![LintError::new(
-                Box::new(self.clone()),
-                &format!(
-                    "Reference to undefined value {:?}",
-                    variable.identifier.name.join("::")
-                ),
-                &elt.extra,
-            )];
+        if !is_assignment && variable.identifier.name.len() == 1 {
+            let varname = variable.identifier.name.first().unwrap();
+            let variables = ctx.variables.borrow();
+
+            match variables.get(varname) {
+                None => {
+                    return vec![LintError::new(
+                        Box::new(self.clone()),
+                        &format!(
+                            "Reference to undefined value {:?}",
+                            variable.identifier.name.join("::")
+                        ),
+                        &elt.extra,
+                    )];
+                }
+                Some(var) => var.incr_use_count(),
+            }
         }
         Vec::new()
     }

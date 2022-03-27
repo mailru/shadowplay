@@ -16,32 +16,44 @@ pub enum VariableVariant {
 }
 
 pub struct Variable {
-    variant: VariableVariant,
+    pub variant: VariableVariant,
+    pub use_count: std::cell::RefCell<usize>,
 }
 
 impl Variable {
     pub fn builtin() -> Self {
         Self {
             variant: VariableVariant::Builtin,
+            use_count: RefCell::new(0),
         }
     }
 
     pub fn phantom() -> Self {
         Self {
             variant: VariableVariant::Phantom,
+            use_count: RefCell::new(0),
         }
     }
 
     pub fn defined(variable: &puppet_lang::expression::Variable<Range>) -> Self {
         Self {
             variant: VariableVariant::Defined(variable.clone()),
+            use_count: RefCell::new(0),
         }
     }
 
     pub fn argument(argument: &puppet_lang::argument::Argument<Range>) -> Self {
         Self {
             variant: VariableVariant::Argument(Box::new(argument.clone())),
+            use_count: RefCell::new(0),
         }
+    }
+}
+
+impl Variable {
+    pub fn incr_use_count(&self) {
+        let mut use_count = self.use_count.borrow_mut();
+        *use_count += 1
     }
 }
 

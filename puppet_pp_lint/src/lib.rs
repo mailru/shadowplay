@@ -3,6 +3,7 @@ pub mod lint;
 mod lint_argument;
 mod lint_builtin;
 mod lint_case_statement;
+mod lint_ctx;
 mod lint_expression;
 mod lint_resource_set;
 mod lint_statement;

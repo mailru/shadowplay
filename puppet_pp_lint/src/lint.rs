@@ -37,10 +37,17 @@ impl LintError {
 }
 
 pub trait EarlyLintPass: LintPass {
-    fn check_toplevel(&self, _: &puppet_lang::toplevel::Toplevel<Range>) -> Vec<LintError> {
+    fn check_toplevel(
+        &self,
+        _ctx: &crate::ctx::Ctx,
+        _: &puppet_lang::toplevel::Toplevel<Range>,
+    ) -> Vec<LintError> {
         Vec::new()
     }
     fn check_class(&self, _: &puppet_lang::toplevel::Class<Range>) -> Vec<LintError> {
+        Vec::new()
+    }
+    fn check_ctx(&self, _ctx: &crate::ctx::Ctx) -> Vec<LintError> {
         Vec::new()
     }
     fn check_definition(&self, _: &puppet_lang::toplevel::Definition<Range>) -> Vec<LintError> {
@@ -218,6 +225,7 @@ impl Storage {
         v.register_early_pass(Box::new(super::lint_statement::StatementWithNoEffect));
         v.register_early_pass(Box::new(super::lint_statement::RelationToTheLeft));
         v.register_early_pass(Box::new(super::lint_string_expr::InvalidStringEscape));
+        v.register_early_pass(Box::new(super::lint_ctx::UnusedVariables));
         v
     }
 
@@ -1089,6 +1097,10 @@ impl AstLinter {
 
         errors.append(&mut self.check_statement_set(storage, &ctx, body));
 
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_ctx(&ctx));
+        }
+
         errors
     }
 
@@ -1228,6 +1240,10 @@ impl AstLinter {
             &elt.body.value,
         ));
 
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_ctx(&ctx));
+        }
+
         errors
     }
 
@@ -1239,25 +1255,26 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
 
-        for lint in storage.early_pass() {
-            errors.append(&mut lint.check_toplevel(elt))
-        }
-        let mut res = match &elt.data {
+        match &elt.data {
             puppet_lang::toplevel::ToplevelVariant::Class(elt) => {
-                self.check_class(storage, ctx, elt)
+                errors.append(&mut self.check_class(storage, ctx, elt))
             }
             puppet_lang::toplevel::ToplevelVariant::Definition(elt) => {
-                self.check_definition(storage, ctx, elt)
+                errors.append(&mut self.check_definition(storage, ctx, elt))
             }
-            puppet_lang::toplevel::ToplevelVariant::Plan(elt) => self.check_plan(storage, ctx, elt),
+            puppet_lang::toplevel::ToplevelVariant::Plan(elt) => {
+                errors.append(&mut self.check_plan(storage, ctx, elt))
+            }
             puppet_lang::toplevel::ToplevelVariant::TypeDef(elt) => {
-                self.check_typedef(storage, ctx, elt)
+                errors.append(&mut self.check_typedef(storage, ctx, elt))
             }
             puppet_lang::toplevel::ToplevelVariant::FunctionDef(elt) => {
-                self.check_functiondef(storage, ctx, elt)
+                errors.append(&mut self.check_functiondef(storage, ctx, elt))
             }
-        };
-        errors.append(&mut res);
+        }
+        for lint in storage.early_pass() {
+            errors.append(&mut lint.check_toplevel(ctx, elt))
+        }
 
         errors
     }
