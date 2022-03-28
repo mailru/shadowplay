@@ -202,8 +202,8 @@ impl<EXTRA> Printer for puppet_lang::statement::RelationType<EXTRA> {
 
 impl<EXTRA> Printer for puppet_lang::statement::Relation<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
-        self.relation_type
-            .to_doc()
+        crate::comment::comment_or(&self.comment, RcDoc::hardline(), RcDoc::nil())
+            .append(self.relation_type.to_doc())
             .append(RcDoc::space())
             .append(self.relation_to.to_doc())
     }
