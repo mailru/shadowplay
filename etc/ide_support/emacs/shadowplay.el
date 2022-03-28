@@ -71,7 +71,7 @@
       (if (executable-find shadowplay-program)
           (put 'shadowplay-program 'has-shadowplay t)
         (error "Seem shadowplay is not installed")))
-  (let ((shadowplay-run-list '("pretty-print")))
+  (let ((shadowplay-run-list '("pretty-print-pp")))
 
     (apply #'call-process-region
            (append (list beg end shadowplay-program t t nil ) shadowplay-run-list)))
