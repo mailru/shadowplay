@@ -12,6 +12,9 @@ impl LintPass for OptionalArgumentsGoesFirst {
     fn name(&self) -> &str {
         "OptionalArgumentsGoesFirst"
     }
+    fn description(&self) -> &str {
+        "Warns if optional argument specified before required"
+    }
 }
 
 impl OptionalArgumentsGoesFirst {
@@ -54,6 +57,9 @@ pub struct UniqueArgumentsNames;
 impl LintPass for UniqueArgumentsNames {
     fn name(&self) -> &str {
         "UniqueArgumentsNames"
+    }
+    fn description(&self) -> &str {
+        "Checks for class/definition/plan arguments uniqueness"
     }
 }
 

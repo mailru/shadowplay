@@ -9,6 +9,9 @@ impl LintPass for UnusedVariables {
     fn name(&self) -> &str {
         "UnusedVariables"
     }
+    fn description(&self) -> &str {
+        "Checks for unused variables"
+    }
 }
 
 impl EarlyLintPass for UnusedVariables {

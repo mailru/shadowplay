@@ -10,6 +10,9 @@ impl LintPass for InvalidStringEscape {
     fn name(&self) -> &str {
         "InvalidStringEscape"
     }
+    fn description(&self) -> &str {
+        "Checks if only allowed characters are escaped in strings"
+    }
 }
 
 impl EarlyLintPass for InvalidStringEscape {
@@ -78,6 +81,9 @@ impl LintPass for UselessDoubleQuotes {
     fn name(&self) -> &str {
         "UselessDoubleQuotes"
     }
+    fn description(&self) -> &str {
+        "Warns if double quoted string has no interpolated expressions and no escaped single quotes"
+    }
 }
 
 impl EarlyLintPass for UselessDoubleQuotes {
@@ -124,6 +130,9 @@ pub struct ExpressionInSingleQuotes;
 impl LintPass for ExpressionInSingleQuotes {
     fn name(&self) -> &str {
         "ExpressionInSingleQuotes"
+    }
+    fn description(&self) -> &str {
+        "Warns if interpolated expression found single-qouted string"
     }
 }
 

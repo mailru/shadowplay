@@ -10,6 +10,9 @@ impl LintPass for EmptyCasesList {
     fn name(&self) -> &str {
         "EmptyCasesList"
     }
+    fn description(&self) -> &str {
+        "Warns if case { ... } has no cases"
+    }
 }
 
 impl EarlyLintPass for EmptyCasesList {
@@ -32,6 +35,9 @@ pub struct DefaultCaseIsNotLast;
 impl LintPass for DefaultCaseIsNotLast {
     fn name(&self) -> &str {
         "DefaultCaseIsNotLast"
+    }
+    fn description(&self) -> &str {
+        "Warns if 'default' case is not the last"
     }
 }
 
@@ -69,6 +75,9 @@ impl LintPass for MultipleDefaultCase {
     fn name(&self) -> &str {
         "MultipleDefaultCase"
     }
+    fn description(&self) -> &str {
+        "Warns if case statement has multiple 'default' cases"
+    }
 }
 
 impl EarlyLintPass for MultipleDefaultCase {
@@ -105,6 +114,9 @@ pub struct NoDefaultCase;
 impl LintPass for NoDefaultCase {
     fn name(&self) -> &str {
         "NoDefaultCase"
+    }
+    fn description(&self) -> &str {
+        "Warns if case statement has no default case"
     }
 }
 

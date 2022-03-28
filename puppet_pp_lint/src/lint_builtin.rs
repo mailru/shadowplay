@@ -16,6 +16,9 @@ impl LintPass for ErbReferencesToUnknownVariable {
     fn name(&self) -> &str {
         "ErbReferencesToUnknownVariable"
     }
+    fn description(&self) -> &str {
+        "Checks ERB templates specified in template() for undefined variables"
+    }
 }
 
 impl EarlyLintPass for ErbReferencesToUnknownVariable {

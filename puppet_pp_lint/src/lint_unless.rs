@@ -10,6 +10,9 @@ impl LintPass for DoNotUseUnless {
     fn name(&self) -> &str {
         "DoNotUseUnless"
     }
+    fn description(&self) -> &str {
+        "Warns if 'unless' conditional statement is used"
+    }
 }
 
 impl EarlyLintPass for DoNotUseUnless {

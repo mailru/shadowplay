@@ -20,6 +20,10 @@ impl LintPass for ArgumentLooksSensitive {
     fn name(&self) -> &str {
         "ArgumentLooksSensitive"
     }
+
+    fn description(&self) -> &str {
+        "Warns if argument name looks like sensitive, but argument is not typed with type Sensitive"
+    }
 }
 
 impl EarlyLintPass for ArgumentLooksSensitive {
@@ -62,6 +66,9 @@ impl LintPass for SensitiveArgumentWithDefault {
     fn name(&self) -> &str {
         "SensitiveArgumentWithDefault"
     }
+    fn description(&self) -> &str {
+        "Warns if argument typed with Sensitive contains default value"
+    }
 }
 
 impl EarlyLintPass for SensitiveArgumentWithDefault {
@@ -92,6 +99,10 @@ pub struct ArgumentTyped;
 impl LintPass for ArgumentTyped {
     fn name(&self) -> &str {
         "ArgumentTyped"
+    }
+
+    fn description(&self) -> &str {
+        "Warns if argument is not typed"
     }
 }
 
@@ -128,6 +139,10 @@ impl LintPass for ReadableArgumentsName {
     fn name(&self) -> &str {
         "ReadableArgumentsName"
     }
+
+    fn description(&self) -> &str {
+        "Warns if argument name is not readable enough"
+    }
 }
 
 impl EarlyLintPass for ReadableArgumentsName {
@@ -152,6 +167,10 @@ pub struct LowerCaseArgumentName;
 impl LintPass for LowerCaseArgumentName {
     fn name(&self) -> &str {
         "LowerCaseArgumentName"
+    }
+
+    fn description(&self) -> &str {
+        "Warns if argument name is not lowercase, as suggested by Puppet's style guide"
     }
 }
 

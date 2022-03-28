@@ -11,6 +11,9 @@ impl LintPass for StatementWithNoEffect {
     fn name(&self) -> &str {
         "StatementWithNoEffect"
     }
+    fn description(&self) -> &str {
+        "Checks for statements without side effects"
+    }
 }
 
 impl EarlyLintPass for StatementWithNoEffect {
@@ -40,6 +43,9 @@ pub struct RelationToTheLeft;
 impl LintPass for RelationToTheLeft {
     fn name(&self) -> &str {
         "RelationToTheLeft"
+    }
+    fn description(&self) -> &str {
+        "Checks for left-directed relations"
     }
 }
 

@@ -10,6 +10,10 @@ impl LintPass for UpperCaseName {
     fn name(&self) -> &str {
         "UpperCaseName"
     }
+
+    fn description(&self) -> &str {
+        "Warns if resource set used with uppercase letters"
+    }
 }
 
 impl EarlyLintPass for UpperCaseName {
@@ -40,6 +44,10 @@ pub struct UniqueAttributeName;
 impl LintPass for UniqueAttributeName {
     fn name(&self) -> &str {
         "UniqueAttributeName"
+    }
+
+    fn description(&self) -> &str {
+        "Resource attributes must be unique"
     }
 }
 
@@ -80,6 +88,9 @@ impl LintPass for EnsureAttributeIsNotTheFirst {
     fn name(&self) -> &str {
         "EnsureAttributeIsNotTheFirst"
     }
+    fn description(&self) -> &str {
+        "Warns if 'ensure' argument of resource is not the first"
+    }
 }
 
 impl EarlyLintPass for EnsureAttributeIsNotTheFirst {
@@ -117,6 +128,9 @@ pub struct FileModeAttributeIsString;
 impl LintPass for FileModeAttributeIsString {
     fn name(&self) -> &str {
         "FileModeAttributeIsString"
+    }
+    fn description(&self) -> &str {
+        "Warns if argument 'mode' of 'file' resource is not in 4-digit string form"
     }
 }
 
@@ -227,6 +241,9 @@ impl LintPass for MultipleResourcesWithoutDefault {
     fn name(&self) -> &str {
         "MultipleResourcesWithoutDefault"
     }
+    fn description(&self) -> &str {
+        "Warns if resource set contains multiple resources and no defaults specified"
+    }
 }
 
 impl EarlyLintPass for MultipleResourcesWithoutDefault {
@@ -275,6 +292,9 @@ impl LintPass for SelectorInAttributeValue {
     fn name(&self) -> &str {
         "SelectorInAttributeValue"
     }
+    fn description(&self) -> &str {
+        "Warns if selector (... ? ... : ...) used in resource attribute"
+    }
 }
 
 impl EarlyLintPass for SelectorInAttributeValue {
@@ -314,6 +334,9 @@ pub struct UnconditionalExec;
 impl LintPass for UnconditionalExec {
     fn name(&self) -> &str {
         "UnconditionalExec"
+    }
+    fn description(&self) -> &str {
+        "Warns if exec { ... } is specified without unless, onlyif, creates or refreshonly attributes"
     }
 }
 
@@ -363,6 +386,9 @@ pub struct ExecAttributes;
 impl LintPass for ExecAttributes {
     fn name(&self) -> &str {
         "ExecAttributes"
+    }
+    fn description(&self) -> &str {
+        "Checks exec { ...} arguments"
     }
 }
 
@@ -487,6 +513,9 @@ impl LintPass for PerExpressionResourceDefaults {
     fn name(&self) -> &str {
         "PerExpressionResourceDefaults"
     }
+    fn description(&self) -> &str {
+        "Warns if local resource defaults are used"
+    }
 }
 
 impl EarlyLintPass for PerExpressionResourceDefaults {
@@ -596,6 +625,9 @@ impl LintPass for InvalidResourceSetInvocation {
     fn name(&self) -> &str {
         "InvalidResourceSetInvocation"
     }
+    fn description(&self) -> &str {
+        "Checks if existing resource is used and all arguments are known in it's class"
+    }
 }
 
 impl EarlyLintPass for InvalidResourceSetInvocation {
@@ -677,6 +709,9 @@ pub struct InvalidResourceCollectionInvocation;
 impl LintPass for InvalidResourceCollectionInvocation {
     fn name(&self) -> &str {
         "InvalidResourceCollectionInvocation"
+    }
+    fn description(&self) -> &str {
+        "Checks if existing resource set is used and all arguments are known in it's class"
     }
 }
 

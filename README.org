@@ -1,0 +1,190 @@
+* About
+
+Shadowplay is a utility for checking puppet syntax, a puppet manifest linter, a pretty printer, and a utility for exploring the Hiera.
+
+* Usage
+
+** Correctness of YAML files
+
+#+BEGIN_SRC bash
+shadowplay check yaml hieradata/default.yaml [hieradata/another.yaml] ...
+#+END_SRC
+
+
+In addition to the correctness of the syntax, the uniqueness of the keys in maps will be checked, as well as the correctness of the links
+(anchors).
+
+** Validity of Hiera YAML files
+
+#+BEGIN_SRC bash
+shadowplay check hiera hieradata/default.yaml ...
+#+END_SRC
+
+For the specified files, YAML correctness will be checked, as well as the correctness of references to Puppet classes and class arguments.
+For example, there will be an error generated if an unknown class argument is used.
+
+As a side effect, it also checks the correctness of syntax of pappet manifests referenced by values ​​in Hiera.
+
+** Linter of Puppet manifest files
+
+#+BEGIN_SRC bash
+shadowplay check pp modules/hammer/manifests/config.pp ...
+#+END_SRC
+
+The specified files will be processed by the parser, then linter checks will be applied to the resulting AST (if parsing is successful).
+
+** Pretty printing manifest file
+
+#+BEGIN_SRC bash
+shadowplay pretty-print < /path/to/file.pp
+#+END_SRC
+
+* Available lints for *.pp
+
+** ArgumentLooksSensitive
+
+Warns if argument name looks like sensitive, but argument is not typed with type Sensitive
+
+** ArgumentTyped
+
+Warns if argument is not typed
+
+** ConstantExpressionInCondition
+
+Warns if constant expression is used in condition
+
+** DefaultCaseIsNotLast
+
+Warns if 'default' case is not the last
+
+** DoNotUseUnless
+
+Warns if 'unless' conditional statement is used
+
+** DoubleNegation
+
+Warns if double negation is used
+
+** EmptyCasesList
+
+Warns if case { ... } has no cases
+
+** EnsureAttributeIsNotTheFirst
+
+Warns if 'ensure' argument of resource is not the first
+
+** ErbReferencesToUnknownVariable
+
+Checks ERB templates specified in template() for undefined variables
+
+** ExecAttributes
+
+Checks exec { ...} arguments
+
+** ExpressionInSingleQuotes
+
+Warns if interpolated expression found single-qouted string
+
+** FileModeAttributeIsString
+
+Warns if argument 'mode' of 'file' resource is not in 4-digit string form
+
+** InvalidResourceCollectionInvocation
+
+Checks if existing resource set is used and all arguments are known in it's class
+
+** InvalidResourceSetInvocation
+
+Checks if existing resource is used and all arguments are known in it's class
+
+** InvalidStringEscape
+
+Checks if only allowed characters are escaped in strings
+
+** InvalidVariableAssignment
+
+Warns if left part of assignment is not a variable or array of variables
+
+** LowerCaseArgumentName
+
+Warns if argument name is not lowercase, as suggested by Puppet's style guide
+
+** LowerCaseVariable
+
+Warns if variable name is not lowercase
+
+** MultipleDefaultCase
+
+Warns if case statement has multiple 'default' cases
+
+** MultipleResourcesWithoutDefault
+
+Warns if resource set contains multiple resources and no defaults specified
+
+** NegationOfEquation
+
+Warns on negation of equation
+
+** NoDefaultCase
+
+Warns if case statement has no default case
+
+** OptionalArgumentsGoesFirst
+
+Warns if optional argument specified before required
+
+** PerExpressionResourceDefaults
+
+Warns if local resource defaults are used
+
+** ReadableArgumentsName
+
+Warns if argument name is not readable enough
+
+** ReferenceToUndefinedValue
+
+Warns if variable is not defined in current context
+
+** RelationToTheLeft
+
+Checks for left-directed relations
+
+** SelectorInAttributeValue
+
+Warns if selector (... ? ... : ...) used in resource attribute
+
+** SensitiveArgumentWithDefault
+
+Warns if argument typed with Sensitive contains default value
+
+** StatementWithNoEffect
+
+Checks for statements without side effects
+
+** UnconditionalExec
+
+Warns if exec { ... } is specified without unless, onlyif, creates or refreshonly attributes
+
+** UniqueArgumentsNames
+
+Checks for class/definition/plan arguments uniqueness
+
+** UniqueAttributeName
+
+Resource attributes must be unique
+
+** UnusedVariables
+
+Checks for unused variables
+
+** UpperCaseName
+
+Warns if resource set used with uppercase letters
+
+** UselessDoubleQuotes
+
+Warns if double quoted string has no interpolated expressions and no escaped single quotes
+
+** UselessParens
+
+Checks for extra parens

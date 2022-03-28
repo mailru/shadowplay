@@ -10,6 +10,9 @@ impl LintPass for LowerCaseVariable {
     fn name(&self) -> &str {
         "LowerCaseVariable"
     }
+    fn description(&self) -> &str {
+        "Warns if variable name is not lowercase"
+    }
 }
 
 impl EarlyLintPass for LowerCaseVariable {
@@ -44,6 +47,9 @@ pub struct ReferenceToUndefinedValue;
 impl LintPass for ReferenceToUndefinedValue {
     fn name(&self) -> &str {
         "ReferenceToUndefinedValue"
+    }
+    fn description(&self) -> &str {
+        "Warns if variable is not defined in current context"
     }
 }
 

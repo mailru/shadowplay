@@ -13,6 +13,9 @@ impl LintPass for UselessParens {
     fn name(&self) -> &str {
         "UselessParens"
     }
+    fn description(&self) -> &str {
+        "Checks for extra parens"
+    }
 }
 
 impl UselessParens {
@@ -275,6 +278,9 @@ impl LintPass for DoubleNegation {
     fn name(&self) -> &str {
         "DoubleNegation"
     }
+    fn description(&self) -> &str {
+        "Warns if double negation is used"
+    }
 }
 
 impl EarlyLintPass for DoubleNegation {
@@ -307,6 +313,9 @@ pub struct NegationOfEquation;
 impl LintPass for NegationOfEquation {
     fn name(&self) -> &str {
         "NegationOfEquation"
+    }
+    fn description(&self) -> &str {
+        "Warns on negation of equation"
     }
 }
 
@@ -377,6 +386,9 @@ impl LintPass for ConstantExpressionInCondition {
     fn name(&self) -> &str {
         "ConstantExpressionInCondition"
     }
+    fn description(&self) -> &str {
+        "Warns if constant expression is used in condition"
+    }
 }
 
 impl EarlyLintPass for ConstantExpressionInCondition {
@@ -399,6 +411,9 @@ pub struct InvalidVariableAssignment;
 impl LintPass for InvalidVariableAssignment {
     fn name(&self) -> &str {
         "InvalidVariableAssignment"
+    }
+    fn description(&self) -> &str {
+        "Warns if left part of assignment is not a variable or array of variables"
     }
 }
 

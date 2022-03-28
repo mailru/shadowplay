@@ -152,11 +152,13 @@ pub enum Query {
     /// Checks subcommand
     Check(Check),
     /// Pretty printing subcommand
-    PrettyPrint(PrettyPrint),
+    PrettyPrintPp(PrettyPrint),
     /// Dump *.pp files
     Dump(Dump),
     /// Generates default config
     GenerateConfig,
+    /// Prints list of available PP lints
+    PrintPpLints,
 }
 
 #[derive(Debug, StructOpt)]
@@ -460,6 +462,16 @@ impl Check {
     }
 }
 
+fn print_pp_lints() {
+    let mut lints = puppet_pp_lint::lint::Storage::default()
+        .early_pass()
+        .to_vec();
+    lints.sort_by(|a, b| a.inner().name().cmp(b.inner().name()));
+    for lint in lints {
+        println!("{}: {}", lint.inner().name(), lint.inner().description())
+    }
+}
+
 fn main() {
     env_logger::init();
 
@@ -473,7 +485,7 @@ fn main() {
         Query::Get(v) => v.get(&opt.repo_path),
         Query::Dump(v) => v.dump(),
         Query::Check(v) => v.check(&opt.repo_path, config),
-        Query::PrettyPrint(v) => v.pretty_print(),
+        Query::PrettyPrintPp(v) => v.pretty_print(),
         Query::GenerateConfig => {
             print!(
                 "Below is default configuration. Save it to {}\n\n{}",
@@ -481,5 +493,6 @@ fn main() {
                 serde_yaml::to_string(&crate::config::Config::default()).unwrap()
             )
         }
+        Query::PrintPpLints => print_pp_lints(),
     }
 }

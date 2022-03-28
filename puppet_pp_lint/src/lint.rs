@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 pub trait LintPass {
     fn name(&self) -> &str;
+    fn description(&self) -> &str;
 }
 
 // #[derive(Clone)]
