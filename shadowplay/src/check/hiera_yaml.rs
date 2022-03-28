@@ -91,44 +91,36 @@ impl Check {
 
         let mut class = None;
 
-        if let Some(elt) = ast.data.value.into_iter().next() {
-            match elt.value {
-                puppet_lang::statement::StatementVariant::Toplevel(
-                    puppet_lang::toplevel::Toplevel {
-                        data: ToplevelVariant::Class(v),
-                        ..
-                    },
-                ) => {
-                    if v.identifier.name != puppet_module.identifier() {
-                        return vec![error::Error::from((
-                            yaml_path,
-                            error::Type::Hiera,
-                            format!(
-                                "Reference to puppet file {:?} which toplevel class does not match module name",
-                                puppet_module.file_path(),
-                            )
-                            .as_str(),
-                            yaml_marker,
-                        ))];
-                    }
-                    class = Some(v)
-                }
-                _ => {
-                    return vec![error::Error::from((
-                        yaml_path,
-                        error::Type::Hiera,
-                        format!(
-                            "Reference to puppet file {:?} which toplevel expression is not a class",
-                            puppet_module.file_path(),
-                        )
-                        .as_str(),
-                        yaml_marker,
-                    ))];
+        for elt in ast.data.value.into_iter() {
+            if let puppet_lang::statement::StatementVariant::Toplevel(
+                puppet_lang::toplevel::Toplevel {
+                    data: ToplevelVariant::Class(v),
+                    ..
+                },
+            ) = elt.value
+            {
+                if v.identifier.name == puppet_module.identifier() {
+                    class = Some(v);
+                    break;
                 }
             }
         }
 
-        let class = class.unwrap();
+        let class = match class {
+            None => {
+                return vec![error::Error::from((
+                    yaml_path,
+                    error::Type::Hiera,
+                    format!(
+                        "Reference to class {:?} which cannot be found in modules",
+                        puppet_module.identifier()
+                    )
+                    .as_str(),
+                    yaml_marker,
+                ))]
+            }
+            Some(v) => v,
+        };
 
         let _class_argument = match class.get_argument(argument) {
             None => {
