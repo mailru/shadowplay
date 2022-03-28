@@ -9,6 +9,7 @@ pub struct Check {
 impl Check {
     pub fn check_file(
         &self,
+        config: &crate::config::Config,
         ctx: &mut puppet_pp_lint::ctx::Ctx,
         _repo_path: &std::path::Path,
         file_path: &std::path::Path,
@@ -39,12 +40,11 @@ impl Check {
             Ok(v) => v,
         };
 
-        let linter_storage = puppet_pp_lint::lint::Storage::new();
         let linter = puppet_pp_lint::lint::AstLinter;
 
         let mut errors = Vec::new();
         for statement in &ast.data.value {
-            errors.append(&mut linter.check_statement(&linter_storage, ctx, statement));
+            errors.append(&mut linter.check_statement(&config.checks.pp, ctx, statement));
         }
 
         errors
@@ -56,14 +56,14 @@ impl Check {
     pub fn check(
         &self,
         repo_path: &std::path::Path,
-        _config: &crate::config::Config,
+        config: &crate::config::Config,
         format: &error::OutputFormat,
     ) -> crate::check::Summary {
         let mut ctx = puppet_pp_lint::ctx::Ctx::new(repo_path);
 
         let mut errors = 0;
         for file_path in &self.paths {
-            let file_errors = self.check_file(&mut ctx, repo_path, file_path);
+            let file_errors = self.check_file(config, &mut ctx, repo_path, file_path);
             for err in &file_errors {
                 println!("{}", err.output(format))
             }

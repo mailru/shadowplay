@@ -1,11 +1,12 @@
 use puppet_lang::expression::{Expression, ExpressionVariant, Parens, Term, TermVariant};
 use puppet_parser::range::Range;
+use serde::{Deserialize, Serialize};
 
 use crate::lint::LintError;
 
 use super::lint::{EarlyLintPass, LintPass};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct UselessParens;
 
 impl LintPass for UselessParens {
@@ -267,7 +268,7 @@ impl EarlyLintPass for UselessParens {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct DoubleNegation;
 
 impl LintPass for DoubleNegation {
@@ -300,7 +301,7 @@ impl EarlyLintPass for DoubleNegation {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct NegationOfEquation;
 
 impl LintPass for NegationOfEquation {
@@ -369,7 +370,7 @@ impl EarlyLintPass for NegationOfEquation {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ConstantExpressionInCondition;
 
 impl LintPass for ConstantExpressionInCondition {
@@ -392,7 +393,7 @@ impl EarlyLintPass for ConstantExpressionInCondition {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct InvalidVariableAssignment;
 
 impl LintPass for InvalidVariableAssignment {

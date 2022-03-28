@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use crate::lint::{EarlyLintPass, LintError, LintPass};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct UnusedVariables;
 
 impl LintPass for UnusedVariables {

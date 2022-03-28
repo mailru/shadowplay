@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use puppet_parser::range::Range;
+use serde::{Deserialize, Serialize};
 
 use super::lint::{EarlyLintPass, LintError, LintPass};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct OptionalArgumentsGoesFirst;
 
 impl LintPass for OptionalArgumentsGoesFirst {
@@ -47,7 +48,7 @@ impl EarlyLintPass for OptionalArgumentsGoesFirst {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct UniqueArgumentsNames;
 
 impl LintPass for UniqueArgumentsNames {

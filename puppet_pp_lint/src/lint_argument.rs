@@ -1,9 +1,20 @@
 use puppet_parser::range::Range;
+use serde::{Deserialize, Serialize};
 
 use crate::lint::{EarlyLintPass, LintError, LintPass};
 
-#[derive(Clone)]
-pub struct ArgumentLooksSensitive;
+#[derive(Clone, Serialize, Deserialize)]
+pub struct ArgumentLooksSensitive {
+    #[serde(with = "serde_regex")]
+    regex: regex::Regex,
+}
+
+impl Default for ArgumentLooksSensitive {
+    fn default() -> Self {
+        let regex = regex::Regex::new("(:?passw|secret$|token$)").unwrap();
+        Self { regex }
+    }
+}
 
 impl LintPass for ArgumentLooksSensitive {
     fn name(&self) -> &str {
@@ -17,7 +28,7 @@ impl EarlyLintPass for ArgumentLooksSensitive {
         arg: &puppet_lang::argument::Argument<Range>,
     ) -> Vec<super::lint::LintError> {
         let lc_name = arg.name.to_lowercase();
-        if lc_name.contains("passw") || lc_name.ends_with("secret") || lc_name.ends_with("token") {
+        if self.regex.is_match(&lc_name) {
             match &arg.type_spec {
                 None => vec![LintError::new(
                     Box::new(self.clone()),
@@ -44,7 +55,7 @@ impl EarlyLintPass for ArgumentLooksSensitive {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct SensitiveArgumentWithDefault;
 
 impl LintPass for SensitiveArgumentWithDefault {
@@ -75,7 +86,7 @@ impl EarlyLintPass for SensitiveArgumentWithDefault {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ArgumentTyped;
 
 impl LintPass for ArgumentTyped {
@@ -100,8 +111,18 @@ impl EarlyLintPass for ArgumentTyped {
     }
 }
 
-#[derive(Clone)]
-pub struct ReadableArgumentsName;
+#[derive(Clone, Serialize, Deserialize)]
+pub struct ReadableArgumentsName {
+    #[serde(with = "serde_regex")]
+    regex: regex::Regex,
+}
+
+impl Default for ReadableArgumentsName {
+    fn default() -> Self {
+        let regex = regex::Regex::new("^.$").unwrap();
+        Self { regex }
+    }
+}
 
 impl LintPass for ReadableArgumentsName {
     fn name(&self) -> &str {
@@ -114,7 +135,7 @@ impl EarlyLintPass for ReadableArgumentsName {
         &self,
         arg: &puppet_lang::argument::Argument<Range>,
     ) -> Vec<super::lint::LintError> {
-        if arg.name.len() < 2 {
+        if self.regex.is_match(&arg.name) {
             return vec![LintError::new(
                 Box::new(self.clone()),
                 &format!("Argument '{}' name is too short", arg.name),
@@ -125,7 +146,7 @@ impl EarlyLintPass for ReadableArgumentsName {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct LowerCaseArgumentName;
 
 impl LintPass for LowerCaseArgumentName {

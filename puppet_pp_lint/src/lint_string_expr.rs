@@ -1,8 +1,9 @@
 use puppet_parser::range::Range;
+use serde::{Deserialize, Serialize};
 
 use crate::lint::{EarlyLintPass, LintError, LintPass};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct InvalidStringEscape;
 
 impl LintPass for InvalidStringEscape {
@@ -70,7 +71,7 @@ impl EarlyLintPass for InvalidStringEscape {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct UselessDoubleQuotes;
 
 impl LintPass for UselessDoubleQuotes {
@@ -117,7 +118,7 @@ impl EarlyLintPass for UselessDoubleQuotes {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ExpressionInSingleQuotes;
 
 impl LintPass for ExpressionInSingleQuotes {

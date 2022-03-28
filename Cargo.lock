@@ -290,6 +290,9 @@ dependencies = [
  "puppet-lang",
  "puppet-parser",
  "puppet-tool",
+ "regex",
+ "serde",
+ "serde_regex",
 ]
 
 [[package]]
@@ -368,6 +371,16 @@ checksum = "8e8d9fa5c3b304765ce1fd9c4c8a3de2c8db365a5b91be52f186efc675681d95"
 dependencies = [
  "itoa",
  "ryu",
+ "serde",
+]
+
+[[package]]
+name = "serde_regex"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8136f1a4ea815d7eac4101cfd0b16dc0cb5e1fe1b8609dfd728058656b7badf"
+dependencies = [
+ "regex",
  "serde",
 ]
 

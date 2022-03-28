@@ -1,8 +1,9 @@
 use puppet_parser::range::Range;
+use serde::{Deserialize, Serialize};
 
 use crate::lint::{EarlyLintPass, LintError, LintPass};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct UpperCaseName;
 
 impl LintPass for UpperCaseName {
@@ -33,7 +34,7 @@ impl EarlyLintPass for UpperCaseName {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct UniqueAttributeName;
 
 impl LintPass for UniqueAttributeName {
@@ -72,7 +73,7 @@ impl EarlyLintPass for UniqueAttributeName {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct EnsureAttributeIsNotTheFirst;
 
 impl LintPass for EnsureAttributeIsNotTheFirst {
@@ -110,7 +111,7 @@ impl EarlyLintPass for EnsureAttributeIsNotTheFirst {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct FileModeAttributeIsString;
 
 impl LintPass for FileModeAttributeIsString {
@@ -219,7 +220,7 @@ impl EarlyLintPass for FileModeAttributeIsString {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct MultipleResourcesWithoutDefault;
 
 impl LintPass for MultipleResourcesWithoutDefault {
@@ -267,7 +268,7 @@ impl EarlyLintPass for MultipleResourcesWithoutDefault {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct SelectorInAttributeValue;
 
 impl LintPass for SelectorInAttributeValue {
@@ -307,7 +308,7 @@ impl EarlyLintPass for SelectorInAttributeValue {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct UnconditionalExec;
 
 impl LintPass for UnconditionalExec {
@@ -356,7 +357,7 @@ impl EarlyLintPass for UnconditionalExec {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ExecAttributes;
 
 impl LintPass for ExecAttributes {
@@ -479,7 +480,7 @@ impl EarlyLintPass for ExecAttributes {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct PerExpressionResourceDefaults;
 
 impl LintPass for PerExpressionResourceDefaults {
@@ -588,7 +589,7 @@ fn check_defined_resource_invocation<LINTER>(
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct InvalidResourceSetInvocation;
 
 impl LintPass for InvalidResourceSetInvocation {
@@ -670,7 +671,7 @@ impl EarlyLintPass for InvalidResourceSetInvocation {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct InvalidResourceCollectionInvocation;
 
 impl LintPass for InvalidResourceCollectionInvocation {

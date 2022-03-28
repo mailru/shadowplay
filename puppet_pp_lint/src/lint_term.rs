@@ -1,8 +1,9 @@
 use puppet_parser::range::Range;
+use serde::{Deserialize, Serialize};
 
 use crate::lint::{EarlyLintPass, LintError, LintPass};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct LowerCaseVariable;
 
 impl LintPass for LowerCaseVariable {
@@ -37,7 +38,7 @@ impl EarlyLintPass for LowerCaseVariable {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ReferenceToUndefinedValue;
 
 impl LintPass for ReferenceToUndefinedValue {

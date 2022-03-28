@@ -1,4 +1,5 @@
 use puppet_parser::range::Range;
+use serde::{Deserialize, Serialize};
 
 pub trait LintPass {
     fn name(&self) -> &str;
@@ -153,84 +154,226 @@ pub trait EarlyLintPass: LintPass {
     }
 }
 
-#[derive(Default)]
+#[derive(Deserialize, Clone, Serialize)]
+pub enum EarlyLintPassVariant {
+    OptionalArgumentsGoesFirst(crate::lint_toplevel::OptionalArgumentsGoesFirst),
+    UniqueArgumentsNames(crate::lint_toplevel::UniqueArgumentsNames),
+    ArgumentLooksSensitive(crate::lint_argument::ArgumentLooksSensitive),
+    SensitiveArgumentWithDefault(crate::lint_argument::SensitiveArgumentWithDefault),
+    ArgumentTyped(crate::lint_argument::ArgumentTyped),
+    ReadableArgumentsName(crate::lint_argument::ReadableArgumentsName),
+    LowerCaseArgumentName(crate::lint_argument::LowerCaseArgumentName),
+    DoNotUseUnless(crate::lint_unless::DoNotUseUnless),
+    UselessParens(crate::lint_expression::UselessParens),
+    InvalidVariableAssignment(crate::lint_expression::InvalidVariableAssignment),
+    DoubleNegation(crate::lint_expression::DoubleNegation),
+    NegationOfEquation(crate::lint_expression::NegationOfEquation),
+    ConstantExpressionInCondition(crate::lint_expression::ConstantExpressionInCondition),
+    ErbReferencesToUnknownVariable(crate::lint_builtin::ErbReferencesToUnknownVariable),
+    UselessDoubleQuotes(crate::lint_string_expr::UselessDoubleQuotes),
+    ExpressionInSingleQuotes(crate::lint_string_expr::ExpressionInSingleQuotes),
+    LowerCaseVariable(crate::lint_term::LowerCaseVariable),
+    ReferenceToUndefinedValue(crate::lint_term::ReferenceToUndefinedValue),
+    UpperCaseName(crate::lint_resource_set::UpperCaseName),
+    UniqueAttributeName(crate::lint_resource_set::UniqueAttributeName),
+    FileModeAttributeIsString(crate::lint_resource_set::FileModeAttributeIsString),
+    EnsureAttributeIsNotTheFirst(crate::lint_resource_set::EnsureAttributeIsNotTheFirst),
+    MultipleResourcesWithoutDefault(crate::lint_resource_set::MultipleResourcesWithoutDefault),
+    PerExpressionResourceDefaults(crate::lint_resource_set::PerExpressionResourceDefaults),
+    ExecAttributes(crate::lint_resource_set::ExecAttributes),
+    SelectorInAttributeValue(crate::lint_resource_set::SelectorInAttributeValue),
+    UnconditionalExec(crate::lint_resource_set::UnconditionalExec),
+    InvalidResourceSetInvocation(crate::lint_resource_set::InvalidResourceSetInvocation),
+    InvalidResourceCollectionInvocation(
+        crate::lint_resource_set::InvalidResourceCollectionInvocation,
+    ),
+    EmptyCasesList(crate::lint_case_statement::EmptyCasesList),
+    DefaultCaseIsNotLast(crate::lint_case_statement::DefaultCaseIsNotLast),
+    MultipleDefaultCase(crate::lint_case_statement::MultipleDefaultCase),
+    NoDefaultCase(crate::lint_case_statement::NoDefaultCase),
+    StatementWithNoEffect(crate::lint_statement::StatementWithNoEffect),
+    RelationToTheLeft(crate::lint_statement::RelationToTheLeft),
+    InvalidStringEscape(crate::lint_string_expr::InvalidStringEscape),
+    UnusedVariables(crate::lint_ctx::UnusedVariables),
+}
+
+impl EarlyLintPassVariant {
+    pub fn inner(&self) -> Box<&dyn EarlyLintPass> {
+        match self {
+            EarlyLintPassVariant::OptionalArgumentsGoesFirst(v) => Box::new(v),
+            EarlyLintPassVariant::UniqueArgumentsNames(v) => Box::new(v),
+            EarlyLintPassVariant::ArgumentLooksSensitive(v) => Box::new(v),
+            EarlyLintPassVariant::SensitiveArgumentWithDefault(v) => Box::new(v),
+            EarlyLintPassVariant::ArgumentTyped(v) => Box::new(v),
+            EarlyLintPassVariant::ReadableArgumentsName(v) => Box::new(v),
+            EarlyLintPassVariant::LowerCaseArgumentName(v) => Box::new(v),
+            EarlyLintPassVariant::DoNotUseUnless(v) => Box::new(v),
+            EarlyLintPassVariant::UselessParens(v) => Box::new(v),
+            EarlyLintPassVariant::InvalidVariableAssignment(v) => Box::new(v),
+            EarlyLintPassVariant::DoubleNegation(v) => Box::new(v),
+            EarlyLintPassVariant::NegationOfEquation(v) => Box::new(v),
+            EarlyLintPassVariant::ConstantExpressionInCondition(v) => Box::new(v),
+            EarlyLintPassVariant::ErbReferencesToUnknownVariable(v) => Box::new(v),
+            EarlyLintPassVariant::UselessDoubleQuotes(v) => Box::new(v),
+            EarlyLintPassVariant::ExpressionInSingleQuotes(v) => Box::new(v),
+            EarlyLintPassVariant::LowerCaseVariable(v) => Box::new(v),
+            EarlyLintPassVariant::ReferenceToUndefinedValue(v) => Box::new(v),
+            EarlyLintPassVariant::UpperCaseName(v) => Box::new(v),
+            EarlyLintPassVariant::UniqueAttributeName(v) => Box::new(v),
+            EarlyLintPassVariant::FileModeAttributeIsString(v) => Box::new(v),
+            EarlyLintPassVariant::EnsureAttributeIsNotTheFirst(v) => Box::new(v),
+            EarlyLintPassVariant::MultipleResourcesWithoutDefault(v) => Box::new(v),
+            EarlyLintPassVariant::PerExpressionResourceDefaults(v) => Box::new(v),
+            EarlyLintPassVariant::ExecAttributes(v) => Box::new(v),
+            EarlyLintPassVariant::SelectorInAttributeValue(v) => Box::new(v),
+            EarlyLintPassVariant::UnconditionalExec(v) => Box::new(v),
+            EarlyLintPassVariant::InvalidResourceSetInvocation(v) => Box::new(v),
+            EarlyLintPassVariant::InvalidResourceCollectionInvocation(v) => Box::new(v),
+            EarlyLintPassVariant::EmptyCasesList(v) => Box::new(v),
+            EarlyLintPassVariant::DefaultCaseIsNotLast(v) => Box::new(v),
+            EarlyLintPassVariant::MultipleDefaultCase(v) => Box::new(v),
+            EarlyLintPassVariant::NoDefaultCase(v) => Box::new(v),
+            EarlyLintPassVariant::StatementWithNoEffect(v) => Box::new(v),
+            EarlyLintPassVariant::RelationToTheLeft(v) => Box::new(v),
+            EarlyLintPassVariant::InvalidStringEscape(v) => Box::new(v),
+            EarlyLintPassVariant::UnusedVariables(v) => Box::new(v),
+        }
+    }
+}
+
+#[derive(Deserialize, Clone, Serialize)]
 pub struct Storage {
-    early_pass: Vec<Box<dyn EarlyLintPass>>,
+    early_pass: Vec<EarlyLintPassVariant>,
 }
 
 impl Storage {
-    pub fn register_early_pass(&mut self, lint: Box<dyn EarlyLintPass>) {
-        if self
-            .early_pass
-            .iter()
-            .any(|registered| registered.name() == lint.name())
-        {
-            panic!("Lint {:?} already registered", lint.name())
-        }
-        self.early_pass.push(lint)
+    pub fn register_early_pass(&mut self, lint: EarlyLintPassVariant) {
+        self.early_pass.push(lint);
     }
 
-    pub fn new() -> Self {
-        let mut v = Self::default();
+    pub fn early_pass(&self) -> &[EarlyLintPassVariant] {
+        &self.early_pass
+    }
+}
 
-        v.register_early_pass(Box::new(super::lint_toplevel::OptionalArgumentsGoesFirst));
-        v.register_early_pass(Box::new(super::lint_toplevel::UniqueArgumentsNames));
-        v.register_early_pass(Box::new(super::lint_argument::ArgumentLooksSensitive));
-        v.register_early_pass(Box::new(super::lint_argument::SensitiveArgumentWithDefault));
-        v.register_early_pass(Box::new(super::lint_argument::ArgumentTyped));
-        v.register_early_pass(Box::new(super::lint_argument::ReadableArgumentsName));
-        v.register_early_pass(Box::new(super::lint_argument::LowerCaseArgumentName));
-        v.register_early_pass(Box::new(super::lint_unless::DoNotUseUnless));
-        v.register_early_pass(Box::new(super::lint_expression::UselessParens));
-        v.register_early_pass(Box::new(super::lint_expression::InvalidVariableAssignment));
-        v.register_early_pass(Box::new(super::lint_expression::DoubleNegation));
-        v.register_early_pass(Box::new(super::lint_expression::NegationOfEquation));
-        v.register_early_pass(Box::new(
+impl Default for Storage {
+    fn default() -> Self {
+        let mut v = Self {
+            early_pass: Vec::new(),
+        };
+
+        v.register_early_pass(EarlyLintPassVariant::OptionalArgumentsGoesFirst(
+            super::lint_toplevel::OptionalArgumentsGoesFirst,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::UniqueArgumentsNames(
+            super::lint_toplevel::UniqueArgumentsNames,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::ArgumentLooksSensitive(
+            super::lint_argument::ArgumentLooksSensitive::default(),
+        ));
+        v.register_early_pass(EarlyLintPassVariant::SensitiveArgumentWithDefault(
+            super::lint_argument::SensitiveArgumentWithDefault,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::ArgumentTyped(
+            super::lint_argument::ArgumentTyped,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::ReadableArgumentsName(
+            super::lint_argument::ReadableArgumentsName::default(),
+        ));
+        v.register_early_pass(EarlyLintPassVariant::LowerCaseArgumentName(
+            super::lint_argument::LowerCaseArgumentName,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::DoNotUseUnless(
+            super::lint_unless::DoNotUseUnless,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::UselessParens(
+            super::lint_expression::UselessParens,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::InvalidVariableAssignment(
+            super::lint_expression::InvalidVariableAssignment,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::DoubleNegation(
+            super::lint_expression::DoubleNegation,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::NegationOfEquation(
+            super::lint_expression::NegationOfEquation,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::ConstantExpressionInCondition(
             super::lint_expression::ConstantExpressionInCondition,
         ));
-        v.register_early_pass(Box::new(
+        v.register_early_pass(EarlyLintPassVariant::ErbReferencesToUnknownVariable(
             super::lint_builtin::ErbReferencesToUnknownVariable,
         ));
-        v.register_early_pass(Box::new(super::lint_string_expr::UselessDoubleQuotes));
-        v.register_early_pass(Box::new(super::lint_string_expr::ExpressionInSingleQuotes));
-        v.register_early_pass(Box::new(super::lint_term::LowerCaseVariable));
-        v.register_early_pass(Box::new(super::lint_term::ReferenceToUndefinedValue));
-        v.register_early_pass(Box::new(super::lint_resource_set::UpperCaseName));
-        v.register_early_pass(Box::new(super::lint_resource_set::UniqueAttributeName));
-        v.register_early_pass(Box::new(
+        v.register_early_pass(EarlyLintPassVariant::UselessDoubleQuotes(
+            super::lint_string_expr::UselessDoubleQuotes,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::ExpressionInSingleQuotes(
+            super::lint_string_expr::ExpressionInSingleQuotes,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::LowerCaseVariable(
+            super::lint_term::LowerCaseVariable,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::ReferenceToUndefinedValue(
+            super::lint_term::ReferenceToUndefinedValue,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::UpperCaseName(
+            super::lint_resource_set::UpperCaseName,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::UniqueAttributeName(
+            super::lint_resource_set::UniqueAttributeName,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::FileModeAttributeIsString(
             super::lint_resource_set::FileModeAttributeIsString,
         ));
-        v.register_early_pass(Box::new(
+        v.register_early_pass(EarlyLintPassVariant::EnsureAttributeIsNotTheFirst(
             super::lint_resource_set::EnsureAttributeIsNotTheFirst,
         ));
-        v.register_early_pass(Box::new(
+        v.register_early_pass(EarlyLintPassVariant::MultipleResourcesWithoutDefault(
             super::lint_resource_set::MultipleResourcesWithoutDefault,
         ));
-        v.register_early_pass(Box::new(
+        v.register_early_pass(EarlyLintPassVariant::PerExpressionResourceDefaults(
             super::lint_resource_set::PerExpressionResourceDefaults,
         ));
-        v.register_early_pass(Box::new(super::lint_resource_set::ExecAttributes));
-        v.register_early_pass(Box::new(super::lint_resource_set::SelectorInAttributeValue));
-        v.register_early_pass(Box::new(super::lint_resource_set::UnconditionalExec));
-        v.register_early_pass(Box::new(
+        v.register_early_pass(EarlyLintPassVariant::ExecAttributes(
+            super::lint_resource_set::ExecAttributes,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::SelectorInAttributeValue(
+            super::lint_resource_set::SelectorInAttributeValue,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::UnconditionalExec(
+            super::lint_resource_set::UnconditionalExec,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::InvalidResourceSetInvocation(
             super::lint_resource_set::InvalidResourceSetInvocation,
         ));
-        v.register_early_pass(Box::new(
+        v.register_early_pass(EarlyLintPassVariant::InvalidResourceCollectionInvocation(
             super::lint_resource_set::InvalidResourceCollectionInvocation,
         ));
-        v.register_early_pass(Box::new(super::lint_case_statement::EmptyCasesList));
-        v.register_early_pass(Box::new(super::lint_case_statement::DefaultCaseIsNotLast));
-        v.register_early_pass(Box::new(super::lint_case_statement::MultipleDefaultCase));
-        v.register_early_pass(Box::new(super::lint_case_statement::NoDefaultCase));
-        v.register_early_pass(Box::new(super::lint_statement::StatementWithNoEffect));
-        v.register_early_pass(Box::new(super::lint_statement::RelationToTheLeft));
-        v.register_early_pass(Box::new(super::lint_string_expr::InvalidStringEscape));
-        v.register_early_pass(Box::new(super::lint_ctx::UnusedVariables));
+        v.register_early_pass(EarlyLintPassVariant::EmptyCasesList(
+            super::lint_case_statement::EmptyCasesList,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::DefaultCaseIsNotLast(
+            super::lint_case_statement::DefaultCaseIsNotLast,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::MultipleDefaultCase(
+            super::lint_case_statement::MultipleDefaultCase,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::NoDefaultCase(
+            super::lint_case_statement::NoDefaultCase,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::StatementWithNoEffect(
+            super::lint_statement::StatementWithNoEffect,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::RelationToTheLeft(
+            super::lint_statement::RelationToTheLeft,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::InvalidStringEscape(
+            super::lint_string_expr::InvalidStringEscape,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::UnusedVariables(
+            super::lint_ctx::UnusedVariables,
+        ));
         v
-    }
-
-    pub fn early_pass(&self) -> &[Box<dyn EarlyLintPass>] {
-        &self.early_pass
     }
 }
 
@@ -245,7 +388,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_string_expression(elt));
+            errors.append(&mut lint.inner().check_string_expression(elt));
         }
 
         if let puppet_lang::string::StringVariant::DoubleQuoted(s) = &elt.data {
@@ -423,7 +566,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_term(ctx, is_assignment, elt));
+            errors.append(&mut lint.inner().check_term(ctx, is_assignment, elt));
         }
 
         match &elt.value {
@@ -546,7 +689,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_expression(ctx, is_toplevel_expr, elt));
+            errors.append(&mut lint.inner().check_expression(ctx, is_toplevel_expr, elt));
         }
 
         use puppet_lang::expression::ExpressionVariant;
@@ -792,8 +935,8 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_unless(elt));
-            errors.append(&mut lint.check_condition_expression(&elt.condition));
+            errors.append(&mut lint.inner().check_unless(elt));
+            errors.append(&mut lint.inner().check_condition_expression(&elt.condition));
         }
 
         errors.append(&mut self.check_expression(storage, ctx, true, false, &elt.condition));
@@ -811,7 +954,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_condition_expression(elt));
+            errors.append(&mut lint.inner().check_condition_expression(elt));
         }
 
         errors
@@ -825,7 +968,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_if_else(elt));
+            errors.append(&mut lint.inner().check_if_else(elt));
         }
         errors.append(&mut self.check_condition_expression(storage, ctx, &elt.condition.condition));
 
@@ -878,7 +1021,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_resource_set(ctx, elt));
+            errors.append(&mut lint.inner().check_resource_set(ctx, elt));
         }
 
         for resource in &elt.list.value {
@@ -908,7 +1051,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_resource_collection(ctx, elt));
+            errors.append(&mut lint.inner().check_resource_collection(ctx, elt));
         }
 
         errors.append(&mut self.check_type_specification(storage, ctx, &elt.type_specification));
@@ -924,7 +1067,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_relation_elt(elt));
+            errors.append(&mut lint.inner().check_relation_elt(elt));
         }
 
         for elt in &elt.data.value {
@@ -950,7 +1093,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_relation(prev, elt));
+            errors.append(&mut lint.inner().check_relation(prev, elt));
         }
 
         errors.append(&mut self.check_relation_list(storage, ctx, elt.relation_to.as_ref()));
@@ -966,7 +1109,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_relation_list(elt));
+            errors.append(&mut lint.inner().check_relation_list(elt));
         }
 
         errors.append(&mut self.check_relation_elt(storage, ctx, &elt.head));
@@ -986,7 +1129,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_case_statement(elt));
+            errors.append(&mut lint.inner().check_case_statement(elt));
         }
         errors.append(&mut self.check_condition_expression(storage, ctx, &elt.condition));
         errors.append(&mut self.check_expression(storage, ctx, true, false, &elt.condition));
@@ -1018,7 +1161,7 @@ impl AstLinter {
             errors.append(&mut self.check_statement(storage, ctx, statement));
         }
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_statement_set(ctx, list));
+            errors.append(&mut lint.inner().check_statement_set(ctx, list));
         }
 
         errors
@@ -1032,7 +1175,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_deprecated_resource_defaults(elt));
+            errors.append(&mut lint.inner().check_deprecated_resource_defaults(elt));
             for (k, v) in &elt.args.value {
                 errors.append(&mut self.check_term(storage, ctx, false, k));
                 errors.append(&mut self.check_expression(storage, ctx, true, false, v));
@@ -1050,7 +1193,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_statement(statement));
+            errors.append(&mut lint.inner().check_statement(statement));
         }
 
         use puppet_lang::statement::StatementVariant;
@@ -1098,7 +1241,7 @@ impl AstLinter {
         errors.append(&mut self.check_statement_set(storage, &ctx, body));
 
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_ctx(&ctx));
+            errors.append(&mut lint.inner().check_ctx(&ctx));
         }
 
         errors
@@ -1112,7 +1255,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_class(elt));
+            errors.append(&mut lint.inner().check_class(elt));
         }
         errors.append(&mut self.check_toplevel_variant(
             storage,
@@ -1132,7 +1275,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_argument(elt));
+            errors.append(&mut lint.inner().check_argument(elt));
         }
         if let Some(type_spec) = &elt.type_spec {
             errors.append(&mut self.check_type_specification(storage, ctx, type_spec));
@@ -1173,7 +1316,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_definition(elt));
+            errors.append(&mut lint.inner().check_definition(elt));
         }
 
         errors.append(&mut self.check_toplevel_variant(
@@ -1194,7 +1337,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_plan(elt));
+            errors.append(&mut lint.inner().check_plan(elt));
         }
 
         errors.append(&mut self.check_toplevel_variant(
@@ -1215,7 +1358,7 @@ impl AstLinter {
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_typedef(elt));
+            errors.append(&mut lint.inner().check_typedef(elt));
         }
 
         errors
@@ -1230,7 +1373,7 @@ impl AstLinter {
         let ctx = ctx.new_scope();
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_functiondef(elt));
+            errors.append(&mut lint.inner().check_functiondef(elt));
         }
 
         errors.append(&mut self.check_toplevel_variant(
@@ -1241,7 +1384,7 @@ impl AstLinter {
         ));
 
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_ctx(&ctx));
+            errors.append(&mut lint.inner().check_ctx(&ctx));
         }
 
         errors
@@ -1273,7 +1416,7 @@ impl AstLinter {
             }
         }
         for lint in storage.early_pass() {
-            errors.append(&mut lint.check_toplevel(ctx, elt))
+            errors.append(&mut lint.inner().check_toplevel(ctx, elt))
         }
 
         errors

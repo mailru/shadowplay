@@ -8,3 +8,6 @@ puppet-lang = { path = "../puppet_lang" }
 puppet-tool = { path = "../puppet_tool" }
 puppet-parser = { path = "../puppet_parser" }
 nom = "7"
+serde = { version = "1.0", features = ["derive"] }
+regex = "1.5"
+serde_regex = "1.1"

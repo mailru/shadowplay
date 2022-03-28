@@ -1,8 +1,9 @@
 use puppet_parser::range::Range;
+use serde::{Deserialize, Serialize};
 
 use crate::lint::{EarlyLintPass, LintError, LintPass};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct DoNotUseUnless;
 
 impl LintPass for DoNotUseUnless {

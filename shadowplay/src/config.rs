@@ -12,6 +12,7 @@ pub struct ChecksHieraYaml {
 #[derive(Deserialize, Clone, Default, Serialize)]
 pub struct Checks {
     pub hiera_yaml: ChecksHieraYaml,
+    pub pp: puppet_pp_lint::lint::Storage,
 }
 
 #[derive(Deserialize, Clone, Default, Serialize)]

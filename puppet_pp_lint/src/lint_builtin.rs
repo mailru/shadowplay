@@ -3,12 +3,13 @@ use puppet_lang::{
     expression::{ExpressionVariant, TermVariant},
 };
 use puppet_parser::range::Range;
+use serde::{Deserialize, Serialize};
 
 use crate::lint::LintError;
 
 use super::lint::{EarlyLintPass, LintPass};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ErbReferencesToUnknownVariable;
 
 impl LintPass for ErbReferencesToUnknownVariable {

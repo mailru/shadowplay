@@ -1,8 +1,9 @@
 use puppet_parser::range::Range;
+use serde::{Deserialize, Serialize};
 
 use crate::lint::{EarlyLintPass, LintError, LintPass};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct EmptyCasesList;
 
 impl LintPass for EmptyCasesList {
@@ -25,7 +26,7 @@ impl EarlyLintPass for EmptyCasesList {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct DefaultCaseIsNotLast;
 
 impl LintPass for DefaultCaseIsNotLast {
@@ -61,7 +62,7 @@ impl EarlyLintPass for DefaultCaseIsNotLast {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct MultipleDefaultCase;
 
 impl LintPass for MultipleDefaultCase {
@@ -98,7 +99,7 @@ impl EarlyLintPass for MultipleDefaultCase {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct NoDefaultCase;
 
 impl LintPass for NoDefaultCase {

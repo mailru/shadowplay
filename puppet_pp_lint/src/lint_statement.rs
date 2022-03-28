@@ -1,9 +1,10 @@
 use puppet_parser::range::Range;
+use serde::{Deserialize, Serialize};
 
 use crate::lint::{EarlyLintPass, LintError, LintPass};
 use puppet_lang::ExtraGetter;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct StatementWithNoEffect;
 
 impl LintPass for StatementWithNoEffect {
@@ -33,7 +34,7 @@ impl EarlyLintPass for StatementWithNoEffect {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct RelationToTheLeft;
 
 impl LintPass for RelationToTheLeft {
