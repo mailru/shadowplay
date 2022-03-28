@@ -13,7 +13,7 @@ pub struct ErbReferencesToUnknownVariable;
 
 impl LintPass for ErbReferencesToUnknownVariable {
     fn name(&self) -> &str {
-        "erb_references_to_unknown_variable"
+        "ErbReferencesToUnknownVariable"
     }
 }
 

@@ -7,7 +7,7 @@ pub struct LowerCaseVariable;
 
 impl LintPass for LowerCaseVariable {
     fn name(&self) -> &str {
-        "lower_case_variable"
+        "LowerCaseVariable"
     }
 }
 
@@ -42,7 +42,7 @@ pub struct ReferenceToUndefinedValue;
 
 impl LintPass for ReferenceToUndefinedValue {
     fn name(&self) -> &str {
-        "reference_to_undefined_value"
+        "ReferenceToUndefinedValue"
     }
 }
 

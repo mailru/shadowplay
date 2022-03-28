@@ -7,7 +7,7 @@ pub struct UpperCaseName;
 
 impl LintPass for UpperCaseName {
     fn name(&self) -> &str {
-        "upper_case_name_of_resource_set"
+        "UpperCaseName"
     }
 }
 
@@ -38,7 +38,7 @@ pub struct UniqueAttributeName;
 
 impl LintPass for UniqueAttributeName {
     fn name(&self) -> &str {
-        "unique_attribute_name"
+        "UniqueAttributeName"
     }
 }
 
@@ -77,7 +77,7 @@ pub struct EnsureAttributeIsNotTheFirst;
 
 impl LintPass for EnsureAttributeIsNotTheFirst {
     fn name(&self) -> &str {
-        "ensure_attribute_is_not_the_first"
+        "EnsureAttributeIsNotTheFirst"
     }
 }
 
@@ -115,7 +115,7 @@ pub struct FileModeAttributeIsString;
 
 impl LintPass for FileModeAttributeIsString {
     fn name(&self) -> &str {
-        "file_mode_attribute_is_string"
+        "FileModeAttributeIsString"
     }
 }
 
@@ -224,7 +224,7 @@ pub struct MultipleResourcesWithoutDefault;
 
 impl LintPass for MultipleResourcesWithoutDefault {
     fn name(&self) -> &str {
-        "multiple_resources_without_default"
+        "MultipleResourcesWithoutDefault"
     }
 }
 
@@ -272,7 +272,7 @@ pub struct SelectorInAttributeValue;
 
 impl LintPass for SelectorInAttributeValue {
     fn name(&self) -> &str {
-        "selector_in_attribute_value"
+        "SelectorInAttributeValue"
     }
 }
 
@@ -312,7 +312,7 @@ pub struct UnconditionalExec;
 
 impl LintPass for UnconditionalExec {
     fn name(&self) -> &str {
-        "unconditional_exec"
+        "UnconditionalExec"
     }
 }
 
@@ -361,7 +361,7 @@ pub struct ExecAttributes;
 
 impl LintPass for ExecAttributes {
     fn name(&self) -> &str {
-        "exec_attributes"
+        "ExecAttributes"
     }
 }
 
@@ -484,7 +484,7 @@ pub struct PerExpressionResourceDefaults;
 
 impl LintPass for PerExpressionResourceDefaults {
     fn name(&self) -> &str {
-        "per_expression_resource_defaults"
+        "PerExpressionResourceDefaults"
     }
 }
 
@@ -593,7 +593,7 @@ pub struct InvalidResourceSetInvocation;
 
 impl LintPass for InvalidResourceSetInvocation {
     fn name(&self) -> &str {
-        "invalid_resource_set_invocation"
+        "InvalidResourceSetInvocation"
     }
 }
 
@@ -675,7 +675,7 @@ pub struct InvalidResourceCollectionInvocation;
 
 impl LintPass for InvalidResourceCollectionInvocation {
     fn name(&self) -> &str {
-        "invalid_resource_collection_invocation"
+        "InvalidResourceCollectionInvocation"
     }
 }
 

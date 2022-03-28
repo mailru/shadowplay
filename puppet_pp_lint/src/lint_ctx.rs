@@ -5,7 +5,7 @@ pub struct UnusedVariables;
 
 impl LintPass for UnusedVariables {
     fn name(&self) -> &str {
-        "unused_variables"
+        "UnusedVariables"
     }
 }
 

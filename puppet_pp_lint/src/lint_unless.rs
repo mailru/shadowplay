@@ -7,7 +7,7 @@ pub struct DoNotUseUnless;
 
 impl LintPass for DoNotUseUnless {
     fn name(&self) -> &str {
-        "dont_use_unless"
+        "DoNotUseUnless"
     }
 }
 

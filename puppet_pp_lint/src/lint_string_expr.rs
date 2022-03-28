@@ -7,7 +7,7 @@ pub struct InvalidStringEscape;
 
 impl LintPass for InvalidStringEscape {
     fn name(&self) -> &str {
-        "invalid_string_escape"
+        "InvalidStringEscape"
     }
 }
 
@@ -75,7 +75,7 @@ pub struct UselessDoubleQuotes;
 
 impl LintPass for UselessDoubleQuotes {
     fn name(&self) -> &str {
-        "useless_double_quotes"
+        "UselessDoubleQuotes"
     }
 }
 
@@ -122,7 +122,7 @@ pub struct ExpressionInSingleQuotes;
 
 impl LintPass for ExpressionInSingleQuotes {
     fn name(&self) -> &str {
-        "expression_in_single_quotes"
+        "ExpressionInSingleQuotes"
     }
 }
 

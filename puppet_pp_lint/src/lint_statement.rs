@@ -8,12 +8,11 @@ pub struct StatementWithNoEffect;
 
 impl LintPass for StatementWithNoEffect {
     fn name(&self) -> &str {
-        "statement_with_no_side_effects"
+        "StatementWithNoEffect"
     }
 }
 
 impl EarlyLintPass for StatementWithNoEffect {
-    // TODO сделать менее наивную реализацию, с сохранением в EXTRA состояния
     fn check_statement_set(
         &self,
         _ctx: &crate::ctx::Ctx,
@@ -39,7 +38,7 @@ pub struct RelationToTheLeft;
 
 impl LintPass for RelationToTheLeft {
     fn name(&self) -> &str {
-        "relation_to_the_left"
+        "RelationToTheLeft"
     }
 }
 

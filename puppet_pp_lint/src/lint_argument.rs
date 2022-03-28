@@ -7,7 +7,7 @@ pub struct ArgumentLooksSensitive;
 
 impl LintPass for ArgumentLooksSensitive {
     fn name(&self) -> &str {
-        "argument_looks_sensitive"
+        "ArgumentLooksSensitive"
     }
 }
 
@@ -49,7 +49,7 @@ pub struct SensitiveArgumentWithDefault;
 
 impl LintPass for SensitiveArgumentWithDefault {
     fn name(&self) -> &str {
-        "sensitive_argument_with_default"
+        "SensitiveArgumentWithDefault"
     }
 }
 
@@ -80,7 +80,7 @@ pub struct ArgumentTyped;
 
 impl LintPass for ArgumentTyped {
     fn name(&self) -> &str {
-        "argument_typed"
+        "ArgumentTyped"
     }
 }
 
@@ -105,7 +105,7 @@ pub struct ReadableArgumentsName;
 
 impl LintPass for ReadableArgumentsName {
     fn name(&self) -> &str {
-        "readable_argument_name"
+        "ReadableArgumentsName"
     }
 }
 
@@ -130,7 +130,7 @@ pub struct LowerCaseArgumentName;
 
 impl LintPass for LowerCaseArgumentName {
     fn name(&self) -> &str {
-        "lower_case_argument_name"
+        "LowerCaseArgumentName"
     }
 }
 

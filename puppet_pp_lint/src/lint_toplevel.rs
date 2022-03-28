@@ -9,7 +9,7 @@ pub struct OptionalArgumentsGoesFirst;
 
 impl LintPass for OptionalArgumentsGoesFirst {
     fn name(&self) -> &str {
-        "optional_arguments_goes_first"
+        "OptionalArgumentsGoesFirst"
     }
 }
 
@@ -52,7 +52,7 @@ pub struct UniqueArgumentsNames;
 
 impl LintPass for UniqueArgumentsNames {
     fn name(&self) -> &str {
-        "unique_arguments_names"
+        "UniqueArgumentsNames"
     }
 }
 

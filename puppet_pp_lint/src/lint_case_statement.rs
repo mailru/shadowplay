@@ -7,7 +7,7 @@ pub struct EmptyCasesList;
 
 impl LintPass for EmptyCasesList {
     fn name(&self) -> &str {
-        "empty_cases_last"
+        "EmptyCasesList"
     }
 }
 
@@ -30,7 +30,7 @@ pub struct DefaultCaseIsNotLast;
 
 impl LintPass for DefaultCaseIsNotLast {
     fn name(&self) -> &str {
-        "default_case_is_not_last"
+        "DefaultCaseIsNotLast"
     }
 }
 
@@ -66,7 +66,7 @@ pub struct MultipleDefaultCase;
 
 impl LintPass for MultipleDefaultCase {
     fn name(&self) -> &str {
-        "multiple_default_cases"
+        "MultipleDefaultCase"
     }
 }
 
@@ -103,7 +103,7 @@ pub struct NoDefaultCase;
 
 impl LintPass for NoDefaultCase {
     fn name(&self) -> &str {
-        "no_default_case"
+        "NoDefaultCase"
     }
 }
 

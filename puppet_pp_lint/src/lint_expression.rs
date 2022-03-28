@@ -10,7 +10,7 @@ pub struct UselessParens;
 
 impl LintPass for UselessParens {
     fn name(&self) -> &str {
-        "useless_parens_expr"
+        "UselessParens"
     }
 }
 
@@ -272,7 +272,7 @@ pub struct DoubleNegation;
 
 impl LintPass for DoubleNegation {
     fn name(&self) -> &str {
-        "double_negation"
+        "DoubleNegation"
     }
 }
 
@@ -305,7 +305,7 @@ pub struct NegationOfEquation;
 
 impl LintPass for NegationOfEquation {
     fn name(&self) -> &str {
-        "negation_of_equation"
+        "NegationOfEquation"
     }
 }
 
@@ -374,7 +374,7 @@ pub struct ConstantExpressionInCondition;
 
 impl LintPass for ConstantExpressionInCondition {
     fn name(&self) -> &str {
-        "constant_expression_in_condition"
+        "ConstantExpressionInCondition"
     }
 }
 
@@ -397,7 +397,7 @@ pub struct InvalidVariableAssignment;
 
 impl LintPass for InvalidVariableAssignment {
     fn name(&self) -> &str {
-        "invalid_variable_assignment"
+        "InvalidVariableAssignment"
     }
 }
 
