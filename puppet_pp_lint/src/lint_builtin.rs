@@ -58,7 +58,11 @@ impl EarlyLintPass for ErbReferencesToUnknownVariable {
         let template: &crate::ctx::erb_template::Template = if let Some(v) = _template.as_ref() {
             v
         } else {
-            return Vec::new();
+            return vec![LintError::new(
+                Box::new(self.clone()),
+                &format!("ERB template {:?} does not exists for failed to parse", arg),
+                &elt.extra,
+            )];
         };
 
         let mut errors = Vec::new();
