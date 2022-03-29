@@ -171,8 +171,7 @@ It's often useful to read regexes from configuration file.")
     (version version)
     (source (git-checkout
              (url "https://github.com/mailru/shadowplay")
-             (commit "d2849f3dcdd54bb3b99a8be4b0f98fc721695d40")))
-             ;; (commit (string-append "v" version))))
+             (commit (string-append "v" version))))
     (build-system cargo-build-system)
     (arguments
      `(
@@ -209,8 +208,6 @@ It's often useful to read regexes from configuration file.")
 utility for exploring the Hiera.")
     (license (list license:expat license:asl2.0))))
 
-(define-public shadowplay-0.14.0 (make-shadowplay "0.14.0"))
+(define-public shadowplay-0.15.0 (make-shadowplay "0.15.0"))
 
-(define-public shadowplay shadowplay-0.14.0)
-
-shadowplay
+(define-public shadowplay shadowplay-0.15.0)
