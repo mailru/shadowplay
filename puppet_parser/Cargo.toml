@@ -6,7 +6,7 @@ package.license = "MIT/Apache-2.0"
 
 [dependencies]
 puppet-lang = { path = "../puppet_lang", version = "0" }
-puppet-tool = { path = "../puppet_tool" }
+puppet-tool = { path = "../puppet_tool", version = "0" }
 regex = "1"
 lazy_static = "1"
 nom = "7"
