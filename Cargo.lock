@@ -263,55 +263,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "puppet-lang"
-version = "0.1.0"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "puppet-parser"
-version = "0.1.0"
-dependencies = [
- "lazy_static",
- "nom",
- "nom_locate",
- "puppet-lang",
- "puppet-tool",
- "regex",
- "serde",
-]
-
-[[package]]
-name = "puppet-pp-lint"
-version = "0.1.0"
-dependencies = [
- "nom",
- "puppet-lang",
- "puppet-parser",
- "puppet-tool",
- "regex",
- "serde",
- "serde_regex",
-]
-
-[[package]]
-name = "puppet-pp-printer"
-version = "0.1.0"
-dependencies = [
- "pretty",
- "puppet-lang",
- "puppet-parser",
-]
-
-[[package]]
-name = "puppet-tool"
-version = "0.1.0"
-dependencies = [
- "puppet-lang",
-]
-
-[[package]]
 name = "quote"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -417,14 +368,11 @@ dependencies = [
  "log",
  "nom",
  "nom_locate",
- "puppet-lang",
- "puppet-parser",
- "puppet-pp-lint",
- "puppet-pp-printer",
- "puppet-tool",
+ "pretty",
  "regex",
  "serde",
  "serde_json",
+ "serde_regex",
  "serde_yaml",
  "structopt",
  "yaml-rust",

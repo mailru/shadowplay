@@ -1,16 +1,33 @@
+package.name = "shadowplay"
+package.version = "0.1.0"
+package.edition = "2021"
+package.authors = ["Evgenii Lepikhin <e.lepikhin@corp.mail.ru>", "VK Company / mail.ru"]
+package.readme = "../README.md"
+package.license = "MIT/Apache-2.0"
 
 [profile.release]
 
 # https://github.com/johnthagen/min-sized-rust
 lto = true
 
-[workspace]
-  
-members = [
-        "puppet_lang"
-        , "puppet_tool"
-        , "puppet_parser"
-        , "puppet_pp_lint"
-        , "puppet_pp_printer"
-        , "shadowplay"
-]
+[[bin]]
+name = "shadowplay"
+path = "src/shadowplay/main.rs"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+regex = "1.5"
+serde_regex = "1.1"
+serde_yaml = "*"
+serde_json = "*"
+nom = "7"
+nom_locate = "4"
+pretty = {version = "0.11", features = [ "termcolor" ] }
+yaml-rust = "0"
+located_yaml = "0.2.1"
+linked-hash-map = {version = "0", features = ["serde_impl"] }
+anyhow = "1"
+lazy_static = "1"
+log = "*"
+env_logger = "*"
+structopt = "0"

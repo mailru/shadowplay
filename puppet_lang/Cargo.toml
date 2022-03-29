@@ -1,8 +1,0 @@
-package.name = "puppet-lang"
-package.version = "0.1.0"
-package.edition = "2021"
-package.authors = ["Evgenii Lepikhin <e.lepikhin@corp.mail.ru>", "VK Company / mail.ru"]
-package.license = "MIT/Apache-2.0"
-
-[dependencies]
-serde = { version = "1.0", features = ["derive"] }
