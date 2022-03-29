@@ -5,7 +5,7 @@ package.authors = ["Evgenii Lepikhin <e.lepikhin@corp.mail.ru>", "VK Company / m
 package.license = "MIT/Apache-2.0"
 
 [dependencies]
-puppet-lang = { path = "../puppet_lang" }
+puppet-lang = { path = "../puppet_lang", version = "0" }
 puppet-tool = { path = "../puppet_tool" }
 regex = "1"
 lazy_static = "1"
