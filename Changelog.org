@@ -1,4 +1,20 @@
 * Changelog
+** [2022-03-29] v0.15.0
+
+*** New features
+
+ - Added manifest for Guix (3fd15b8)
+
+*** Bugfixes
+
+ - Bumped version in Guix manifest (4f75f11)
+ - Added versions for local deps (8d67974)
+
+*** Other changes
+
+ - Glued subprojects into one (d2849f3)
+
+
 ** [2022-03-29] v0.14.0
 
 *** New features
