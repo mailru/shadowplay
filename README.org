@@ -2,6 +2,9 @@
 
 Shadowplay is a utility for checking puppet syntax, a puppet manifest linter, a pretty printer, and a utility for exploring the Hiera.
 
+#+CAPTION: Flycheck plugin for Emacs
+[[./doc/screenshot-emacs.png]]
+
 * Usage
 
 ** Correctness of YAML files
@@ -28,7 +31,7 @@ As a side effect, it also checks the correctness of syntax of pappet manifests r
 ** Linter of Puppet manifest files
 
 #+BEGIN_SRC bash
-shadowplay check pp modules/hammer/manifests/config.pp ...
+shadowplay --repo-path ./ check pp modules/hammer/manifests/config.pp ...
 #+END_SRC
 
 The specified files will be processed by the parser, then linter checks will be applied to the resulting AST (if parsing is successful).
@@ -36,8 +39,44 @@ The specified files will be processed by the parser, then linter checks will be 
 ** Pretty printing manifest file
 
 #+BEGIN_SRC bash
-shadowplay pretty-print < /path/to/file.pp
+shadowplay pretty-print-pp < /path/to/file.pp
 #+END_SRC
+
+** Config file generator
+
+Use may want to disable some lints or customize it. She can generate default config and edit it later with the command:
+
+#+BEGIN_SRC bash
+shadowplay generate-config >/etc/shadowplay.yaml
+#+END_SRC
+
+** Hiera explorer
+
+Hiera is hierarchy of yaml files. In huge configurations it may be difficult to determine value of specific key for some host. Shadowplay
+provides easy solution.
+
+#+BEGIN_SRC bash
+shadowplay get host123 sshd::install::version
+#+END_SRC
+
+Command prints as much information as possible:
+
+#+BEGIN_EXAMPLE
+Value: "present"
+Found in "./hieradata/default_CentOS7.yaml" at lines 63:63
+Value lookup path was: network/host123.yaml -> host123.yaml -> host.yaml -> default_CentOS7.yaml
+===================================
+Git information:
+deadbeef1234 (Evgenii Lepikhin 2022-03-29 15:06:51 +0300 63) sshd::install::version:             'present'
+#+END_EXAMPLE
+
+** *.pp AST dumper
+
+#+BEGIN_SRC bash
+shadowplay dump modules/sshd/manifests/install.pp
+#+END_SRC
+
+Outputs AST in JSON format. Mainly for internal purposes.
 
 * Available lints for *.pp
 
@@ -88,7 +127,13 @@ Warns if constant expression is used in condition
 Bad:
 
 #+BEGIN_SRC puppet
-if 1 == 2 { }
+if 1 == 2 - 1 { notify('1=2-1') }
+#+END_SRC
+
+Such type of conditions always evaluated into constant false or true, thus can be safely removed. Good:
+
+#+BEGIN_SRC puppet
+notify('1=2-1')
 #+END_SRC
 
 ** DefaultCaseIsNotLast
@@ -105,6 +150,16 @@ case $value {
 }
 #+END_SRC
 
+Good:
+
+#+BEGIN_SRC puppet
+case $value {
+  'a': { }
+  'b': { }
+  default: { }
+}
+#+END_SRC
+
 ** DoNotUseUnless
 
 Warns if 'unless' conditional statement is used
@@ -113,6 +168,12 @@ Bad:
 
 #+BEGIN_SRC puppet
 unless $value { }
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+if !$value { }
 #+END_SRC
 
 ** DoubleNegation
@@ -226,6 +287,18 @@ Bad:
 #+BEGIN_SRC puppet
 file { '/some/file':
   mode => '644',
+}
+
+file { '/some/file':
+  mode => 644,
+}
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+file { '/some/file':
+  mode => '0644',
 }
 #+END_SRC
 
@@ -671,4 +744,49 @@ Good:
 
 #+BEGIN_SRC puppet
 if $var1 or $var2 { }
+#+END_SRC
+
+* Linter for YAML files
+
+Some basic checks are implemented:
+ - File is not executable
+ - File is empty (no root value available)
+ - File parsed without syntax errors
+ - Maps does not contain duplicate keys
+ - Attempt to merge anchor which type is not array nor map
+
+* Linter for Hiera YAML files
+
+All lints of YAML files plus:
+
+** Reference to a module which has syntax errors
+
+Linter will fail if some_class was unable to parse:
+
+#+BEGIN_SRC yaml
+some_class::argument: 1
+#+END_SRC
+
+** Reference to class which is not found in modules/
+
+Linter will fail if modules/some_class/init.pp does not exists:
+
+#+BEGIN_SRC yaml
+some_class::argument: 1
+#+END_SRC
+
+** Reference in undefined class argument
+
+Linter will fail if some_class does not accept argument $argument_name:
+
+#+BEGIN_SRC yaml
+some_class::argument_name: 1
+#+END_SRC
+
+** Single column in the name of key of root map
+
+Linter protects agains typos like:
+
+#+BEGIN_SRC yaml
+some_class:argument_name: 1
 #+END_SRC
