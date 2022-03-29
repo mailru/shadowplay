@@ -45,146 +45,630 @@ shadowplay pretty-print < /path/to/file.pp
 
 Warns if argument name looks like sensitive, but argument is not typed with type Sensitive
 
+Bad:
+
+#+BEGIN_SRC puppet
+class some::class (
+  $secret_token,
+) { }
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+class some::class (
+  Sensitive $secret_token,
+) { }
+#+END_SRC
+
 ** ArgumentTyped
 
 Warns if argument is not typed
+
+Bad:
+
+#+BEGIN_SRC puppet
+class some::class (
+  $config_path,
+) { }
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+class some::class (
+  Stdlib::Absolutepath $config_path,
+) { }
+#+END_SRC
 
 ** ConstantExpressionInCondition
 
 Warns if constant expression is used in condition
 
+Bad:
+
+#+BEGIN_SRC puppet
+if 1 == 2 { }
+#+END_SRC
+
 ** DefaultCaseIsNotLast
 
 Warns if 'default' case is not the last
+
+Bad:
+
+#+BEGIN_SRC puppet
+case $value {
+  'a': { }
+  default: { }
+  'b': { }
+}
+#+END_SRC
 
 ** DoNotUseUnless
 
 Warns if 'unless' conditional statement is used
 
+Bad:
+
+#+BEGIN_SRC puppet
+unless $value { }
+#+END_SRC
+
 ** DoubleNegation
 
 Warns if double negation is used
+
+Bad:
+
+#+BEGIN_SRC puppet
+if !(!$value) { }
+
+if !($value != 1) { }
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+if $value { }
+
+if $value == 1 { }
+#+END_SRC
 
 ** EmptyCasesList
 
 Warns if case { ... } has no cases
 
+Bad:
+
+#+BEGIN_SRC puppet
+case $value { }
+#+END_SRC
+
 ** EnsureAttributeIsNotTheFirst
 
 Warns if 'ensure' argument of resource is not the first
+
+Bad:
+
+#+BEGIN_SRC puppet
+file { '/etc/passwd':
+  user => root,
+  ensure => file,
+}
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+file { '/etc/passwd':
+  ensure => file,
+  user => root,
+}
+#+END_SRC
 
 ** ErbReferencesToUnknownVariable
 
 Checks ERB templates specified in template() for undefined variables
 
+Bad:
+
+#+BEGIN_SRC puppet
+class some::class () {
+  # here template_file.erb contains: <% @some_undefined_variable %>
+  $value = template('some/template_file.erb')
+}
+#+END_SRC
+
 ** ExecAttributes
 
 Checks exec { ...} arguments
+
+Bad:
+
+#+BEGIN_SRC puppet
+# implicit 'command' attribute
+exec { 'echo Hello' : }
+
+exec {
+  unknown_attribute => 1,
+}
+
+# invalid provider
+exec {
+  provider => 'unknown provider value'
+}
+
+# 'path' is not set, 'provider' is not 'shell', thus 'command' attribute of exec {} must start with absolute path
+exec {
+  command => 'echo Hello'
+}
+#+END_SRC
 
 ** ExpressionInSingleQuotes
 
 Warns if interpolated expression found single-qouted string
 
+Bad:
+
+#+BEGIN_SRC puppet
+$value = 'Hello $world'
+
+$value = '2 + 2 = ${2+2}'
+#+END_SRC
+
 ** FileModeAttributeIsString
 
 Warns if argument 'mode' of 'file' resource is not in 4-digit string form
+
+Bad:
+
+#+BEGIN_SRC puppet
+file { '/some/file':
+  mode => '644',
+}
+#+END_SRC
 
 ** InvalidResourceCollectionInvocation
 
 Checks if existing resource set is used and all arguments are known in it's class
 
+Bad:
+
+#+BEGIN_SRC puppet
+# relation to unknown resource
+Class['unknown_class'] -> Class['known_class']
+#+END_SRC
+
+
 ** InvalidResourceSetInvocation
 
 Checks if existing resource is used and all arguments are known in it's class
+
+Bad:
+
+#+BEGIN_SRC puppet
+class class1 (
+  $known_arg,
+) { }
+
+class class2 {
+  # Call to unknown class
+  class { 'unknown_class': }
+
+  # Call to known class with invalid argument
+  class { 'class1':
+    unknown_arg => 1
+  }
+
+  # Call to known class with invalid argument
+  class1 { 'title':
+    unknown_arg => 1,
+  }
+
+  # Call to internal resource with invalid argument
+  file { '/some/file':
+    uknown_arg => 1,
+  }
+}
+#+END_SRC
 
 ** InvalidStringEscape
 
 Checks if only allowed characters are escaped in strings
 
+Bad:
+
+#+BEGIN_SRC puppet
+$value = '\s*\.'
+
+$value = "\s*\."
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+$value = '\\s*\\.'
+
+$value = "\\s*\\."
+#+END_SRC
+
 ** InvalidVariableAssignment
 
 Warns if left part of assignment is not a variable or array of variables
+
+Bad:
+
+#+BEGIN_SRC puppet
+lookup('some::value') = 1
+#+END_SRC
+
 
 ** LowerCaseArgumentName
 
 Warns if argument name is not lowercase, as suggested by Puppet's style guide
 
+Bad:
+
+#+BEGIN_SRC puppet
+class some::class (
+  $ArgumentInCamelCase
+) {}
+#+END_SRC
+
+
 ** LowerCaseVariable
 
 Warns if variable name is not lowercase
+
+Bad:
+
+#+BEGIN_SRC puppet
+class some::class () {
+  $VariableIsNOTInLowercase = 1
+
+#+END_SRC
 
 ** MultipleDefaultCase
 
 Warns if case statement has multiple 'default' cases
 
+Bad:
+
+#+BEGIN_SRC puppet
+case $val {
+  1: {}
+  default: {}
+  default: {}
+}
+#+END_SRC
+
+
 ** MultipleResourcesWithoutDefault
 
 Warns if resource set contains multiple resources and no defaults specified
+
+Bad:
+
+#+BEGIN_SRC puppet
+file {
+  '/etc/passwd':
+    ensure => file,
+    user => root,
+  '/etc/group':
+    ensure => file,
+    user => root,
+    group => wheel,
+}
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+file {
+  default:
+    ensure => file,
+    user => root,
+  '/etc/passwd':
+  '/etc/group':
+    group => wheel,
+}
+#+END_SRC
 
 ** NegationOfEquation
 
 Warns on negation of equation
 
+Bad:
+
+#+BEGIN_SRC puppet
+if !($a == 1) { }
+
+if !($a =~ /./) { }
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+if $a != 1 { }
+
+if $a !~ /./ { }
+#+END_SRC
+
 ** NoDefaultCase
 
 Warns if case statement has no default case
+
+Bad:
+
+#+BEGIN_SRC puppet
+case $val {
+  1, 2: {  }
+  3: { }
+}
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+case $val {
+  1, 2: {  }
+  3: { }
+  default: { }
+}
+#+END_SRC
 
 ** OptionalArgumentsGoesFirst
 
 Warns if optional argument specified before required
 
+#+BEGIN_SRC puppet
+class some::class (
+  $optional_arg = 1,
+  $required_arg,
+) { }
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+class some::class (
+  $required_arg,
+  $optional_arg = 1,
+) { }
+#+END_SRC
+
 ** PerExpressionResourceDefaults
 
 Warns if local resource defaults are used
+
+Bad:
+
+#+BEGIN_SRC puppet
+Exec {
+  provider => shell,
+}
+
+exec { 'run command':
+  command => 'echo Hello',
+}
+#+END_SRC
 
 ** ReadableArgumentsName
 
 Warns if argument name is not readable enough
 
+Bad:
+
+#+BEGIN_SRC puppet
+class some::class (
+  String $c = '/etc/config',
+) { }
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+class some::class (
+  String $config = '/etc/config',
+) { }
+#+END_SRC
+
 ** ReferenceToUndefinedValue
 
 Warns if variable is not defined in current context
+
+Bad:
+
+#+BEGIN_SRC puppet
+if $some_undefined_variable { }
+#+END_SRC
 
 ** RelationToTheLeft
 
 Checks for left-directed relations
 
+Bad:
+
+#+BEGIN_SRC puppet
+Class['c'] <- Class['b'] <~ Class['a']
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+Class['a'] ~> Class['b'] -> Class['c']
+#+END_SRC
+
 ** SelectorInAttributeValue
 
 Warns if selector (... ? ... : ...) used in resource attribute
+
+Bad:
+
+#+BEGIN_SRC puppet
+file { '/etc/shadow':
+  mode => $is_secure ? '0600' : '0644',
+}
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+$file_mode = $is_secure ? '0600' : '0644'
+
+file { '/etc/shadow':
+  mode => $file_mode,
+}
+#+END_SRC
 
 ** SensitiveArgumentWithDefault
 
 Warns if argument typed with Sensitive contains default value
 
+Bad:
+
+#+BEGIN_SRC puppet
+class some::class (
+  Sensitive $password = 'admin',
+)
+#+END_SRC
+
+Public available default value for sensitive data is nonsense. Good:
+
+#+BEGIN_SRC puppet
+class some::class (
+  Sensitive $password,
+)
+#+END_SRC
+
 ** StatementWithNoEffect
 
 Checks for statements without side effects
+
+Bad:
+
+#+BEGIN_SRC puppet
+if $a {
+  if $b {
+    2 + 2
+  }
+}
+#+END_SRC
 
 ** UnconditionalExec
 
 Warns if exec { ... } is specified without unless, onlyif, creates or refreshonly attributes
 
+Bad:
+
+#+BEGIN_SRC puppet
+exec { 'run command':
+  command => '/bin/rm -rf /var/cache/myapp',
+}
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+exec { 'run command':
+  command => '/bin/rm -rf /var/cache/myapp',
+  onlyif => 'test -e /var/cache/myapp',
+}
+#+END_SRC
+
 ** UniqueArgumentsNames
 
 Checks for class/definition/plan arguments uniqueness
+
+Bad:
+
+#+BEGIN_SRC puppet
+class some::class (
+  $arg,
+  $arg,
+  $arg,
+) { }
+#+END_SRC
+
 
 ** UniqueAttributeName
 
 Resource attributes must be unique
 
+Bad:
+
+#+BEGIN_SRC puppet
+service { 'sshd':
+  ensure => running,
+  ensure => stopped,
+}
+#+END_SRC
+
 ** UnusedVariables
 
-Checks for unused variables
+Checks for unused variables. Experimental lint false-positives are possible.
+
+Bad:
+
+#+BEGIN_SRC puppet
+class some::class (
+  $unused_argument,
+) {
+  service { 'sshd':
+    ensure => running,
+  }
+}
+#+END_SRC
 
 ** UpperCaseName
 
 Warns if resource set used with uppercase letters
 
+Bad:
+
+#+BEGIN_SRC puppet
+Service { 'sshd':
+  ensure => running,
+}
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+service { 'sshd':
+  ensure => running,
+}
+#+END_SRC
+
 ** UselessDoubleQuotes
 
 Warns if double quoted string has no interpolated expressions and no escaped single quotes
 
+Bad:
+
+#+BEGIN_SRC puppet
+$var = "simple literal"
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+$var = 'simple literal'
+#+END_SRC
+
 ** UselessParens
 
 Checks for extra parens
+
+Bad:
+
+#+BEGIN_SRC puppet
+if (($var1) or ($var2)) { }
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+if $var1 or $var2 { }
+#+END_SRC
