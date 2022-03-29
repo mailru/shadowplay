@@ -1,4 +1,26 @@
 * Changelog
+** [2022-03-29] v0.14.0
+
+*** New features
+
+ - Customizable pp lints (4b321de)
+ - ErbReferencesToUnknownVariable warns if unable to open ERB (70d0157)
+
+*** Bugfixes
+
+ - Added versions for local deps (ea9dce3)
+ - Subcommand was renamed earlier (b684126)
+ - Do not panic if class was not found in pp file (c6f46d5)
+ - Added missing comment to pretty printer of relations (a7e7299)
+
+*** Other changes
+
+ - Improved README (fcb81c5)
+ - Added code examples for lints (033d994)
+ - Added lints description (0332864)
+ - Unified lints names (fcf0d34)
+
+
 ** [2022-03-27] v0.13.0
 
 *** New features
