@@ -29,7 +29,9 @@ impl<EXTRA> Printer for crate::puppet_lang::expression::Lambda<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
         crate::puppet_pp_printer::argument::list_to_piped_doc(&self.args)
             .append(RcDoc::softline())
-            .append(crate::puppet_pp_printer::statement::statement_block_to_doc(&self.body, true))
+            .append(crate::puppet_pp_printer::statement::statement_block_to_doc(
+                &self.body, true,
+            ))
     }
 }
 impl<EXTRA> Printer for crate::puppet_lang::expression::FunctionCall<EXTRA> {
@@ -77,17 +79,23 @@ impl<EXTRA> Printer for crate::puppet_lang::expression::ChainCall<EXTRA> {
 impl<EXTRA> Printer for crate::puppet_lang::expression::SelectorCase<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
         let case = match &self.case {
-            crate::puppet_lang::expression::CaseVariant::Term(v) => crate::puppet_pp_printer::term::to_doc(v, false),
+            crate::puppet_lang::expression::CaseVariant::Term(v) => {
+                crate::puppet_pp_printer::term::to_doc(v, false)
+            }
             crate::puppet_lang::expression::CaseVariant::Default(_) => RcDoc::text("default"),
         };
 
-        crate::puppet_pp_printer::comment::comment_or(&self.comment, RcDoc::hardline(), RcDoc::nil())
-            .append(case)
-            .append(RcDoc::softline())
-            .append(RcDoc::text("=>"))
-            .append(RcDoc::softline())
-            .append(to_doc(&self.body, false))
-            .group()
+        crate::puppet_pp_printer::comment::comment_or(
+            &self.comment,
+            RcDoc::hardline(),
+            RcDoc::nil(),
+        )
+        .append(case)
+        .append(RcDoc::softline())
+        .append(RcDoc::text("=>"))
+        .append(RcDoc::softline())
+        .append(to_doc(&self.body, false))
+        .group()
     }
 }
 impl<EXTRA> Printer for crate::puppet_lang::expression::Selector<EXTRA> {
@@ -126,7 +134,9 @@ fn builtin_many1_to_doc<'a, EXTRA>(
     with_parens: bool,
 ) -> RcDoc<'a, ()> {
     let args_list = RcDoc::intersperse(
-        elt.args.iter().map(|x| crate::puppet_pp_printer::expression::to_doc(x, false)),
+        elt.args
+            .iter()
+            .map(|x| crate::puppet_pp_printer::expression::to_doc(x, false)),
         RcDoc::text(",").append(Doc::line()),
     )
     .group()
@@ -160,7 +170,9 @@ impl<EXTRA> Printer for crate::puppet_lang::builtin::BuiltinVariant<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
         match self {
             crate::puppet_lang::builtin::BuiltinVariant::Undef => RcDoc::text("undef"),
-            crate::puppet_lang::builtin::BuiltinVariant::Tag(v) => builtin_many1_to_doc("tag", v, false),
+            crate::puppet_lang::builtin::BuiltinVariant::Tag(v) => {
+                builtin_many1_to_doc("tag", v, false)
+            }
             crate::puppet_lang::builtin::BuiltinVariant::Require(v) => {
                 builtin_many1_to_doc("require", v, false)
             }
@@ -250,20 +262,24 @@ pub fn to_doc<EXTRA>(
             infix_to_doc(to_doc(left, false), to_doc(right, false), "%")
         }
         crate::puppet_lang::expression::ExpressionVariant::ChainCall(v) => v.to_doc(),
-        crate::puppet_lang::expression::ExpressionVariant::MatchRegex((left, right)) => infix_to_doc(
-            to_doc(left, false),
-            RcDoc::text("/")
-                .append(&right.data)
-                .append(RcDoc::text("/")),
-            "=~",
-        ),
-        crate::puppet_lang::expression::ExpressionVariant::NotMatchRegex((left, right)) => infix_to_doc(
-            to_doc(left, false),
-            RcDoc::text("/")
-                .append(&right.data)
-                .append(RcDoc::text("/")),
-            "!~",
-        ),
+        crate::puppet_lang::expression::ExpressionVariant::MatchRegex((left, right)) => {
+            infix_to_doc(
+                to_doc(left, false),
+                RcDoc::text("/")
+                    .append(&right.data)
+                    .append(RcDoc::text("/")),
+                "=~",
+            )
+        }
+        crate::puppet_lang::expression::ExpressionVariant::NotMatchRegex((left, right)) => {
+            infix_to_doc(
+                to_doc(left, false),
+                RcDoc::text("/")
+                    .append(&right.data)
+                    .append(RcDoc::text("/")),
+                "!~",
+            )
+        }
         crate::puppet_lang::expression::ExpressionVariant::MatchType((left, right)) => {
             infix_to_doc(to_doc(left, false), right.to_doc(), "=~")
         }
@@ -321,8 +337,10 @@ fn test_idempotence_short() {
     ];
 
     for case in cases {
-        let (_, v) =
-            crate::puppet_parser::expression::parse_expression(crate::puppet_parser::Span::new(case)).unwrap();
+        let (_, v) = crate::puppet_parser::expression::parse_expression(
+            crate::puppet_parser::Span::new(case),
+        )
+        .unwrap();
 
         let mut w = Vec::new();
         to_doc(&v, false).render(11, &mut w).unwrap();

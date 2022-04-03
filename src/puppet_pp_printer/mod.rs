@@ -1,6 +1,7 @@
 pub mod accessor;
 pub mod argument;
 pub mod comment;
+pub mod common;
 pub mod expression;
 pub mod identifier;
 pub mod resource;
@@ -9,6 +10,8 @@ pub mod string;
 pub mod term;
 pub mod toplevel;
 pub mod typing;
+
+pub const ARROW_STEP: usize = 30;
 
 use pretty::RcDoc;
 

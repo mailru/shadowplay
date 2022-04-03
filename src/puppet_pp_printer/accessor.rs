@@ -11,9 +11,9 @@ impl<EXTRA> Printer for Option<crate::puppet_lang::expression::Accessor<EXTRA>> 
                         .append(RcDoc::line_())
                         .append(
                             RcDoc::intersperse(
-                                sublist
-                                    .iter()
-                                    .map(|elt| crate::puppet_pp_printer::expression::to_doc(elt, false)),
+                                sublist.iter().map(|elt| {
+                                    crate::puppet_pp_printer::expression::to_doc(elt, false)
+                                }),
                                 RcDoc::text(",").append(RcDoc::line()),
                             )
                             .group(),

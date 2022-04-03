@@ -29,11 +29,15 @@ fn definition_to_doc<'a, EXTRA>(
         .append(RcDoc::softline())
         .append(identifier.to_doc())
         .append(RcDoc::softline())
-        .append(crate::puppet_pp_printer::argument::list_to_rounded_doc(args))
+        .append(crate::puppet_pp_printer::argument::list_to_rounded_doc(
+            args,
+        ))
         .append(RcDoc::softline())
         .append(inherits)
         .append(return_type)
-        .append(crate::puppet_pp_printer::statement::statement_block_to_doc(body, true))
+        .append(crate::puppet_pp_printer::statement::statement_block_to_doc(
+            body, true,
+        ))
 }
 
 impl<EXTRA> Printer for crate::puppet_lang::toplevel::ToplevelVariant<EXTRA> {
@@ -87,7 +91,8 @@ fn test_idempotence_short() {
     ];
 
     for case in cases {
-        let (_, v) = crate::puppet_parser::toplevel::parse(crate::puppet_parser::Span::new(case)).unwrap();
+        let (_, v) =
+            crate::puppet_parser::toplevel::parse(crate::puppet_parser::Span::new(case)).unwrap();
 
         let mut w = Vec::new();
         v.data.to_doc().render(50, &mut w).unwrap();

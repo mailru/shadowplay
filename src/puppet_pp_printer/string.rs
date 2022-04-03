@@ -20,17 +20,20 @@ impl<EXTRA> Printer for crate::puppet_lang::string::DoubleQuotedFragment<EXTRA> 
         match self {
             crate::puppet_lang::string::DoubleQuotedFragment::StringFragment(elt) => elt.to_doc(),
             crate::puppet_lang::string::DoubleQuotedFragment::Expression(expr) => {
-                let inner_expr = if let crate::puppet_lang::expression::ExpressionVariant::Term(term) =
-                    &expr.data.value
-                {
-                    if let crate::puppet_lang::expression::TermVariant::Variable(_) = &term.value {
-                        crate::puppet_pp_printer::expression::to_doc(&expr.data, true)
+                let inner_expr =
+                    if let crate::puppet_lang::expression::ExpressionVariant::Term(term) =
+                        &expr.data.value
+                    {
+                        if let crate::puppet_lang::expression::TermVariant::Variable(_) =
+                            &term.value
+                        {
+                            crate::puppet_pp_printer::expression::to_doc(&expr.data, true)
+                        } else {
+                            crate::puppet_pp_printer::expression::to_doc(&expr.data, false)
+                        }
                     } else {
                         crate::puppet_pp_printer::expression::to_doc(&expr.data, false)
-                    }
-                } else {
-                    crate::puppet_pp_printer::expression::to_doc(&expr.data, false)
-                };
+                    };
                 RcDoc::text("${")
                     .append(inner_expr)
                     .append(RcDoc::text("}"))
@@ -42,7 +45,8 @@ impl<EXTRA> Printer for crate::puppet_lang::string::DoubleQuotedFragment<EXTRA> 
 impl<EXTRA> Printer for crate::puppet_lang::string::StringExpr<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
         match &self.data {
-            crate::puppet_lang::string::StringVariant::SingleQuoted(list) => match &list.as_slice() {
+            crate::puppet_lang::string::StringVariant::SingleQuoted(list) => match &list.as_slice()
+            {
                 &[crate::puppet_lang::string::StringFragment::Literal(v)]
                     if v.data.chars().all(|c| c.is_ascii_lowercase() || c == '_') =>
                 {

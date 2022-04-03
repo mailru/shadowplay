@@ -38,14 +38,18 @@ pub fn mapkv_to_doc<EXTRA>(
     crate::puppet_pp_printer::expression::to_doc(&expr.key, false)
         .append(RcDoc::column(move |w| {
             if with_indent {
-                let offset = (w / 10 + 1) * 10;
+                let offset = (w / crate::puppet_pp_printer::ARROW_STEP + 1)
+                    * crate::puppet_pp_printer::ARROW_STEP;
                 RcDoc::text(format!("{} =>", " ".repeat(offset - w)))
             } else {
                 RcDoc::softline().append(RcDoc::text("=>"))
             }
         }))
         .append(RcDoc::softline())
-        .append(crate::puppet_pp_printer::expression::to_doc(&expr.value, false))
+        .append(crate::puppet_pp_printer::expression::to_doc(
+            &expr.value,
+            false,
+        ))
         .group()
         .nest(2)
 }
@@ -60,7 +64,9 @@ impl<EXTRA> Printer for crate::puppet_lang::expression::Map<EXTRA> {
                 self.value.value.iter().map(|elt| mapkv_to_doc(elt, false)),
                 RcDoc::text(",").append(RcDoc::softline()),
             )
-            .append(crate::puppet_pp_printer::comment::to_doc(&self.value.last_comment));
+            .append(crate::puppet_pp_printer::comment::to_doc(
+                &self.value.last_comment,
+            ));
             return RcDoc::text("{")
                 .append(RcDoc::softline())
                 .append(inner)
@@ -76,7 +82,9 @@ impl<EXTRA> Printer for crate::puppet_lang::expression::Map<EXTRA> {
                 .map(|elt| mapkv_to_doc(elt, true).append(RcDoc::text(","))),
             RcDoc::hardline(),
         )
-        .append(crate::puppet_pp_printer::comment::to_doc(&self.value.last_comment));
+        .append(crate::puppet_pp_printer::comment::to_doc(
+            &self.value.last_comment,
+        ));
 
         RcDoc::text("{")
             .append(RcDoc::hardline())
@@ -97,14 +105,16 @@ impl<EXTRA> Printer for crate::puppet_lang::expression::Array<EXTRA> {
             .append(RcDoc::line().nest(2))
             .append(
                 RcDoc::intersperse(
-                    self.value
-                        .value
-                        .iter()
-                        .map(|x| crate::puppet_pp_printer::expression::to_doc(x, false).append(RcDoc::text(","))),
+                    self.value.value.iter().map(|x| {
+                        crate::puppet_pp_printer::expression::to_doc(x, false)
+                            .append(RcDoc::text(","))
+                    }),
                     Doc::line(),
                 )
                 .group()
-                .append(crate::puppet_pp_printer::comment::to_doc(&self.value.last_comment))
+                .append(crate::puppet_pp_printer::comment::to_doc(
+                    &self.value.last_comment,
+                ))
                 .nest(2),
             )
             .append(RcDoc::line())

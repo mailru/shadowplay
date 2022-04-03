@@ -11,7 +11,8 @@ impl<EXTRA> Printer for crate::puppet_lang::argument::Argument<EXTRA> {
         let default = match &self.default {
             Some(v) => RcDoc::softline_()
                 .append(RcDoc::column(|w| {
-                    let offset = (w / 30 + 1) * 30;
+                    let offset = (w / crate::puppet_pp_printer::ARROW_STEP + 1)
+                        * crate::puppet_pp_printer::ARROW_STEP;
                     RcDoc::text(format!("{} =", " ".repeat(offset - w)))
                 }))
                 .append(RcDoc::softline())
@@ -19,15 +20,21 @@ impl<EXTRA> Printer for crate::puppet_lang::argument::Argument<EXTRA> {
             None => RcDoc::nil(),
         };
 
-        crate::puppet_pp_printer::comment::comment_or(&self.comment, RcDoc::hardline(), RcDoc::nil())
-            .append(type_spec)
-            .append(RcDoc::text("$"))
-            .append(RcDoc::text(&self.name))
-            .append(default)
+        crate::puppet_pp_printer::comment::comment_or(
+            &self.comment,
+            RcDoc::hardline(),
+            RcDoc::nil(),
+        )
+        .append(type_spec)
+        .append(RcDoc::text("$"))
+        .append(RcDoc::text(&self.name))
+        .append(default)
     }
 }
 
-impl<EXTRA> Printer for crate::puppet_lang::List<EXTRA, crate::puppet_lang::argument::Argument<EXTRA>> {
+impl<EXTRA> Printer
+    for crate::puppet_lang::List<EXTRA, crate::puppet_lang::argument::Argument<EXTRA>>
+{
     fn to_doc(&self) -> RcDoc<()> {
         RcDoc::intersperse(
             self.value
@@ -35,7 +42,9 @@ impl<EXTRA> Printer for crate::puppet_lang::List<EXTRA, crate::puppet_lang::argu
                 .map(|x| x.to_doc().append(RcDoc::text(","))),
             RcDoc::hardline(),
         )
-        .append(crate::puppet_pp_printer::comment::to_doc(&self.last_comment))
+        .append(crate::puppet_pp_printer::comment::to_doc(
+            &self.last_comment,
+        ))
     }
 }
 

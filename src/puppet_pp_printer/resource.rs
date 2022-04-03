@@ -19,15 +19,25 @@ impl<EXTRA> Printer for crate::puppet_lang::resource_collection::SearchExpressio
                 )
             }
             crate::puppet_lang::resource_collection::ExpressionVariant::And((left, right)) => {
-                crate::puppet_pp_printer::expression::infix_to_doc(left.to_doc(), right.to_doc(), "and")
+                crate::puppet_pp_printer::expression::infix_to_doc(
+                    left.to_doc(),
+                    right.to_doc(),
+                    "and",
+                )
             }
             crate::puppet_lang::resource_collection::ExpressionVariant::Or((left, right)) => {
-                crate::puppet_pp_printer::expression::infix_to_doc(left.to_doc(), right.to_doc(), "or")
+                crate::puppet_pp_printer::expression::infix_to_doc(
+                    left.to_doc(),
+                    right.to_doc(),
+                    "or",
+                )
             }
-            crate::puppet_lang::resource_collection::ExpressionVariant::Parens(v) => RcDoc::text("(")
-                .append(v.to_doc().nest(2))
-                .append(RcDoc::text(")"))
-                .group(),
+            crate::puppet_lang::resource_collection::ExpressionVariant::Parens(v) => {
+                RcDoc::text("(")
+                    .append(v.to_doc().nest(2))
+                    .append(RcDoc::text(")"))
+                    .group()
+            }
         }
     }
 }
@@ -45,9 +55,13 @@ impl<EXTRA> Printer for crate::puppet_lang::resource_collection::ResourceCollect
             None => RcDoc::nil(),
         };
 
-        crate::puppet_pp_printer::comment::comment_or(&self.comment, RcDoc::hardline(), RcDoc::nil())
-            .append(self.type_specification.to_doc())
-            .append(search_expression)
+        crate::puppet_pp_printer::comment::comment_or(
+            &self.comment,
+            RcDoc::hardline(),
+            RcDoc::nil(),
+        )
+        .append(self.type_specification.to_doc())
+        .append(search_expression)
     }
 }
 
@@ -57,7 +71,8 @@ impl<EXTRA> Printer for crate::puppet_lang::statement::ResourceAttribute<EXTRA> 
             crate::puppet_lang::statement::ResourceAttributeVariant::Name((k, v)) => k
                 .to_doc()
                 .append(RcDoc::column(|w| {
-                    let offset = (w / 10 + 1) * 10;
+                    let offset = (w / crate::puppet_pp_printer::ARROW_STEP + 1)
+                        * crate::puppet_pp_printer::ARROW_STEP;
                     RcDoc::text(format!("{} =>", " ".repeat(offset - w)))
                 }))
                 .append(RcDoc::softline())
@@ -67,7 +82,8 @@ impl<EXTRA> Printer for crate::puppet_lang::statement::ResourceAttribute<EXTRA> 
             crate::puppet_lang::statement::ResourceAttributeVariant::Group(v) => RcDoc::text("*")
                 .append(RcDoc::softline())
                 .append(RcDoc::column(|w| {
-                    let offset = (w / 10 + 1) * 10;
+                    let offset = (w / crate::puppet_pp_printer::ARROW_STEP + 1)
+                        * crate::puppet_pp_printer::ARROW_STEP;
                     RcDoc::text(format!("{} =>", " ".repeat(offset - w)))
                 }))
                 .append(RcDoc::column(|w| RcDoc::text(format!("=> ?? {} ??", w))))
@@ -77,7 +93,12 @@ impl<EXTRA> Printer for crate::puppet_lang::statement::ResourceAttribute<EXTRA> 
                 .nest(2),
         };
 
-        crate::puppet_pp_printer::comment::comment_or(&self.comment, RcDoc::hardline(), RcDoc::nil()).append(value)
+        crate::puppet_pp_printer::comment::comment_or(
+            &self.comment,
+            RcDoc::hardline(),
+            RcDoc::nil(),
+        )
+        .append(value)
     }
 }
 
@@ -92,7 +113,9 @@ impl<EXTRA> Printer for crate::puppet_lang::statement::Resource<EXTRA> {
             ))
         };
 
-        let inner = inner.append(crate::puppet_pp_printer::comment::to_doc(&self.attributes.last_comment));
+        let inner = inner.append(crate::puppet_pp_printer::comment::to_doc(
+            &self.attributes.last_comment,
+        ));
 
         crate::puppet_pp_printer::expression::to_doc(&self.title, false)
             .append(RcDoc::text(":"))
@@ -121,37 +144,47 @@ impl<EXTRA> Printer for crate::puppet_lang::statement::ResourceSet<EXTRA> {
                 .last_comment
                 .is_empty()
         {
-            return crate::puppet_pp_printer::comment::comment_or(&self.comment, RcDoc::hardline(), RcDoc::nil())
-                .append(is_virtual)
-                .append(self.name.to_doc())
-                .append(RcDoc::softline())
-                .append(RcDoc::text("{"))
-                .append(RcDoc::softline())
-                .append(RcDoc::intersperse(
-                    self.list.value.iter().map(|elt| elt.to_doc()),
-                    RcDoc::nil(),
-                ))
-                .nest(2)
-                .append(RcDoc::softline())
-                .append(RcDoc::text("}"));
+            return crate::puppet_pp_printer::comment::comment_or(
+                &self.comment,
+                RcDoc::hardline(),
+                RcDoc::nil(),
+            )
+            .append(is_virtual)
+            .append(self.name.to_doc())
+            .append(RcDoc::softline())
+            .append(RcDoc::text("{"))
+            .append(RcDoc::softline())
+            .append(RcDoc::intersperse(
+                self.list.value.iter().map(|elt| elt.to_doc()),
+                RcDoc::nil(),
+            ))
+            .nest(2)
+            .append(RcDoc::softline())
+            .append(RcDoc::text("}"));
         }
 
         let inner = RcDoc::intersperse(
             self.list.value.iter().map(|elt| elt.to_doc()),
             RcDoc::text(";").append(RcDoc::hardline()),
         )
-        .append(crate::puppet_pp_printer::comment::to_doc(&self.list.last_comment));
+        .append(crate::puppet_pp_printer::comment::to_doc(
+            &self.list.last_comment,
+        ));
 
-        crate::puppet_pp_printer::comment::comment_or(&self.comment, RcDoc::hardline(), RcDoc::nil())
-            .append(is_virtual)
-            .append(self.name.to_doc())
-            .append(RcDoc::softline())
-            .append(RcDoc::text("{"))
-            .append(RcDoc::softline())
-            .append(inner)
-            .nest(2)
-            .append(RcDoc::hardline())
-            .append(RcDoc::text("}"))
+        crate::puppet_pp_printer::comment::comment_or(
+            &self.comment,
+            RcDoc::hardline(),
+            RcDoc::nil(),
+        )
+        .append(is_virtual)
+        .append(self.name.to_doc())
+        .append(RcDoc::softline())
+        .append(RcDoc::text("{"))
+        .append(RcDoc::softline())
+        .append(inner)
+        .nest(2)
+        .append(RcDoc::hardline())
+        .append(RcDoc::text("}"))
     }
 }
 
@@ -178,7 +211,9 @@ impl<EXTRA> Printer for crate::puppet_lang::statement::RelationElt<EXTRA> {
             RcDoc::softline(),
         )
         .group()
-        .append(crate::puppet_pp_printer::comment::to_doc(&self.data.last_comment));
+        .append(crate::puppet_pp_printer::comment::to_doc(
+            &self.data.last_comment,
+        ));
 
         RcDoc::text("[")
             .append(RcDoc::softline())
@@ -202,10 +237,14 @@ impl<EXTRA> Printer for crate::puppet_lang::statement::RelationType<EXTRA> {
 
 impl<EXTRA> Printer for crate::puppet_lang::statement::Relation<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
-        crate::puppet_pp_printer::comment::comment_or(&self.comment, RcDoc::hardline(), RcDoc::nil())
-            .append(self.relation_type.to_doc())
-            .append(RcDoc::space())
-            .append(self.relation_to.to_doc())
+        crate::puppet_pp_printer::comment::comment_or(
+            &self.comment,
+            RcDoc::hardline(),
+            RcDoc::nil(),
+        )
+        .append(self.relation_type.to_doc())
+        .append(RcDoc::space())
+        .append(self.relation_to.to_doc())
     }
 }
 
@@ -225,13 +264,15 @@ fn test_idempotence_short() {
         "Class[ a ] -> Class[ b::c ]",
         "[ Class[ a ], Class[ b ], ] -> Class[ b::c ]",
         "Class[ a ] -> ClassB <| (abc != 1) and c == test or (c == notest and abc == 1) |>",
-        "file { '/etc/passwd':\n    ensure           => file,\n    mode   => '0644'\n}",
-        "file { '/etc/passwd':\n    ensure           => file,\n    mode   => '0644';\n  '/etc/group':\n    ensure           => file\n}",
+        "file { '/etc/passwd':\n    ensure                     => file,\n    mode                       => '0644'\n}",
+        "file { '/etc/passwd':\n    ensure                     => file,\n    mode                       => '0644';\n  '/etc/group':\n    ensure                     => file\n}",
     ];
 
     for case in cases {
-        let (_, v) =
-            crate::puppet_parser::statement::parse_statement_list(crate::puppet_parser::Span::new(case)).unwrap();
+        let (_, v) = crate::puppet_parser::statement::parse_statement_list(
+            crate::puppet_parser::Span::new(case),
+        )
+        .unwrap();
 
         let mut w = Vec::new();
         crate::puppet_pp_printer::statement::statement_block_to_doc(&v, false)

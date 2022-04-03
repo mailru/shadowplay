@@ -69,7 +69,9 @@ impl<EXTRA> Printer for crate::puppet_lang::statement::IfElse<EXTRA> {
 impl<EXTRA> Printer for crate::puppet_lang::expression::CaseVariant<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
         match self {
-            crate::puppet_lang::expression::CaseVariant::Term(v) => crate::puppet_pp_printer::term::to_doc(v, false),
+            crate::puppet_lang::expression::CaseVariant::Term(v) => {
+                crate::puppet_pp_printer::term::to_doc(v, false)
+            }
             crate::puppet_lang::expression::CaseVariant::Default(_) => RcDoc::text("default"),
         }
     }
@@ -91,13 +93,17 @@ impl<EXTRA> Printer for crate::puppet_lang::statement::CaseElement<EXTRA> {
                 .append(RcDoc::text("]"))
         };
 
-        crate::puppet_pp_printer::comment::comment_or(&self.comment, RcDoc::hardline(), RcDoc::nil())
-            .append(matches_list)
-            .append(RcDoc::softline_())
-            .append(RcDoc::text(":"))
-            .append(RcDoc::softline())
-            .append(statement_block_to_doc(&self.body, true))
-            .group()
+        crate::puppet_pp_printer::comment::comment_or(
+            &self.comment,
+            RcDoc::hardline(),
+            RcDoc::nil(),
+        )
+        .append(matches_list)
+        .append(RcDoc::softline_())
+        .append(RcDoc::text(":"))
+        .append(RcDoc::softline())
+        .append(statement_block_to_doc(&self.body, true))
+        .group()
     }
 }
 
@@ -107,7 +113,9 @@ impl<EXTRA> Printer for crate::puppet_lang::statement::Case<EXTRA> {
             self.elements.value.iter().map(|x| x.to_doc()),
             RcDoc::hardline(),
         )
-        .append(crate::puppet_pp_printer::comment::to_doc(&self.elements.last_comment));
+        .append(crate::puppet_pp_printer::comment::to_doc(
+            &self.elements.last_comment,
+        ));
 
         RcDoc::text("case")
             .append(RcDoc::softline())
@@ -135,7 +143,9 @@ impl<EXTRA> Printer for crate::puppet_lang::statement::ResourceDefaults<EXTRA> {
             }),
             RcDoc::hardline(),
         )
-        .append(crate::puppet_pp_printer::comment::to_doc(&self.args.last_comment));
+        .append(crate::puppet_pp_printer::comment::to_doc(
+            &self.args.last_comment,
+        ));
 
         RcDoc::text(&self.name)
             .append(RcDoc::softline())
@@ -164,7 +174,12 @@ impl<EXTRA> Printer for crate::puppet_lang::statement::Statement<EXTRA> {
             crate::puppet_lang::statement::StatementVariant::ResourceDefaults(v) => v.to_doc(),
         };
 
-        crate::puppet_pp_printer::comment::comment_or(&self.comment, RcDoc::hardline(), RcDoc::nil()).append(v)
+        crate::puppet_pp_printer::comment::comment_or(
+            &self.comment,
+            RcDoc::hardline(),
+            RcDoc::nil(),
+        )
+        .append(v)
     }
 }
 
@@ -181,14 +196,16 @@ fn test_idempotence_short() {
         "if $a {\n  undef\n} elsif !$a {\n  $a\n}",
         "case $a {\n  \n  #comment\n  1: {\n    $b\n  }\n}",
         "case $a {\n  \n  #comment\n  1: {\n    $b\n  }\n  default: {\n    \n  }\n}",
-        "Exec\n{\n  command  => test,\n  provider           =>\n    shell,\n  # comment\n  #line2\n  #line3\n}",
+        "Exec\n{\n  command                      =>\n    test,\n  provider                     =>\n    shell,\n  # comment\n  #line2\n  #line3\n}",
         "require a",
         "require a, b",
     ];
 
     for case in cases {
-        let (_, v) =
-            crate::puppet_parser::statement::parse_statement_list(crate::puppet_parser::Span::new(case)).unwrap();
+        let (_, v) = crate::puppet_parser::statement::parse_statement_list(
+            crate::puppet_parser::Span::new(case),
+        )
+        .unwrap();
 
         let mut w = Vec::new();
         statement_block_to_doc(&v, false)
@@ -205,12 +222,14 @@ fn test_idempotence_short() {
 fn test_idempotence_long() {
     let cases = vec![
         "unless !$a {\n  $a = 1\n  unless (($a + $a + $a)) {\n    $b = $a + 1\n    unless (($a + $a + $a)) {\n      $b = $a + 1\n      unless (($a + $a + $a)) {\n        $b = $a + 1\n      }\n    }\n  }\n}",
-        "Exec\n{\n  command  => test,\n  provider           => shell,\n  # comment\n  #line2\n  #line3\n}",
+        "Exec\n{\n  command                      => test,\n  provider                     => shell,\n  # comment\n  #line2\n  #line3\n}",
     ];
 
     for case in cases {
-        let (_, v) =
-            crate::puppet_parser::statement::parse_statement_list(crate::puppet_parser::Span::new(case)).unwrap();
+        let (_, v) = crate::puppet_parser::statement::parse_statement_list(
+            crate::puppet_parser::Span::new(case),
+        )
+        .unwrap();
 
         let mut w = Vec::new();
         statement_block_to_doc(&v, false)

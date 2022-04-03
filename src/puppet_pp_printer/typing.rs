@@ -1,6 +1,8 @@
 use crate::puppet_pp_printer::Printer;
 use pretty::RcDoc;
 
+use super::common;
+
 fn with_min_max<'a, T: crate::puppet_pp_printer::Printer>(
     name: &'static str,
     min: &'a Option<T>,
@@ -76,7 +78,9 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::TypeOptionalVariant<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
         match self {
             crate::puppet_lang::typing::TypeOptionalVariant::TypeSpecification(v) => v.to_doc(),
-            crate::puppet_lang::typing::TypeOptionalVariant::Term(v) => crate::puppet_pp_printer::term::to_doc(v, false),
+            crate::puppet_lang::typing::TypeOptionalVariant::Term(v) => {
+                crate::puppet_pp_printer::term::to_doc(v, false)
+            }
         }
     }
 }
@@ -91,6 +95,44 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::TypeOptional<EXTRA> {
             .append(RcDoc::softline_())
             .append(RcDoc::text("]"))
             .group()
+    }
+}
+
+fn has_args<EXTRA>(t: &crate::puppet_lang::typing::TypeSpecification<EXTRA>) -> bool {
+    match &t.data {
+        crate::puppet_lang::typing::TypeSpecificationVariant::Float(v) => {
+            v.min.is_some() || v.max.is_some()
+        }
+        crate::puppet_lang::typing::TypeSpecificationVariant::Integer(v) => {
+            v.min.is_some() || v.max.is_some()
+        }
+        crate::puppet_lang::typing::TypeSpecificationVariant::Numeric(_) => false,
+        crate::puppet_lang::typing::TypeSpecificationVariant::String(v) => {
+            v.min.is_some() || v.max.is_some()
+        }
+        crate::puppet_lang::typing::TypeSpecificationVariant::Pattern(v) => !v.list.is_empty(),
+        crate::puppet_lang::typing::TypeSpecificationVariant::Regex(_) => true,
+        crate::puppet_lang::typing::TypeSpecificationVariant::Hash(v) => {
+            v.key.is_some() || v.value.is_some() || v.min.is_some() || v.max.is_some()
+        }
+        crate::puppet_lang::typing::TypeSpecificationVariant::Boolean(_) => false,
+        crate::puppet_lang::typing::TypeSpecificationVariant::Array(v) => v.inner.is_some(),
+        crate::puppet_lang::typing::TypeSpecificationVariant::Undef(_) => false,
+        crate::puppet_lang::typing::TypeSpecificationVariant::Any(_) => false,
+        crate::puppet_lang::typing::TypeSpecificationVariant::Optional(_) => true,
+        crate::puppet_lang::typing::TypeSpecificationVariant::Variant(v) => !v.list.is_empty(),
+        crate::puppet_lang::typing::TypeSpecificationVariant::Enum(v) => !v.list.is_empty(),
+        crate::puppet_lang::typing::TypeSpecificationVariant::Struct(v) => {
+            !v.keys.value.is_empty()
+                || !v.keys.last_comment.is_empty()
+                || !v.left_inner_comment.is_empty()
+                || !v.right_inner_comment.is_empty()
+        }
+        crate::puppet_lang::typing::TypeSpecificationVariant::ExternalType(v) => {
+            !v.arguments.is_empty()
+        }
+        crate::puppet_lang::typing::TypeSpecificationVariant::Sensitive(_) => true,
+        crate::puppet_lang::typing::TypeSpecificationVariant::Tuple(_) => true,
     }
 }
 
@@ -110,12 +152,10 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::TypeArray<EXTRA> {
             RcDoc::nil()
         } else {
             RcDoc::text("[")
-                .append(RcDoc::softline())
-                .append(
-                    RcDoc::intersperse(args, RcDoc::text(",").append(RcDoc::softline())).group(),
-                )
-                .nest(2)
-                .append(RcDoc::softline())
+                .append(super::common::multiline_docs_list(
+                    args,
+                    self.inner.as_ref().map(|x| has_args(x)),
+                ))
                 .append(RcDoc::text("]"))
                 .group()
         };
@@ -128,16 +168,7 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::Variant<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
         RcDoc::text("Variant")
             .append(RcDoc::text("["))
-            .append(RcDoc::softline())
-            .append(
-                RcDoc::intersperse(
-                    self.list.iter().map(|x| x.to_doc()),
-                    RcDoc::text(",").append(RcDoc::softline()),
-                )
-                .group(),
-            )
-            .nest(2)
-            .append(RcDoc::softline())
+            .append(super::common::multiline_list(&self.list, |x| x.to_doc()))
             .append(RcDoc::text("]"))
             .group()
     }
@@ -147,16 +178,9 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::Enum<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
         RcDoc::text("Enum")
             .append(RcDoc::text("["))
-            .append(RcDoc::softline())
-            .append(
-                RcDoc::intersperse(
-                    self.list.iter().map(|x| crate::puppet_pp_printer::term::to_doc(x, false)),
-                    RcDoc::text(",").append(RcDoc::softline()),
-                )
-                .group(),
-            )
-            .nest(2)
-            .append(RcDoc::softline())
+            .append(common::multiline_list(&self.list, |x| {
+                crate::puppet_pp_printer::term::to_doc(x, false)
+            }))
             .append(RcDoc::text("]"))
             .group()
     }
@@ -168,16 +192,9 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::ExternalType<EXTRA> {
             RcDoc::nil()
         } else {
             RcDoc::text("[")
-                .append(RcDoc::softline())
-                .append(RcDoc::intersperse(
-                    self.arguments
-                        .iter()
-                        .map(|x| crate::puppet_pp_printer::expression::to_doc(x, false)),
-                    RcDoc::text(",").append(RcDoc::softline()),
-                ))
-                .group()
-                .nest(2)
-                .append(RcDoc::softline())
+                .append(super::common::multiline_list(&self.arguments, |x| {
+                    crate::puppet_pp_printer::expression::to_doc(x, false)
+                }))
                 .append(RcDoc::text("]"))
                 .group()
         };
@@ -208,13 +225,16 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::TypeHash<EXTRA> {
         let args = if args.is_empty() {
             RcDoc::nil()
         } else {
+            let multiline = match (
+                self.key.as_ref().map(|v| has_args(v)),
+                self.value.as_ref().map(|v| has_args(v)),
+            ) {
+                (None, None) => None,
+                (Some(true), _) | (_, Some(true)) => Some(true),
+                _ => None,
+            };
             RcDoc::text("[")
-                .append(RcDoc::softline())
-                .append(
-                    RcDoc::intersperse(args, RcDoc::text(",").append(RcDoc::softline())).group(),
-                )
-                .nest(2)
-                .append(RcDoc::softline())
+                .append(super::common::multiline_docs_list(args, multiline))
                 .append(RcDoc::text("]"))
                 .group()
         };
@@ -252,7 +272,8 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::TypeStructKV<EXTRA> {
             .to_doc()
             .append(RcDoc::softline())
             .append(RcDoc::column(|w| {
-                let offset = (w / 20 + 1) * 20;
+                let offset = (w / crate::puppet_pp_printer::ARROW_STEP + 1)
+                    * crate::puppet_pp_printer::ARROW_STEP;
                 RcDoc::text(format!("{} =>", " ".repeat(offset - w)))
             }))
             .append(RcDoc::softline())
@@ -272,7 +293,9 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::TypeStruct<EXTRA> {
                     RcDoc::text(",").append(RcDoc::hardline()),
                 )
                 .group()
-                .append(crate::puppet_pp_printer::comment::to_doc(&self.keys.last_comment)),
+                .append(crate::puppet_pp_printer::comment::to_doc(
+                    &self.keys.last_comment,
+                )),
             )
             .nest(2)
             .append(RcDoc::hardline())
@@ -285,7 +308,9 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::TypeSensitive<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
         let inner = match &self.value {
             crate::puppet_lang::typing::TypeSensitiveVariant::TypeSpecification(v) => v.to_doc(),
-            crate::puppet_lang::typing::TypeSensitiveVariant::Term(v) => crate::puppet_pp_printer::term::to_doc(v, false),
+            crate::puppet_lang::typing::TypeSensitiveVariant::Term(v) => {
+                crate::puppet_pp_printer::term::to_doc(v, false)
+            }
         };
 
         RcDoc::text("Sensitive")
@@ -330,14 +355,18 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::TypeSpecificationVariant<EXT
             crate::puppet_lang::typing::TypeSpecificationVariant::Integer(v) => {
                 with_min_max("Integer", &v.min, &v.max)
             }
-            crate::puppet_lang::typing::TypeSpecificationVariant::Numeric(_) => RcDoc::text("Numeric"),
+            crate::puppet_lang::typing::TypeSpecificationVariant::Numeric(_) => {
+                RcDoc::text("Numeric")
+            }
             crate::puppet_lang::typing::TypeSpecificationVariant::String(v) => {
                 with_min_max("String", &v.min, &v.max)
             }
             crate::puppet_lang::typing::TypeSpecificationVariant::Pattern(v) => v.to_doc(),
             crate::puppet_lang::typing::TypeSpecificationVariant::Regex(v) => v.to_doc(),
             crate::puppet_lang::typing::TypeSpecificationVariant::Hash(v) => v.to_doc(),
-            crate::puppet_lang::typing::TypeSpecificationVariant::Boolean(_) => RcDoc::text("Boolean"),
+            crate::puppet_lang::typing::TypeSpecificationVariant::Boolean(_) => {
+                RcDoc::text("Boolean")
+            }
             crate::puppet_lang::typing::TypeSpecificationVariant::Array(v) => v.to_doc(),
             crate::puppet_lang::typing::TypeSpecificationVariant::Undef(_) => RcDoc::text("Undef"),
             crate::puppet_lang::typing::TypeSpecificationVariant::Any(_) => RcDoc::text("Any"),
@@ -354,8 +383,12 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::TypeSpecificationVariant<EXT
 
 impl<EXTRA> Printer for crate::puppet_lang::typing::TypeSpecification<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
-        crate::puppet_pp_printer::comment::comment_or(&self.comment, RcDoc::hardline(), RcDoc::nil())
-            .append(self.data.to_doc())
+        crate::puppet_pp_printer::comment::comment_or(
+            &self.comment,
+            RcDoc::hardline(),
+            RcDoc::nil(),
+        )
+        .append(self.data.to_doc())
     }
 }
 
@@ -375,23 +408,24 @@ fn test_idempotence_short() {
         "Array[\n  Integer ]",
         "Array[\n  Integer,\n  2 ]",
         "Array[\n  Integer,\n  2, 4 ]",
-        "Variant[\n  String[1,\n    2],\n  Integer ]",
-        "Enum[ 1,\n  aaaaaa, 3\n]",
+        "Variant[\n  String[1,\n    2],\n  Integer\n]",
+        "Enum[\n  1,\n  aaaaaa,\n  3\n]",
         "Some::Type",
         "Some::Type[\n  1 ]",
-        "Hash[\n  String,\n  Integer,\n  default,\n  1 ]",
-        "Struct[{\n  a\n                     =>\n    Integer\n}]",
-        "Struct[{\n  Optional[\n      a]\n                     =>\n    Integer\n}]",
-        "Struct[{\n  NotUndef[\n      a]\n                     =>\n    Integer\n}]",
+        "Hash[\n  String,\n  Integer,\n  default,\n  1\n]",
+        "Struct[{\n  a\n                               =>\n    Integer\n}]",
+        "Struct[{\n  Optional[\n      a]\n                               =>\n    Integer\n}]",
+        "Struct[{\n  NotUndef[\n      a]\n                               =>\n    Integer\n}]",
         "Sensitive[\n  1 ]",
         "Sensitive[\n  String ]",
         "Tuple[\n  String,\n  Integer,\n  default,\n  100 ]",
     ];
 
     for case in cases {
-        let (_, v) =
-            crate::puppet_parser::typing::parse_type_specification(crate::puppet_parser::Span::new(case))
-                .unwrap();
+        let (_, v) = crate::puppet_parser::typing::parse_type_specification(
+            crate::puppet_parser::Span::new(case),
+        )
+        .unwrap();
 
         let mut w = Vec::new();
         v.to_doc().render(11, &mut w).unwrap();
