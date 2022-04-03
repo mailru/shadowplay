@@ -1,10 +1,11 @@
 use pretty::RcDoc;
 
-pub fn multiline_list<ELT, MAP>(list: &[ELT], elt_to_doc: MAP) -> RcDoc<()>
+pub fn multiline_list<ELT, MAP>(list: &[ELT], multiline: Option<bool>, elt_to_doc: MAP) -> RcDoc<()>
 where
     MAP: FnMut(&ELT) -> RcDoc<()>,
 {
-    if list.len() > 1 {
+    let multiline = multiline.unwrap_or(list.len() > 1);
+    if multiline {
         return RcDoc::hardline()
             .append(
                 RcDoc::intersperse(

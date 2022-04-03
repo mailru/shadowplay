@@ -46,16 +46,9 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::Pattern<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
         RcDoc::text("Pattern")
             .append(RcDoc::text("["))
-            .append(RcDoc::softline())
-            .append(
-                RcDoc::intersperse(
-                    self.list.iter().map(|x| x.to_doc()),
-                    RcDoc::text(",").append(RcDoc::softline()),
-                )
-                .group(),
-            )
-            .nest(2)
-            .append(RcDoc::softline())
+            .append(super::common::multiline_list(&self.list, None, |x| {
+                x.to_doc()
+            }))
             .append(RcDoc::text("]"))
             .group()
     }
@@ -168,7 +161,11 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::Variant<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
         RcDoc::text("Variant")
             .append(RcDoc::text("["))
-            .append(super::common::multiline_list(&self.list, |x| x.to_doc()))
+            .append(super::common::multiline_list(
+                &self.list,
+                self.list.first().map(|v| has_args(v)),
+                |x| x.to_doc(),
+            ))
             .append(RcDoc::text("]"))
             .group()
     }
@@ -178,7 +175,7 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::Enum<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
         RcDoc::text("Enum")
             .append(RcDoc::text("["))
-            .append(common::multiline_list(&self.list, |x| {
+            .append(common::multiline_list(&self.list, None, |x| {
                 crate::puppet_pp_printer::term::to_doc(x, false)
             }))
             .append(RcDoc::text("]"))
@@ -192,7 +189,7 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::ExternalType<EXTRA> {
             RcDoc::nil()
         } else {
             RcDoc::text("[")
-                .append(super::common::multiline_list(&self.arguments, |x| {
+                .append(super::common::multiline_list(&self.arguments, None, |x| {
                     crate::puppet_pp_printer::expression::to_doc(x, false)
                 }))
                 .append(RcDoc::text("]"))
@@ -335,10 +332,7 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::TypeTuple<EXTRA> {
         };
 
         let args = RcDoc::text("[")
-            .append(RcDoc::softline())
-            .append(RcDoc::intersperse(args, RcDoc::text(",").append(RcDoc::softline())).group())
-            .nest(2)
-            .append(RcDoc::softline())
+            .append(super::common::multiline_docs_list(args, None))
             .append(RcDoc::text("]"))
             .group();
 
@@ -401,7 +395,7 @@ fn test_idempotence_short() {
         "Float[\n  default,\n  2]",
         "Integer",
         "String[1,\n  2]",
-        "Pattern[\n  /a/, /b/\n]",
+        "Pattern[\n  /a/,\n  /b/\n]",
         "Regex[ // ]",
         "Regex[\n  /aaaaaaaaaaa/\n]",
         "Optional[\n  #comment\n  Regex[\n    /aaaaaaaaaaa/\n  ]]",
@@ -418,7 +412,7 @@ fn test_idempotence_short() {
         "Struct[{\n  NotUndef[\n      a]\n                               =>\n    Integer\n}]",
         "Sensitive[\n  1 ]",
         "Sensitive[\n  String ]",
-        "Tuple[\n  String,\n  Integer,\n  default,\n  100 ]",
+        "Tuple[\n  String,\n  Integer,\n  default,\n  100\n]",
     ];
 
     for case in cases {
