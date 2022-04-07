@@ -45,8 +45,8 @@
                :filename .range.path)))
           (flycheck-parse-json output)))
 
-(flycheck-define-checker puppet-shadowplay
-  "A Puppet DSL linter using shadowplay."
+(flycheck-define-checker puppet-shadowplay-pp
+  "A Puppet PP DSL linter using shadowplay."
   :command ("shadowplay"
             "--repo-path" (eval shadowplay-repository-path)
             "check"
@@ -57,7 +57,21 @@
   :error-parser flycheck-parse-shadowplay-lint
   :modes puppet-mode)
 
-(add-to-list 'flycheck-checkers 'puppet-shadowplay)
+(flycheck-define-checker puppet-shadowplay-hiera-yaml
+  "A Puppet PP DSL linter using shadowplay."
+  :command ("shadowplay"
+            "--repo-path" (eval shadowplay-repository-path)
+            "check"
+            "-f"
+            "json"
+            "hiera"
+            source)
+  :error-parser flycheck-parse-shadowplay-lint
+  :modes yaml-mode
+  :enabled (lambda () (string-match-p "/hieradata" (buffer-file-name))))
+
+(add-to-list 'flycheck-checkers 'puppet-shadowplay-pp)
+(add-to-list 'flycheck-checkers 'puppet-shadowplay-hiera-yaml)
 
 (defun shadowplay-format-buffer ()
   "Call shadowplay formatter for whole buffer."
