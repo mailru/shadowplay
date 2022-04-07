@@ -1,4 +1,4 @@
-pub static KEYWORDS: &'static [&str] = &[
+pub static KEYWORDS: &[&str] = &[
     "and",
     "application",
     "attr",
