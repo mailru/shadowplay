@@ -8,8 +8,18 @@ pub struct Attribute<EXTRA> {
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum ExpressionVariant<EXTRA> {
-    Equal((Attribute<EXTRA>, crate::puppet_lang::expression::Term<EXTRA>)),
-    NotEqual((Attribute<EXTRA>, crate::puppet_lang::expression::Term<EXTRA>)),
+    Equal(
+        (
+            Attribute<EXTRA>,
+            crate::puppet_lang::expression::Term<EXTRA>,
+        ),
+    ),
+    NotEqual(
+        (
+            Attribute<EXTRA>,
+            crate::puppet_lang::expression::Term<EXTRA>,
+        ),
+    ),
     And((Box<SearchExpression<EXTRA>>, Box<SearchExpression<EXTRA>>)),
     Or((Box<SearchExpression<EXTRA>>, Box<SearchExpression<EXTRA>>)),
     Parens(Box<SearchExpression<EXTRA>>),

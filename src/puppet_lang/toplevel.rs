@@ -11,7 +11,10 @@ pub struct Class<EXTRA> {
 }
 
 impl<EXTRA> Class<EXTRA> {
-    pub fn get_argument(&self, argument_name: &str) -> Option<&crate::puppet_lang::argument::Argument<EXTRA>> {
+    pub fn get_argument(
+        &self,
+        argument_name: &str,
+    ) -> Option<&crate::puppet_lang::argument::Argument<EXTRA>> {
         self.arguments
             .value
             .iter()

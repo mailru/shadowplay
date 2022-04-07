@@ -3,7 +3,12 @@ use serde::Serialize;
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum ResourceAttributeVariant<EXTRA> {
-    Name((crate::puppet_lang::string::StringExpr<EXTRA>, Expression<EXTRA>)),
+    Name(
+        (
+            crate::puppet_lang::string::StringExpr<EXTRA>,
+            Expression<EXTRA>,
+        ),
+    ),
     Group(crate::puppet_lang::expression::Term<EXTRA>),
 }
 
@@ -115,7 +120,13 @@ pub struct Case<EXTRA> {
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct ResourceDefaults<EXTRA> {
     pub name: String,
-    pub args: crate::puppet_lang::List<EXTRA, (crate::puppet_lang::expression::Term<EXTRA>, Expression<EXTRA>)>,
+    pub args: crate::puppet_lang::List<
+        EXTRA,
+        (
+            crate::puppet_lang::expression::Term<EXTRA>,
+            Expression<EXTRA>,
+        ),
+    >,
     pub extra: EXTRA,
 }
 
