@@ -3,6 +3,7 @@ pub mod builtin;
 pub mod comment;
 pub mod expression;
 pub mod identifier;
+pub mod keywords;
 pub mod resource_collection;
 pub mod statement;
 pub mod string;

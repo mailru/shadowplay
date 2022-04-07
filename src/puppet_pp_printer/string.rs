@@ -45,20 +45,27 @@ impl<EXTRA> Printer for crate::puppet_lang::string::DoubleQuotedFragment<EXTRA> 
 impl<EXTRA> Printer for crate::puppet_lang::string::StringExpr<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
         match &self.data {
-            crate::puppet_lang::string::StringVariant::SingleQuoted(list) => match &list.as_slice()
-            {
-                &[crate::puppet_lang::string::StringFragment::Literal(v)]
-                    if v.data.chars().all(|c| c.is_ascii_lowercase() || c == '_') =>
-                {
-                    RcDoc::text(&v.data)
+            crate::puppet_lang::string::StringVariant::SingleQuoted(list) => {
+                // Can we serialize this string as bareword?
+                if list.len() == 1 {
+                    if let crate::puppet_lang::string::StringFragment::Literal(v) =
+                        list.first().unwrap()
+                    {
+                        if v.data.chars().all(|c| c.is_ascii_lowercase() || c == '_')
+                            && !crate::puppet_lang::keywords::KEYWORDS.contains(&v.data.as_str())
+                        {
+                            return RcDoc::text(&v.data);
+                        }
+                    }
                 }
-                _ => RcDoc::text("'")
+
+                RcDoc::text("'")
                     .append(RcDoc::intersperse(
                         list.iter().map(|v| v.to_doc()),
                         RcDoc::nil(),
                     ))
-                    .append(RcDoc::text("'")),
-            },
+                    .append(RcDoc::text("'"))
+            }
             crate::puppet_lang::string::StringVariant::DoubleQuoted(list) => RcDoc::text("\"")
                 .append(RcDoc::intersperse(
                     list.iter().map(|v| v.to_doc()),
