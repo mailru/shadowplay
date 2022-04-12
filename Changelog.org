@@ -1,4 +1,20 @@
 * Changelog
+** [2022-04-12] v0.16.1
+
+*** Bugfixes
+
+ - Cargo README path (99d7f12)
+
+*** Other changes
+
+ - Locked dependencies versions (523cf27)
+ - Update version (3bfdbbc)
+ - Added package.include for cargo publishing (9b2275d)
+ - Fixes for cargo publish (60f99b7)
+ - Added README in markdown format for cargo publishing (fe85d46)
+ - Run clippy only on *.rs changes (b7c12cd)
+
+
 ** [2022-04-12] v0.16.0
 
 *** New features
