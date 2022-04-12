@@ -1,4 +1,23 @@
 * Changelog
+** [2022-04-12] v0.16.0
+
+*** New features
+
+ - Added lint support for hiera YAML files (717757e)
+ - Improved printing rules (30f7635)
+ - Improved printing rules (bbfdc37)
+
+*** Bugfixes
+
+ - Issue reported by linter (f2de2b1)
+ - Added missing file (cef90b7)
+ - Single-quoted keywords cannot be serialized as barewords (f818686)
+
+*** Other changes
+
+ - Reindented (a7190f9)
+
+
 ** [2022-03-29] v0.15.0
 
 *** New features
