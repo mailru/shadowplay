@@ -5,6 +5,27 @@ Shadowplay is a utility for checking puppet syntax, a puppet manifest linter, a 
 #+CAPTION: Flycheck plugin for Emacs
 [[./doc/screenshot-emacs.png]]
 
+* Installation methods
+
+** Via deb/rpm
+
+Latest releases can be downloaded here: [[https://github.com/mailru/shadowplay/releases]]
+
+** MaOS binaries
+
+Lastest binaries for MacOS can be downloaded here: [[https://github.com/mailru/shadowplay/releases]]
+
+** Via cargo
+
+#+BEGIN_SRC shell
+cargo install shadowplay
+#+END_SRC
+
+** Guix manifest
+
+Guix manifest is not merged into main repository yet. One can use etc/guix.scm from Shadowplay repo. All missing dependencies are also
+included into manifest file.
+
 * Usage
 
 ** Correctness of YAML files
