@@ -6,6 +6,11 @@ package.readme = "README.org"
 package.license = "MIT/Apache-2.0"
 package.repository = "https://github.com/mailru/shadowplay/"
 package.description = "Utility for checking puppet syntax, a puppet manifest linter, a pretty printer, and a utility for exploring the Hiera."
+package.include = [
+    "**/*.rs",
+    "Cargo.toml",
+    "README.md",
+]
 
 [profile.release]
 
