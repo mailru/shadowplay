@@ -1,9 +1,11 @@
 package.name = "shadowplay"
-package.version = "0.1.0"
+package.version = "0.16.0"
 package.edition = "2021"
 package.authors = ["Evgenii Lepikhin <e.lepikhin@corp.mail.ru>", "VK Company / mail.ru"]
-package.readme = "../README.md"
+package.readme = "README.org"
 package.license = "MIT/Apache-2.0"
+package.repository = "https://github.com/mailru/shadowplay/"
+package.description = "Utility for checking puppet syntax, a puppet manifest linter, a pretty printer, and a utility for exploring the Hiera."
 
 [profile.release]
 
