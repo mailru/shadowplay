@@ -112,5 +112,5 @@ clippy_check:
   tags:
     - hammer-dev
   only:
-    - changes:
+    changes:
       - "**/*.rs"
