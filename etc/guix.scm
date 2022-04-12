@@ -29,7 +29,8 @@
     (arguments
      `(#:skip-build? #t
        #:cargo-inputs
-       (("rust-bytecount" ,rust-bytecount-0.6))))
+       (("rust-bytecount" ,rust-bytecount-0.6)
+        ("rust-nom" ,rust-nom-7))))
     (home-page "https://github.com/fflorent/nom_locate")
     (synopsis "A special input type for nom to locate tokens")
     (description
@@ -208,6 +209,6 @@ It's often useful to read regexes from configuration file.")
 utility for exploring the Hiera.")
     (license (list license:expat license:asl2.0))))
 
-(define-public shadowplay-0.15.0 (make-shadowplay "0.15.0"))
+(define-public shadowplay-0.16.1 (make-shadowplay "0.16.1"))
 
-(define-public shadowplay shadowplay-0.15.0)
+(define-public shadowplay shadowplay-0.16.1)
