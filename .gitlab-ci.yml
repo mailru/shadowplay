@@ -13,7 +13,6 @@ build_hammer_el7:
         Rpm:
           spec_path: etc/centos.spec
           scripts:
-            - echo -e "[source.crates-io]\nreplace-with = \"vk-mirror\"\n[source.vk-mirror]\nregistry = \"https://rust.devmail.ru/crates.io-index\"\n" >> .cargo/config.toml
             - rpmbuild -bb etc/centos.spec
             - alien --to-deb /root/rpmbuild/RPMS/x86_64/*.rpm
     artifacts:
@@ -33,8 +32,8 @@ build_hammer_el7:
         - __author__
   tags:
     - hammer-dev
-  only:
-    - tags
+  rules:
+    - if: '$CI_COMMIT_TAG =~ "/^v\d+[.]\d+/"'
 
 build_hammer_macos:
   script: |
@@ -59,7 +58,6 @@ build_hammer_macos:
       builder:
         Generic:
           script:
-            - echo -e "[source.crates-io]\nreplace-with = \"vk-mirror\"\n[source.vk-mirror]\nregistry = \"https://rust.devmail.ru/crates.io-index\"\n" >> .cargo/config.toml
             - "sed -i -e \"s/^package[.]version = .*/package.version = \\\"$(cat VERSION)\\\"/\" Cargo.toml"
             - cargo build --release --target x86_64-apple-darwin
     environment_variables:
@@ -78,8 +76,8 @@ build_hammer_macos:
         - __author__
   tags:
     - hammer-dev
-  only:
-    - tags
+  rules:
+    - if: '$CI_COMMIT_TAG =~ "/^v\d+[.]\d+/"'
 
 clippy_check:
   script: |
@@ -94,7 +92,6 @@ clippy_check:
       builder:
         Generic:
           script:
-            - echo -e "[source.crates-io]\nreplace-with = \"vk-mirror\"\n[source.vk-mirror]\nregistry = \"https://rust.devmail.ru/crates.io-index\"\n" >> .cargo/config.toml
             - cargo clippy -- -D warnings
             - cargo test
     notifications:
@@ -111,6 +108,7 @@ clippy_check:
       - clippy
   tags:
     - hammer-dev
-  only:
-    changes:
-      - "**/*.rs"
+  rules:
+    - if: '$CI_COMMIT_TAG =~ "/^$/" && $CI_PIPELINE_SOURCE == "push"'
+      changes:
+        - "**/*.rs"
