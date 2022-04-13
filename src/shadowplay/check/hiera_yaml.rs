@@ -213,7 +213,7 @@ impl Check {
             };
 
             lazy_static! {
-                // Строка начинается с одиночного ":", содержит его в середине, или заканчивается одиночным ":"
+                // String contains single ":" character
                 static ref SINGLE_SEMICOLON_RE: regex::Regex = regex::Regex::new("(?:^:[^:]|[^:]:[^:]|[^:]:$)").unwrap();
             }
 
