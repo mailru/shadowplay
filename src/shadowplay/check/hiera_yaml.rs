@@ -213,7 +213,7 @@ impl Check {
             };
 
             lazy_static! {
-                // String contains single ":" character
+                // String contains single colon
                 static ref SINGLE_SEMICOLON_RE: regex::Regex = regex::Regex::new("(?:^:[^:]|[^:]:[^:]|[^:]:$)").unwrap();
             }
 
