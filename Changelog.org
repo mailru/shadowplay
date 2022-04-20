@@ -1,4 +1,15 @@
 * Changelog
+** [2022-04-20] v0.16.2
+
+*** Bugfixes
+
+ - Resource attributes names are just literals (a2ab2a7)
+
+*** Other changes
+
+ - Updated Guix manifest (276a824)
+
+
 ** [2022-04-12] v0.16.1
 
 *** Bugfixes

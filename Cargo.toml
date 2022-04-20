@@ -1,5 +1,5 @@
 package.name = "shadowplay"
-package.version = "0.16.1"
+package.version = "0.16.2"
 package.edition = "2021"
 package.authors = ["Evgenii Lepikhin <e.lepikhin@corp.mail.ru>", "VK Company / mail.ru"]
 package.readme = "README.md"
