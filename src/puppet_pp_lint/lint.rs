@@ -52,7 +52,10 @@ pub trait EarlyLintPass: LintPass {
     fn check_ctx(&self, _ctx: &crate::puppet_pp_lint::ctx::Ctx) -> Vec<LintError> {
         Vec::new()
     }
-    fn check_definition(&self, _: &crate::puppet_lang::toplevel::Definition<Range>) -> Vec<LintError> {
+    fn check_definition(
+        &self,
+        _: &crate::puppet_lang::toplevel::Definition<Range>,
+    ) -> Vec<LintError> {
         Vec::new()
     }
     fn check_plan(&self, _: &crate::puppet_lang::toplevel::Plan<Range>) -> Vec<LintError> {
@@ -61,13 +64,19 @@ pub trait EarlyLintPass: LintPass {
     fn check_typedef(&self, _: &crate::puppet_lang::toplevel::TypeDef<Range>) -> Vec<LintError> {
         Vec::new()
     }
-    fn check_functiondef(&self, _: &crate::puppet_lang::toplevel::FunctionDef<Range>) -> Vec<LintError> {
+    fn check_functiondef(
+        &self,
+        _: &crate::puppet_lang::toplevel::FunctionDef<Range>,
+    ) -> Vec<LintError> {
         Vec::new()
     }
     fn check_argument(&self, _: &crate::puppet_lang::argument::Argument<Range>) -> Vec<LintError> {
         Vec::new()
     }
-    fn check_statement(&self, _: &crate::puppet_lang::statement::Statement<Range>) -> Vec<LintError> {
+    fn check_statement(
+        &self,
+        _: &crate::puppet_lang::statement::Statement<Range>,
+    ) -> Vec<LintError> {
         Vec::new()
     }
     fn check_statement_set(
@@ -121,7 +130,10 @@ pub trait EarlyLintPass: LintPass {
     ) -> Vec<LintError> {
         Vec::new()
     }
-    fn check_relation_elt(&self, _: &crate::puppet_lang::statement::RelationElt<Range>) -> Vec<LintError> {
+    fn check_relation_elt(
+        &self,
+        _: &crate::puppet_lang::statement::RelationElt<Range>,
+    ) -> Vec<LintError> {
         Vec::new()
     }
     fn check_resource_set(
@@ -138,7 +150,10 @@ pub trait EarlyLintPass: LintPass {
     ) -> Vec<LintError> {
         Vec::new()
     }
-    fn check_case_statement(&self, _: &crate::puppet_lang::statement::Case<Range>) -> Vec<LintError> {
+    fn check_case_statement(
+        &self,
+        _: &crate::puppet_lang::statement::Case<Range>,
+    ) -> Vec<LintError> {
         Vec::new()
     }
     fn check_deprecated_resource_defaults(
@@ -160,7 +175,9 @@ pub enum EarlyLintPassVariant {
     OptionalArgumentsGoesFirst(crate::puppet_pp_lint::lint_toplevel::OptionalArgumentsGoesFirst),
     UniqueArgumentsNames(crate::puppet_pp_lint::lint_toplevel::UniqueArgumentsNames),
     ArgumentLooksSensitive(crate::puppet_pp_lint::lint_argument::ArgumentLooksSensitive),
-    SensitiveArgumentWithDefault(crate::puppet_pp_lint::lint_argument::SensitiveArgumentWithDefault),
+    SensitiveArgumentWithDefault(
+        crate::puppet_pp_lint::lint_argument::SensitiveArgumentWithDefault,
+    ),
     ArgumentTyped(crate::puppet_pp_lint::lint_argument::ArgumentTyped),
     ReadableArgumentsName(crate::puppet_pp_lint::lint_argument::ReadableArgumentsName),
     LowerCaseArgumentName(crate::puppet_pp_lint::lint_argument::LowerCaseArgumentName),
@@ -169,8 +186,12 @@ pub enum EarlyLintPassVariant {
     InvalidVariableAssignment(crate::puppet_pp_lint::lint_expression::InvalidVariableAssignment),
     DoubleNegation(crate::puppet_pp_lint::lint_expression::DoubleNegation),
     NegationOfEquation(crate::puppet_pp_lint::lint_expression::NegationOfEquation),
-    ConstantExpressionInCondition(crate::puppet_pp_lint::lint_expression::ConstantExpressionInCondition),
-    ErbReferencesToUnknownVariable(crate::puppet_pp_lint::lint_builtin::ErbReferencesToUnknownVariable),
+    ConstantExpressionInCondition(
+        crate::puppet_pp_lint::lint_expression::ConstantExpressionInCondition,
+    ),
+    ErbReferencesToUnknownVariable(
+        crate::puppet_pp_lint::lint_builtin::ErbReferencesToUnknownVariable,
+    ),
     UselessDoubleQuotes(crate::puppet_pp_lint::lint_string_expr::UselessDoubleQuotes),
     ExpressionInSingleQuotes(crate::puppet_pp_lint::lint_string_expr::ExpressionInSingleQuotes),
     LowerCaseVariable(crate::puppet_pp_lint::lint_term::LowerCaseVariable),
@@ -178,13 +199,21 @@ pub enum EarlyLintPassVariant {
     UpperCaseName(crate::puppet_pp_lint::lint_resource_set::UpperCaseName),
     UniqueAttributeName(crate::puppet_pp_lint::lint_resource_set::UniqueAttributeName),
     FileModeAttributeIsString(crate::puppet_pp_lint::lint_resource_set::FileModeAttributeIsString),
-    EnsureAttributeIsNotTheFirst(crate::puppet_pp_lint::lint_resource_set::EnsureAttributeIsNotTheFirst),
-    MultipleResourcesWithoutDefault(crate::puppet_pp_lint::lint_resource_set::MultipleResourcesWithoutDefault),
-    PerExpressionResourceDefaults(crate::puppet_pp_lint::lint_resource_set::PerExpressionResourceDefaults),
+    EnsureAttributeIsNotTheFirst(
+        crate::puppet_pp_lint::lint_resource_set::EnsureAttributeIsNotTheFirst,
+    ),
+    MultipleResourcesWithoutDefault(
+        crate::puppet_pp_lint::lint_resource_set::MultipleResourcesWithoutDefault,
+    ),
+    PerExpressionResourceDefaults(
+        crate::puppet_pp_lint::lint_resource_set::PerExpressionResourceDefaults,
+    ),
     ExecAttributes(crate::puppet_pp_lint::lint_resource_set::ExecAttributes),
     SelectorInAttributeValue(crate::puppet_pp_lint::lint_resource_set::SelectorInAttributeValue),
     UnconditionalExec(crate::puppet_pp_lint::lint_resource_set::UnconditionalExec),
-    InvalidResourceSetInvocation(crate::puppet_pp_lint::lint_resource_set::InvalidResourceSetInvocation),
+    InvalidResourceSetInvocation(
+        crate::puppet_pp_lint::lint_resource_set::InvalidResourceSetInvocation,
+    ),
     InvalidResourceCollectionInvocation(
         crate::puppet_pp_lint::lint_resource_set::InvalidResourceCollectionInvocation,
     ),
@@ -497,7 +526,8 @@ impl AstLinter {
                     errors.append(&mut self.check_type_specification(storage, ctx, value))
                 }
             }
-            crate::puppet_lang::typing::TypeSpecificationVariant::Optional(elt) => match &elt.value {
+            crate::puppet_lang::typing::TypeSpecificationVariant::Optional(elt) => match &elt.value
+            {
                 crate::puppet_lang::typing::TypeOptionalVariant::TypeSpecification(elt) => {
                     errors.append(&mut self.check_type_specification(storage, ctx, elt))
                 }
@@ -530,14 +560,16 @@ impl AstLinter {
                     errors.append(&mut self.check_type_specification(storage, ctx, &elt.value));
                 }
             }
-            crate::puppet_lang::typing::TypeSpecificationVariant::Sensitive(elt) => match &elt.value {
-                crate::puppet_lang::typing::TypeSensitiveVariant::TypeSpecification(elt) => {
-                    errors.append(&mut self.check_type_specification(storage, ctx, elt));
+            crate::puppet_lang::typing::TypeSpecificationVariant::Sensitive(elt) => {
+                match &elt.value {
+                    crate::puppet_lang::typing::TypeSensitiveVariant::TypeSpecification(elt) => {
+                        errors.append(&mut self.check_type_specification(storage, ctx, elt));
+                    }
+                    crate::puppet_lang::typing::TypeSensitiveVariant::Term(elt) => {
+                        errors.append(&mut self.check_term(storage, ctx, false, elt));
+                    }
                 }
-                crate::puppet_lang::typing::TypeSensitiveVariant::Term(elt) => {
-                    errors.append(&mut self.check_term(storage, ctx, false, elt));
-                }
-            },
+            }
             crate::puppet_lang::typing::TypeSpecificationVariant::Tuple(elt) => {
                 for elt in &elt.list {
                     errors.append(&mut self.check_type_specification(storage, ctx, elt))
@@ -1030,8 +1062,10 @@ impl AstLinter {
             ctx.register_phantom_variable("title");
             for attribute in &resource.attributes.value {
                 match &attribute.value {
-                    crate::puppet_lang::statement::ResourceAttributeVariant::Name((name, value)) => {
-                        errors.append(&mut self.check_string_expression(storage, ctx, name));
+                    crate::puppet_lang::statement::ResourceAttributeVariant::Name((
+                        _name,
+                        value,
+                    )) => {
                         errors.append(&mut self.check_expression(storage, ctx, true, false, value))
                     }
                     crate::puppet_lang::statement::ResourceAttributeVariant::Group(term) => {

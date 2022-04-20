@@ -1,3 +1,8 @@
+use crate::puppet_lang::statement::{Statement, StatementVariant};
+use crate::puppet_lang::ExtraGetter;
+use nom::character::complete::alphanumeric1;
+use nom::combinator::recognize;
+use nom::multi::many1;
 use nom::{
     branch::alt,
     bytes::complete::tag,
@@ -5,8 +10,6 @@ use nom::{
     multi::{many0, separated_list0, separated_list1},
     sequence::{pair, preceded, terminated, tuple},
 };
-use crate::puppet_lang::statement::{Statement, StatementVariant};
-use crate::puppet_lang::ExtraGetter;
 
 use crate::puppet_parser::{
     common::{
@@ -14,7 +17,6 @@ use crate::puppet_parser::{
         curly_brackets_delimimited, space0_delimimited, spaced0_separator, spaced_word,
         square_brackets_delimimited,
     },
-    term::parse_string_variant,
     {range::Range, IResult, ParseError, Span},
 };
 
@@ -25,10 +27,22 @@ fn parse_expression(input: Span) -> IResult<StatementVariant<Range>> {
     )(input)
 }
 
+pub fn parse_resource_attribute_name(
+    input: Span,
+) -> IResult<crate::puppet_lang::string::Literal<Range>> {
+    map(
+        recognize(many1(alt((alphanumeric1, tag("_"))))),
+        |data: Span| crate::puppet_lang::string::Literal {
+            extra: Range::from((data, data)),
+            data: (*data).to_owned(),
+        },
+    )(input)
+}
+
 fn parse_resource(input: Span) -> IResult<crate::puppet_lang::statement::Resource<Range>> {
     let parse_attribute = map(
         pair(
-            space0_delimimited(parse_string_variant),
+            space0_delimimited(parse_resource_attribute_name),
             preceded(
                 ParseError::protect(|_| "'=>' is expected".to_string(), tag("=>")),
                 space0_delimimited(ParseError::protect(
@@ -54,13 +68,14 @@ fn parse_resource(input: Span) -> IResult<crate::puppet_lang::statement::Resourc
         |(_, term)| crate::puppet_lang::statement::ResourceAttributeVariant::Group(term),
     );
 
-    let parse_attributes = crate::puppet_parser::common::comma_separated_list0_with_last_comment(map(
-        pair(
-            capture_comment,
-            alt((parse_attribute, parse_attribute_group)),
-        ),
-        |(comment, value)| crate::puppet_lang::statement::ResourceAttribute { value, comment },
-    ));
+    let parse_attributes =
+        crate::puppet_parser::common::comma_separated_list0_with_last_comment(map(
+            pair(
+                capture_comment,
+                alt((parse_attribute, parse_attribute_group)),
+            ),
+            |(comment, value)| crate::puppet_lang::statement::ResourceAttribute { value, comment },
+        ));
 
     let mut parser = map(
         tuple((
@@ -77,7 +92,9 @@ fn parse_resource(input: Span) -> IResult<crate::puppet_lang::statement::Resourc
                     crate::puppet_lang::statement::ResourceAttributeVariant::Name((_, v)) => {
                         v.extra.clone()
                     }
-                    crate::puppet_lang::statement::ResourceAttributeVariant::Group(v) => v.extra.clone(),
+                    crate::puppet_lang::statement::ResourceAttributeVariant::Group(v) => {
+                        v.extra.clone()
+                    }
                 },
                 None => title.extra.clone(),
             };
@@ -427,10 +444,12 @@ fn parse_resource_defaults(
                 comma_separated_list1_with_last_comment(kv_parser),
             )),
         ),
-        |(name, (_left_curly, args, right_curly))| crate::puppet_lang::statement::ResourceDefaults {
-            name: name.to_string(),
-            args,
-            extra: Range::from((name, right_curly)),
+        |(name, (_left_curly, args, right_curly))| {
+            crate::puppet_lang::statement::ResourceDefaults {
+                name: name.to_string(),
+                args,
+                extra: Range::from((name, right_curly)),
+            }
         },
     )(input)
 }
@@ -442,7 +461,10 @@ fn parse_statement_variant(input: Span) -> IResult<StatementVariant<Range>> {
         parse_case,
         map(parse_relation, StatementVariant::RelationList),
         map(parse_resource_defaults, StatementVariant::ResourceDefaults),
-        map(crate::puppet_parser::toplevel::parse, StatementVariant::Toplevel),
+        map(
+            crate::puppet_parser::toplevel::parse,
+            StatementVariant::Toplevel,
+        ),
         parse_expression,
     ))(input)
 }
@@ -454,7 +476,9 @@ fn parse_statement(input: Span) -> IResult<Statement<Range>> {
     )(input)
 }
 
-pub fn parse_statement_list(input: Span) -> IResult<crate::puppet_lang::List<Range, Statement<Range>>> {
+pub fn parse_statement_list(
+    input: Span,
+) -> IResult<crate::puppet_lang::List<Range, Statement<Range>>> {
     crate::puppet_parser::common::list_with_last_comment(many0(terminated(
         space0_delimimited(parse_statement),
         opt(space0_delimimited(tag(";"))),
@@ -463,7 +487,11 @@ pub fn parse_statement_list(input: Span) -> IResult<crate::puppet_lang::List<Ran
 
 pub fn parse_statement_block(
     input: Span,
-) -> IResult<(Span, crate::puppet_lang::List<Range, Statement<Range>>, Span)> {
+) -> IResult<(
+    Span,
+    crate::puppet_lang::List<Range, Statement<Range>>,
+    Span,
+)> {
     tuple((
         tag("{"),
         parse_statement_list,

@@ -5,7 +5,7 @@ use serde::Serialize;
 pub enum ResourceAttributeVariant<EXTRA> {
     Name(
         (
-            crate::puppet_lang::string::StringExpr<EXTRA>,
+            crate::puppet_lang::string::Literal<EXTRA>,
             Expression<EXTRA>,
         ),
     ),

@@ -68,17 +68,18 @@ impl<EXTRA> Printer for crate::puppet_lang::resource_collection::ResourceCollect
 impl<EXTRA> Printer for crate::puppet_lang::statement::ResourceAttribute<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
         let value = match &self.value {
-            crate::puppet_lang::statement::ResourceAttributeVariant::Name((k, v)) => k
-                .to_doc()
-                .append(RcDoc::column(|w| {
-                    let offset = (w / crate::puppet_pp_printer::ARROW_STEP + 1)
-                        * crate::puppet_pp_printer::ARROW_STEP;
-                    RcDoc::text(format!("{} =>", " ".repeat(offset - w)))
-                }))
-                .append(RcDoc::softline())
-                .append(crate::puppet_pp_printer::expression::to_doc(v, false))
-                .group()
-                .nest(2),
+            crate::puppet_lang::statement::ResourceAttributeVariant::Name((k, v)) => {
+                RcDoc::text(&k.data)
+                    .append(RcDoc::column(|w| {
+                        let offset = (w / crate::puppet_pp_printer::ARROW_STEP + 1)
+                            * crate::puppet_pp_printer::ARROW_STEP;
+                        RcDoc::text(format!("{} =>", " ".repeat(offset - w)))
+                    }))
+                    .append(RcDoc::softline())
+                    .append(crate::puppet_pp_printer::expression::to_doc(v, false))
+                    .group()
+                    .nest(2)
+            }
             crate::puppet_lang::statement::ResourceAttributeVariant::Group(v) => RcDoc::text("*")
                 .append(RcDoc::softline())
                 .append(RcDoc::column(|w| {
@@ -266,6 +267,8 @@ fn test_idempotence_short() {
         "Class[ a ] -> ClassB <| (abc != 1) and c == test or (c == notest and abc == 1) |>",
         "file { '/etc/passwd':\n    ensure                     => file,\n    mode                       => '0644'\n}",
         "file { '/etc/passwd':\n    ensure                     => file,\n    mode                       => '0644';\n  '/etc/group':\n    ensure                     => file\n}",
+        // keyword test
+        "file { '/etc/passwd':\n    unless                     => true\n}",
     ];
 
     for case in cases {

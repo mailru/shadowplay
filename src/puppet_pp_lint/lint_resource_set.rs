@@ -64,8 +64,8 @@ impl EarlyLintPass for UniqueAttributeName {
                 if let crate::puppet_lang::statement::ResourceAttributeVariant::Name(pair) =
                     &attribute.value
                 {
-                    let name = crate::puppet_tool::string::raw_content(&pair.0);
-                    if names.contains(&name) {
+                    let name = &pair.0.data;
+                    if names.contains(name) {
                         errors.push(LintError::new(
                             Box::new(self.clone()),
                             &format!("Attribute {:?} is not unique", name),
@@ -105,7 +105,7 @@ impl EarlyLintPass for EnsureAttributeIsNotTheFirst {
                 if let crate::puppet_lang::statement::ResourceAttributeVariant::Name(pair) =
                     &attribute.value
                 {
-                    let name = crate::puppet_tool::string::raw_content(&pair.0);
+                    let name = &pair.0.data;
                     if name == "ensure" && pos > 0 {
                         errors.push(LintError::new_with_url(
                             Box::new(self.clone()),
@@ -205,7 +205,7 @@ impl EarlyLintPass for FileModeAttributeIsString {
                 if let crate::puppet_lang::statement::ResourceAttributeVariant::Name(attribute) =
                     &attribute.value
                 {
-                    let name = crate::puppet_tool::string::raw_content(&attribute.0);
+                    let name = &attribute.0.data;
                     if name == "mode" {
                         if let crate::puppet_lang::expression::ExpressionVariant::Term(term) =
                             &attribute.1.value
@@ -254,7 +254,9 @@ impl EarlyLintPass for MultipleResourcesWithoutDefault {
     ) -> Vec<LintError> {
         let mut has_default = false;
         for resource in &elt.list.value {
-            if let crate::puppet_lang::expression::ExpressionVariant::Term(term) = &resource.title.value {
+            if let crate::puppet_lang::expression::ExpressionVariant::Term(term) =
+                &resource.title.value
+            {
                 if let crate::puppet_lang::expression::TermVariant::String(v) = &term.value {
                     if crate::puppet_tool::string::raw_content(v) == "default" {
                         has_default = true
@@ -357,7 +359,7 @@ impl EarlyLintPass for UnconditionalExec {
                 if let crate::puppet_lang::statement::ResourceAttributeVariant::Name(attribute) =
                     &attribute.value
                 {
-                    let name = crate::puppet_tool::string::raw_content(&attribute.0);
+                    let name = &attribute.0.data;
                     if name == "unless"
                         || name == "onlyif"
                         || name == "creates"
@@ -412,7 +414,7 @@ impl EarlyLintPass for ExecAttributes {
                 if let crate::puppet_lang::statement::ResourceAttributeVariant::Name(attribute) =
                     &attribute.value
                 {
-                    let name = crate::puppet_tool::string::raw_content(&attribute.0);
+                    let name = &attribute.0.data;
                     match name.as_str() {
                         "command" => command = Some(&attribute.1),
                         "provider" => provider = Some(&attribute.1),
@@ -547,22 +549,15 @@ fn check_builtin_invocation<LINTER>(
                 crate::puppet_lang::statement::ResourceAttributeVariant::Name((name, _)) => name,
                 crate::puppet_lang::statement::ResourceAttributeVariant::Group(_) => continue,
             };
-            let const_name = match crate::puppet_tool::string::constant_value(name) {
-                None => continue,
-                Some(v) => v,
-            };
-
-            if !builtin.attributes.contains_key(const_name.as_str())
-                && !ctx
-                    .resource_metaparameters
-                    .contains_key(const_name.as_str())
+            if !builtin.attributes.contains_key(name.data.as_str())
+                && !ctx.resource_metaparameters.contains_key(name.data.as_str())
             {
                 errors.push(LintError::new(
                     Box::new(linter.clone()),
                     &format!(
                         "Builtin resource {:?} does not accept argument {:?}",
                         elt.name.name.join("::"),
-                        const_name
+                        name.data
                     ),
                     &name.extra,
                 ))
@@ -594,22 +589,15 @@ fn check_defined_resource_invocation<LINTER>(
                 crate::puppet_lang::statement::ResourceAttributeVariant::Name((name, _)) => name,
                 crate::puppet_lang::statement::ResourceAttributeVariant::Group(_) => continue,
             };
-            let const_name = match crate::puppet_tool::string::constant_value(name) {
-                None => continue,
-                Some(v) => v,
-            };
-
-            if !arguments.iter().any(|arg| arg.name == const_name)
-                && !ctx
-                    .resource_metaparameters
-                    .contains_key(const_name.as_str())
+            if !arguments.iter().any(|arg| arg.name == name.data)
+                && !ctx.resource_metaparameters.contains_key(name.data.as_str())
             {
                 errors.push(LintError::new(
                     Box::new(linter.clone()),
                     &format!(
                         "Resource {:?} does not accept argument {:?}",
                         elt.name.name.join("::"),
-                        const_name
+                        name.data
                     ),
                     &name.extra,
                 ))
