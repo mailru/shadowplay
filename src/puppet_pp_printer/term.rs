@@ -3,7 +3,7 @@ use pretty::{Doc, RcDoc};
 
 impl<EXTRA> Printer for crate::puppet_lang::expression::Float<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
-        RcDoc::as_string(self.value)
+        RcDoc::text(format!("{:?}", self.value))
     }
 }
 

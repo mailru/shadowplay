@@ -390,9 +390,9 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::TypeSpecification<EXTRA> {
 fn test_idempotence_short() {
     let cases = vec![
         "Float",
-        "Float[1]",
-        "Float[1, 2]",
-        "Float[\n  default,\n  2]",
+        "Float[1.0]",
+        "Float[1.0,\n  2.2]",
+        "Float[\n  default,\n  2.1]",
         "Integer",
         "String[1,\n  2]",
         "Pattern[\n  /a/,\n  /b/\n]",

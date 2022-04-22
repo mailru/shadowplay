@@ -306,6 +306,7 @@ pub fn to_doc<EXTRA>(
 fn test_idempotence_short() {
     let cases = vec![
         "123",
+        "4.0 + 5.1",
         "'hello universe'",
         "\"hello\n universe\"",
         "\"hello ${universe}\"",
