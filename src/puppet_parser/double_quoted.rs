@@ -1,13 +1,12 @@
-use crate::puppet_parser::{range::Range, IResult, ParseError, Span};
-use nom::branch::alt;
-use nom::bytes::complete::{is_not, tag};
-use nom::character::complete::{anychar, char};
-use nom::combinator::{map, peek, recognize, verify};
-use nom::multi::fold_many0;
-use nom::sequence::{pair, tuple};
 use crate::puppet_lang::string::{
     DoubleQuotedFragment, Literal, StringExpr, StringFragment, StringVariant,
 };
+use crate::puppet_parser::{range::Range, IResult, ParseError, Span};
+use nom::branch::alt;
+use nom::bytes::complete::{is_not, tag};
+use nom::combinator::{map, success, verify};
+use nom::multi::fold_many0;
+use nom::sequence::{pair, tuple};
 
 fn parse_literal(input: Span) -> IResult<StringFragment<Range>> {
     let not_quote_slash = is_not("\"\\$");
@@ -52,27 +51,31 @@ fn parse_interpolation(input: Span) -> IResult<DoubleQuotedFragment<Range>> {
 
     let (input, dollar_tag) = tag("$")(input)?;
 
-    let parser = alt((
+    let mut parser = alt((
         map(
             tuple((tag("{"), parser_variable(), tag("}"))),
             |(_left_bracket, expr, _right_bracket)| {
-                DoubleQuotedFragment::Expression(crate::puppet_lang::string::Expression { data: expr })
+                DoubleQuotedFragment::Expression(crate::puppet_lang::string::Expression {
+                    data: expr,
+                })
             },
         ),
         map(
-            tuple((tag("{"), crate::puppet_parser::expression::parse_expression, tag("}"))),
+            tuple((
+                tag("{"),
+                crate::puppet_parser::expression::parse_expression,
+                tag("}"),
+            )),
             |(_left_bracket, expr, _right_bracket)| {
-                DoubleQuotedFragment::Expression(crate::puppet_lang::string::Expression { data: expr })
+                DoubleQuotedFragment::Expression(crate::puppet_lang::string::Expression {
+                    data: expr,
+                })
             },
         ),
         map(parser_variable(), |expr| {
             DoubleQuotedFragment::Expression(crate::puppet_lang::string::Expression { data: expr })
         }),
-    ));
-
-    let mut fragment_parser = alt((
-        parser,
-        map(peek(char('"')), |_| {
+        map(success(()), |()| {
             DoubleQuotedFragment::StringFragment(StringFragment::Literal(
                 crate::puppet_lang::string::Literal {
                     extra: Range::from((dollar_tag, dollar_tag)),
@@ -80,17 +83,9 @@ fn parse_interpolation(input: Span) -> IResult<DoubleQuotedFragment<Range>> {
                 },
             ))
         }),
-        map(recognize(anychar), |c: Span| {
-            DoubleQuotedFragment::StringFragment(StringFragment::Literal(
-                crate::puppet_lang::string::Literal {
-                    extra: Range::from((dollar_tag, c)),
-                    data: c.to_string(),
-                },
-            ))
-        }),
     ));
 
-    fragment_parser(input)
+    parser(input)
 }
 
 fn parse_fragment(input: Span) -> IResult<DoubleQuotedFragment<Range>> {
@@ -144,12 +139,14 @@ fn test_simple() {
         parse(Span::new("\"a\"")).unwrap().1,
         crate::puppet_lang::string::StringExpr {
             data: crate::puppet_lang::string::StringVariant::DoubleQuoted(vec![
-                DoubleQuotedFragment::StringFragment(crate::puppet_lang::string::StringFragment::Literal(
-                    crate::puppet_lang::string::Literal {
-                        data: "a".to_owned(),
-                        extra: Range::new(1, 1, 2, 1, 1, 2)
-                    }
-                ))
+                DoubleQuotedFragment::StringFragment(
+                    crate::puppet_lang::string::StringFragment::Literal(
+                        crate::puppet_lang::string::Literal {
+                            data: "a".to_owned(),
+                            extra: Range::new(1, 1, 2, 1, 1, 2)
+                        }
+                    )
+                )
             ]),
             extra: Range::new(0, 1, 1, 2, 1, 3)
         }
@@ -158,12 +155,58 @@ fn test_simple() {
         parse(Span::new("\"\\\"\"")).unwrap().1,
         crate::puppet_lang::string::StringExpr {
             data: crate::puppet_lang::string::StringVariant::DoubleQuoted(vec![
-                DoubleQuotedFragment::StringFragment(crate::puppet_lang::string::StringFragment::Escaped(
-                    crate::puppet_lang::string::Escaped {
-                        data: '"',
-                        extra: Range::new(1, 1, 2, 2, 1, 3)
-                    }
-                ))
+                DoubleQuotedFragment::StringFragment(
+                    crate::puppet_lang::string::StringFragment::Escaped(
+                        crate::puppet_lang::string::Escaped {
+                            data: '"',
+                            extra: Range::new(1, 1, 2, 2, 1, 3)
+                        }
+                    )
+                )
+            ]),
+            extra: Range::new(0, 1, 1, 3, 1, 4)
+        }
+    );
+}
+
+#[test]
+fn test_no_interpolation() {
+    assert_eq!(
+        parse(Span::new("\"$\"")).unwrap().1,
+        crate::puppet_lang::string::StringExpr {
+            data: crate::puppet_lang::string::StringVariant::DoubleQuoted(vec![
+                DoubleQuotedFragment::StringFragment(
+                    crate::puppet_lang::string::StringFragment::Literal(
+                        crate::puppet_lang::string::Literal {
+                            data: "$".to_owned(),
+                            extra: Range::new(1, 1, 2, 1, 1, 2)
+                        }
+                    )
+                )
+            ]),
+            extra: Range::new(0, 1, 1, 2, 1, 3)
+        }
+    );
+    assert_eq!(
+        parse(Span::new("\"$(\"")).unwrap().1,
+        crate::puppet_lang::string::StringExpr {
+            data: crate::puppet_lang::string::StringVariant::DoubleQuoted(vec![
+                DoubleQuotedFragment::StringFragment(
+                    crate::puppet_lang::string::StringFragment::Literal(
+                        crate::puppet_lang::string::Literal {
+                            data: "$".to_owned(),
+                            extra: Range::new(1, 1, 2, 1, 1, 2)
+                        }
+                    )
+                ),
+                DoubleQuotedFragment::StringFragment(
+                    crate::puppet_lang::string::StringFragment::Literal(
+                        crate::puppet_lang::string::Literal {
+                            data: "(".to_owned(),
+                            extra: Range::new(2, 1, 3, 2, 1, 3)
+                        }
+                    )
+                )
             ]),
             extra: Range::new(0, 1, 1, 3, 1, 4)
         }
@@ -183,11 +226,12 @@ fn test_interpolatad_variable() {
                                 crate::puppet_lang::expression::Term {
                                     value: crate::puppet_lang::expression::TermVariant::Variable(
                                         crate::puppet_lang::expression::Variable {
-                                            identifier: crate::puppet_lang::identifier::LowerIdentifier {
-                                                name: vec!["varname".to_string()],
-                                                is_toplevel: false,
-                                                extra: Range::new(3, 1, 4, 9, 1, 10)
-                                            },
+                                            identifier:
+                                                crate::puppet_lang::identifier::LowerIdentifier {
+                                                    name: vec!["varname".to_string()],
+                                                    is_toplevel: false,
+                                                    extra: Range::new(3, 1, 4, 9, 1, 10)
+                                                },
                                             is_local_scope: false,
                                             extra: Range::new(3, 1, 4, 9, 1, 10)
                                         }
