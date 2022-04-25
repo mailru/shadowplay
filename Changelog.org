@@ -1,4 +1,16 @@
 * Changelog
+** [2022-04-25] v0.16.3
+
+*** Bugfixes
+
+ - Float/int parser precedence, floats required to contain a dot (1f94226)
+ - Leakage of dollar sign in double quotes (6a5c383)
+
+*** Other changes
+
+ - Updated version (ee07378)
+
+
 ** [2022-04-20] v0.16.2
 
 *** Bugfixes
