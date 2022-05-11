@@ -1336,9 +1336,6 @@ impl AstLinter {
             errors.append(&mut self.check_argument(storage, &ctx, arg))
         }
         errors.append(&mut self.check_statement_set(storage, &ctx, &elt.body.value));
-        for statement in &elt.body.value {
-            errors.append(&mut self.check_statement(storage, &ctx, statement));
-        }
 
         errors
     }
