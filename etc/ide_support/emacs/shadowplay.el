@@ -10,10 +10,6 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'pcase)          ; `pcase-dolist' (`pcase' itself is autoloaded)
-  )
-
 (defcustom shadowplay-program "shadowplay"
   "*Program name of shadowplay"
   :type 'string
