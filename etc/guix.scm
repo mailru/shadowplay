@@ -185,7 +185,7 @@ It's often useful to read regexes from configuration file.")
              #t)))
        #:cargo-inputs
        (("rust-anyhow-1" ,rust-anyhow-1)
-         ("rust-env-logger" ,rust-env-logger-0.8)
+         ("rust-env-logger" ,rust-env-logger-0.9)
          ("rust-lazy-static" ,rust-lazy-static-1)
          ("rust-log" ,rust-log-0.4)
          ("rust-nom" ,rust-nom-7.1)
