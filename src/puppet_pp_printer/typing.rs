@@ -267,11 +267,11 @@ impl<EXTRA> Printer for crate::puppet_lang::typing::TypeStructKV<EXTRA> {
     fn to_doc(&self) -> RcDoc<()> {
         self.key
             .to_doc()
-            .append(RcDoc::softline())
+            .append(RcDoc::softline_())
             .append(RcDoc::column(|w| {
                 let offset = (w / crate::puppet_pp_printer::ARROW_STEP + 1)
                     * crate::puppet_pp_printer::ARROW_STEP;
-                RcDoc::text(format!("{} =>", " ".repeat(offset - w)))
+                RcDoc::text(format!("{}=>", " ".repeat(offset - w)))
             }))
             .append(RcDoc::softline())
             .append(self.value.to_doc())

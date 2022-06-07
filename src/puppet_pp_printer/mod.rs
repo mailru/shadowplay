@@ -11,7 +11,7 @@ pub mod term;
 pub mod toplevel;
 pub mod typing;
 
-pub const ARROW_STEP: usize = 30;
+pub const ARROW_STEP: usize = 1;
 
 use pretty::RcDoc;
 
