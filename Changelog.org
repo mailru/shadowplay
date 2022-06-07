@@ -1,4 +1,17 @@
 * Changelog
+** [2022-06-08] v0.16.4
+
+*** Bugfixes
+
+ - Version of dependency (e11b97d)
+ - Double check lambda body (00e5814)
+
+*** Other changes
+
+ - Do not align arrows (6a91250)
+ - Cleanup code (0b4a993)
+
+
 ** [2022-04-25] v0.16.3
 
 *** Bugfixes
