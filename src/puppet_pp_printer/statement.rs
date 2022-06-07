@@ -196,7 +196,7 @@ fn test_idempotence_short() {
         "if $a {\n  undef\n} elsif !$a {\n  $a\n}",
         "case $a {\n  \n  #comment\n  1: {\n    $b\n  }\n}",
         "case $a {\n  \n  #comment\n  1: {\n    $b\n  }\n  default: {\n    \n  }\n}",
-        "Exec\n{\n  command                      =>\n    test,\n  provider                     =>\n    shell,\n  # comment\n  #line2\n  #line3\n}",
+        "Exec\n{\n  command  => test,\n  provider  => shell,\n  # comment\n  #line2\n  #line3\n}",
         "require a",
         "require a, b",
     ];
@@ -222,7 +222,7 @@ fn test_idempotence_short() {
 fn test_idempotence_long() {
     let cases = vec![
         "unless !$a {\n  $a = 1\n  unless (($a + $a + $a)) {\n    $b = $a + 1\n    unless (($a + $a + $a)) {\n      $b = $a + 1\n      unless (($a + $a + $a)) {\n        $b = $a + 1\n      }\n    }\n  }\n}",
-        "Exec\n{\n  command                      => test,\n  provider                     => shell,\n  # comment\n  #line2\n  #line3\n}",
+        "Exec\n{\n  command  => test,\n  provider  => shell,\n  # comment\n  #line2\n  #line3\n}",
     ];
 
     for case in cases {

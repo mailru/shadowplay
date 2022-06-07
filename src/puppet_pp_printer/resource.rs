@@ -264,10 +264,10 @@ fn test_idempotence_short() {
         "Class[ a ] -> Class[ b::c ]",
         "[ Class[ a ], Class[ b ], ] -> Class[ b::c ]",
         "Class[ a ] -> ClassB <| (abc != 1) and c == test or (c == notest and abc == 1) |>",
-        "file { '/etc/passwd':\n    ensure                     => file,\n    mode                       => '0644'\n}",
-        "file { '/etc/passwd':\n    ensure                     => file,\n    mode                       => '0644';\n  '/etc/group':\n    ensure                     => file\n}",
+        "file { '/etc/passwd':\n    ensure => file,\n    mode => '0644'\n}",
+        "file { '/etc/passwd':\n    ensure => file,\n    mode => '0644';\n  '/etc/group':\n    ensure => file\n}",
         // keyword test
-        "file { '/etc/passwd':\n    unless                     => true\n}",
+        "file { '/etc/passwd':\n    unless => true\n}",
     ];
 
     for case in cases {

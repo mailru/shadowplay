@@ -86,7 +86,7 @@ fn test_idempotence_short() {
     let cases = vec![
         "class aaa::bbb () inherits zzz {\n  \n}",
         "class aaa::bbb () inherits zzz {\n  if $a {\n    1\n  } else {\n    2\n  }\n}",
-        "function aaa::bbb (\n  $empty,\n  $a                           = 1,\n  String $b                    = 'a b c',\n) >> String {\n  \n}",
+        "function aaa::bbb (\n  $empty,\n  $a  = 1,\n  String $b  = 'a b c',\n) >> String {\n  \n}",
         "type Aaa::Bbb = String[1, 2]",
     ];
 
