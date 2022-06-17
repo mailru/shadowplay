@@ -1,4 +1,15 @@
 * Changelog
+** [2022-06-17] v0.16.5
+
+*** Bugfixes
+
+ - Unit tests (d9320b3)
+
+*** Other changes
+
+ - Do not track Cargo.lock (9dc54fa)
+
+
 ** [2022-06-08] v0.16.4
 
 *** Bugfixes
