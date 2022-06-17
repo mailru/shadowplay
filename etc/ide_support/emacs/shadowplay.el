@@ -69,23 +69,61 @@
 (add-to-list 'flycheck-checkers 'puppet-shadowplay-pp)
 (add-to-list 'flycheck-checkers 'puppet-shadowplay-hiera-yaml)
 
-(defun shadowplay-format-buffer ()
-  "Call shadowplay formatter for whole buffer."
-  (interactive)
-  (shadowplay-format-region (point-min) (point-max)))
 
-(defun shadowplay-format-region (beg end)
-  "Shadowplay format code in the region."
-  (interactive "r")
+(defconst shadowplay-pretty-print "*shadowplay-pretty-print*")
+
+;; based on rust--format-call from rust-rustfmt
+(defun shadowplay-format-buffer ()
+  "Format BUF using shadowplay."
+  (interactive)
   (or (get 'shadowplay-program 'has-shadowplay)
       (if (executable-find shadowplay-program)
           (put 'shadowplay-program 'has-shadowplay t)
         (error "Seem shadowplay is not installed")))
-  (let ((shadowplay-run-list '("pretty-print-pp")))
 
-    (apply #'call-process-region
-           (append (list beg end shadowplay-program t t nil ) shadowplay-run-list)))
-  t)
+  (let ((buf (current-buffer))
+        (shadowplay-run-list '("pretty-print-pp")))
+    (with-current-buffer (get-buffer-create shadowplay-pretty-print)
+      (view-mode +1)
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert-buffer-substring buf)
+        (let* ((tmpf (make-temp-file "shadowplay"))
+               (ret (apply 'call-process-region
+                           (point-min)
+                           (point-max)
+                           shadowplay-program
+                           t
+                           `(t ,tmpf)
+                           nil
+                           shadowplay-run-list)))
+          (unwind-protect
+              (cond
+               ((zerop ret)
+                (if (not (string= (buffer-string)
+                                  (with-current-buffer buf (buffer-string))))
+                    ;; replace-buffer-contents was in emacs 26.1, but it
+                    ;; was broken for non-ASCII strings, so we need 26.2.
+                    (if (and (fboundp 'replace-buffer-contents)
+                             (version<= "26.2" emacs-version))
+                        (with-current-buffer buf
+                          (replace-buffer-contents shadowplay-pretty-print))
+                      (copy-to-buffer buf (point-min) (point-max))))
+                (kill-buffer))
+               ((= ret 3)
+                (if (not (string= (buffer-string)
+                                  (with-current-buffer buf (buffer-string))))
+                    (copy-to-buffer buf (point-min) (point-max)))
+                (erase-buffer)
+                (insert-file-contents tmpf)
+                (error "Shadowplay could not format some lines, see %s buffer for details"
+                       shadowplay-pretty-print))
+               (t
+                (erase-buffer)
+                (insert-file-contents tmpf)
+                (error "Shadowplay failed, see %s buffer for details"
+                       shadowplay-pretty-print))))
+          (delete-file tmpf))))))
 
 (provide 'shadowplay)
 
