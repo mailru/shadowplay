@@ -1,67 +1,68 @@
 
 # Table of Contents
 
-1.  [About](#org69c4ee5)
-2.  [Installation methods](#org0de282f)
-    1.  [Via deb/rpm](#org99f1862)
-    2.  [MaOS binaries](#org47f1002)
-    3.  [Via cargo](#org1d0629f)
-    4.  [Guix manifest](#org422efc7)
-3.  [Usage](#org03891a1)
-    1.  [Correctness of YAML files](#org5e1b701)
-    2.  [Validity of Hiera YAML files](#orge989d6f)
-    3.  [Linter of Puppet manifest files](#org533deba)
-    4.  [Pretty printing manifest file](#orgbb610ea)
-    5.  [Config file generator](#orgd106844)
-    6.  [Hiera explorer](#org824a981)
-    7.  [\*.pp AST dumper](#orgb8ef884)
-4.  [Available lints for \*.pp](#orgb030ef1)
-    1.  [ArgumentLooksSensitive](#org18746a9)
-    2.  [ArgumentTyped](#org49fe89c)
-    3.  [ConstantExpressionInCondition](#orgc0f08a1)
-    4.  [DefaultCaseIsNotLast](#org26462c5)
-    5.  [DoNotUseUnless](#org649528e)
-    6.  [DoubleNegation](#org0b09277)
-    7.  [EmptyCasesList](#org78da798)
-    8.  [EnsureAttributeIsNotTheFirst](#org1dc599c)
-    9.  [ErbReferencesToUnknownVariable](#org6390d4c)
-    10. [ExecAttributes](#orgcd3755f)
-    11. [ExpressionInSingleQuotes](#orgdea08c8)
-    12. [FileModeAttributeIsString](#org1de4f41)
-    13. [InvalidResourceCollectionInvocation](#org99aa6c0)
-    14. [InvalidResourceSetInvocation](#org9baa7c1)
-    15. [InvalidStringEscape](#org31c4451)
-    16. [InvalidVariableAssignment](#org5da3c5d)
-    17. [LowerCaseArgumentName](#orgc014a22)
-    18. [LowerCaseVariable](#org7861a05)
-    19. [MultipleDefaultCase](#orgc437d51)
-    20. [MultipleResourcesWithoutDefault](#org844dda2)
-    21. [NegationOfEquation](#org50aeb09)
-    22. [NoDefaultCase](#org5750d1a)
-    23. [OptionalArgumentsGoesFirst](#orgf25c7e3)
-    24. [PerExpressionResourceDefaults](#orgff01509)
-    25. [ReadableArgumentsName](#orgd55110c)
-    26. [ReferenceToUndefinedValue](#org8cba3d6)
-    27. [RelationToTheLeft](#orgd97bab9)
-    28. [SelectorInAttributeValue](#orga58d957)
-    29. [SensitiveArgumentWithDefault](#org52367d2)
-    30. [StatementWithNoEffect](#orgde1e58a)
-    31. [UnconditionalExec](#orgf46ee37)
-    32. [UniqueArgumentsNames](#orgaaa65b7)
-    33. [UniqueAttributeName](#org83855a4)
-    34. [UnusedVariables](#org6c6fa54)
-    35. [UpperCaseName](#org687dd29)
-    36. [UselessDoubleQuotes](#orgb5a08c4)
-    37. [UselessParens](#orgd85a9a5)
-5.  [Linter for YAML files](#orgba846f3)
-6.  [Linter for Hiera YAML files](#org53c14e2)
-    1.  [Reference to a module which has syntax errors](#org5e31778)
-    2.  [Reference to class which is not found in modules/](#orgc745c51)
-    3.  [Reference in undefined class argument](#orgc38e4a2)
-    4.  [Single column in the name of key of root map](#org22bf944)
+1.  [About](#org2c6524d)
+2.  [Installation methods](#org80bc635)
+    1.  [Via deb/rpm](#org9482d53)
+    2.  [MaOS binaries](#org5fd5560)
+    3.  [Via cargo](#orgf1a4e91)
+    4.  [Guix manifest](#orgf53d9bf)
+3.  [Usage](#orge6106c3)
+    1.  [Correctness of YAML files](#org3c9b184)
+    2.  [Validity of Hiera YAML files](#org9d03a8e)
+    3.  [Linter of Puppet manifest files](#orgd2b4208)
+    4.  [Pretty printing manifest file](#org100b6f2)
+    5.  [Config file generator](#org5b082d9)
+    6.  [Hiera explorer](#org463f849)
+    7.  [\*.pp AST dumper](#orgfa548a6)
+4.  [Available lints for \*.pp](#org6071675)
+    1.  [ArgumentLooksSensitive](#orgb94aff2)
+    2.  [ArgumentTyped](#org669c20a)
+    3.  [ConstantExpressionInCondition](#org015b123)
+    4.  [DefaultCaseIsNotLast](#orgdfdacf8)
+    5.  [DoNotUseUnless](#orge07b8f6)
+    6.  [DoubleNegation](#org793a364)
+    7.  [EmptyCasesList](#org6573c84)
+    8.  [EnsureAttributeIsNotTheFirst](#orgc2fe9a0)
+    9.  [ErbReferencesToUnknownVariable](#orge547f8a)
+    10. [ExecAttributes](#orgd0ebc4e)
+    11. [ExpressionInSingleQuotes](#orgb2f711a)
+    12. [FileModeAttributeIsString](#orgc8d722b)
+    13. [InvalidResourceCollectionInvocation](#orgc72b7a3)
+    14. [InvalidResourceSetInvocation](#orgece14af)
+    15. [InvalidStringEscape](#orge531304)
+    16. [InvalidVariableAssignment](#org5a427be)
+    17. [LowerCaseArgumentName](#org1907aa6)
+    18. [LowerCaseVariable](#org41c6751)
+    19. [MultipleDefaultCase](#orga5f48d1)
+    20. [MultipleResourcesWithoutDefault](#orgfde8c48)
+    21. [NegationOfEquation](#orgaf05a57)
+    22. [NoDefaultCase](#org93ae086)
+    23. [OptionalArgumentsGoesFirst](#org86b144e)
+    24. [PerExpressionResourceDefaults](#org9d35cbe)
+    25. [ReadableArgumentsName](#orga600947)
+    26. [ReferenceToUndefinedValue](#org93a8f42)
+    27. [RelationToTheLeft](#org0fd8e18)
+    28. [SelectorInAttributeValue](#orgc8da91f)
+    29. [SensitiveArgumentWithDefault](#org621e2d6)
+    30. [StatementWithNoEffect](#org23e8751)
+    31. [UnconditionalExec](#org2f3cc0d)
+    32. [UniqueArgumentsNames](#org4706b73)
+    33. [UniqueAttributeName](#org2ac04df)
+    34. [UnusedVariables](#org0fe9664)
+    35. [UpperCaseName](#org1d46d2e)
+    36. [UselessDoubleQuotes](#orgc183bd0)
+    37. [UselessParens](#org6a8ead3)
+    38. [MagicNumber](#orga787a14)
+5.  [Linter for YAML files](#org5d26bb2)
+6.  [Linter for Hiera YAML files](#orgc7b7371)
+    1.  [Reference to a module which has syntax errors](#org23d0281)
+    2.  [Reference to class which is not found in modules/](#org362139c)
+    3.  [Reference in undefined class argument](#org2f1c1c6)
+    4.  [Single column in the name of key of root map](#orgd329a10)
 
 
-<a id="org69c4ee5"></a>
+<a id="org2c6524d"></a>
 
 # About
 
@@ -70,33 +71,33 @@ Shadowplay is a utility for checking puppet syntax, a puppet manifest linter, a 
 ![img](./doc/screenshot-emacs.png "Flycheck plugin for Emacs")
 
 
-<a id="org0de282f"></a>
+<a id="org80bc635"></a>
 
 # Installation methods
 
 
-<a id="org99f1862"></a>
+<a id="org9482d53"></a>
 
 ## Via deb/rpm
 
 Latest releases can be downloaded here: <https://github.com/mailru/shadowplay/releases>
 
 
-<a id="org47f1002"></a>
+<a id="org5fd5560"></a>
 
 ## MaOS binaries
 
 Lastest binaries for MacOS can be downloaded here: <https://github.com/mailru/shadowplay/releases>
 
 
-<a id="org1d0629f"></a>
+<a id="orgf1a4e91"></a>
 
 ## Via cargo
 
     cargo install shadowplay
 
 
-<a id="org422efc7"></a>
+<a id="orgf53d9bf"></a>
 
 ## Guix manifest
 
@@ -104,12 +105,12 @@ Guix manifest is not merged into main repository yet. One can use etc/guix.scm f
 included into manifest file.
 
 
-<a id="org03891a1"></a>
+<a id="orge6106c3"></a>
 
 # Usage
 
 
-<a id="org5e1b701"></a>
+<a id="org3c9b184"></a>
 
 ## Correctness of YAML files
 
@@ -119,7 +120,7 @@ In addition to the correctness of the syntax, the uniqueness of the keys in maps
 (anchors).
 
 
-<a id="orge989d6f"></a>
+<a id="org9d03a8e"></a>
 
 ## Validity of Hiera YAML files
 
@@ -131,7 +132,7 @@ For example, there will be an error generated if an unknown class argument is us
 As a side effect, it also checks the correctness of syntax of pappet manifests referenced by values ​​in Hiera.
 
 
-<a id="org533deba"></a>
+<a id="orgd2b4208"></a>
 
 ## Linter of Puppet manifest files
 
@@ -140,14 +141,14 @@ As a side effect, it also checks the correctness of syntax of pappet manifests r
 The specified files will be processed by the parser, then linter checks will be applied to the resulting AST (if parsing is successful).
 
 
-<a id="orgbb610ea"></a>
+<a id="org100b6f2"></a>
 
 ## Pretty printing manifest file
 
     shadowplay pretty-print-pp < /path/to/file.pp
 
 
-<a id="orgd106844"></a>
+<a id="org5b082d9"></a>
 
 ## Config file generator
 
@@ -156,7 +157,7 @@ Use may want to disable some lints or customize it. She can generate default con
     shadowplay generate-config >/etc/shadowplay.yaml
 
 
-<a id="org824a981"></a>
+<a id="org463f849"></a>
 
 ## Hiera explorer
 
@@ -175,7 +176,7 @@ Command prints as much information as possible:
     deadbeef1234 (Evgenii Lepikhin 2022-03-29 15:06:51 +0300 63) sshd::install::version:             'present'
 
 
-<a id="orgb8ef884"></a>
+<a id="orgfa548a6"></a>
 
 ## \*.pp AST dumper
 
@@ -184,12 +185,12 @@ Command prints as much information as possible:
 Outputs AST in JSON format. Mainly for internal purposes.
 
 
-<a id="orgb030ef1"></a>
+<a id="org6071675"></a>
 
 # Available lints for \*.pp
 
 
-<a id="org18746a9"></a>
+<a id="orgb94aff2"></a>
 
 ## ArgumentLooksSensitive
 
@@ -208,7 +209,7 @@ Good:
     ) { }
 
 
-<a id="org49fe89c"></a>
+<a id="org669c20a"></a>
 
 ## ArgumentTyped
 
@@ -227,7 +228,7 @@ Good:
     ) { }
 
 
-<a id="orgc0f08a1"></a>
+<a id="org015b123"></a>
 
 ## ConstantExpressionInCondition
 
@@ -242,7 +243,7 @@ Such type of conditions always evaluated into constant false or true, thus can b
     notify('1=2-1')
 
 
-<a id="org26462c5"></a>
+<a id="orgdfdacf8"></a>
 
 ## DefaultCaseIsNotLast
 
@@ -265,7 +266,7 @@ Good:
     }
 
 
-<a id="org649528e"></a>
+<a id="orge07b8f6"></a>
 
 ## DoNotUseUnless
 
@@ -280,7 +281,7 @@ Good:
     if !$value { }
 
 
-<a id="org0b09277"></a>
+<a id="org793a364"></a>
 
 ## DoubleNegation
 
@@ -299,7 +300,7 @@ Good:
     if $value == 1 { }
 
 
-<a id="org78da798"></a>
+<a id="org6573c84"></a>
 
 ## EmptyCasesList
 
@@ -310,7 +311,7 @@ Bad:
     case $value { }
 
 
-<a id="org1dc599c"></a>
+<a id="orgc2fe9a0"></a>
 
 ## EnsureAttributeIsNotTheFirst
 
@@ -331,7 +332,7 @@ Good:
     }
 
 
-<a id="org6390d4c"></a>
+<a id="orge547f8a"></a>
 
 ## ErbReferencesToUnknownVariable
 
@@ -345,7 +346,7 @@ Bad:
     }
 
 
-<a id="orgcd3755f"></a>
+<a id="orgd0ebc4e"></a>
 
 ## ExecAttributes
 
@@ -371,7 +372,7 @@ Bad:
     }
 
 
-<a id="orgdea08c8"></a>
+<a id="orgb2f711a"></a>
 
 ## ExpressionInSingleQuotes
 
@@ -384,7 +385,7 @@ Bad:
     $value = '2 + 2 = ${2+2}'
 
 
-<a id="org1de4f41"></a>
+<a id="orgc8d722b"></a>
 
 ## FileModeAttributeIsString
 
@@ -407,7 +408,7 @@ Good:
     }
 
 
-<a id="org99aa6c0"></a>
+<a id="orgc72b7a3"></a>
 
 ## InvalidResourceCollectionInvocation
 
@@ -419,7 +420,7 @@ Bad:
     Class['unknown_class'] -> Class['known_class']
 
 
-<a id="org9baa7c1"></a>
+<a id="orgece14af"></a>
 
 ## InvalidResourceSetInvocation
 
@@ -452,7 +453,7 @@ Bad:
     }
 
 
-<a id="org31c4451"></a>
+<a id="orge531304"></a>
 
 ## InvalidStringEscape
 
@@ -471,7 +472,7 @@ Good:
     $value = "\\s*\\."
 
 
-<a id="org5da3c5d"></a>
+<a id="org5a427be"></a>
 
 ## InvalidVariableAssignment
 
@@ -482,7 +483,7 @@ Bad:
     lookup('some::value') = 1
 
 
-<a id="orgc014a22"></a>
+<a id="org1907aa6"></a>
 
 ## LowerCaseArgumentName
 
@@ -495,7 +496,7 @@ Bad:
     ) {}
 
 
-<a id="org7861a05"></a>
+<a id="org41c6751"></a>
 
 ## LowerCaseVariable
 
@@ -507,7 +508,7 @@ Bad:
       $VariableIsNOTInLowercase = 1
 
 
-<a id="orgc437d51"></a>
+<a id="orga5f48d1"></a>
 
 ## MultipleDefaultCase
 
@@ -522,7 +523,7 @@ Bad:
     }
 
 
-<a id="org844dda2"></a>
+<a id="orgfde8c48"></a>
 
 ## MultipleResourcesWithoutDefault
 
@@ -552,7 +553,7 @@ Good:
     }
 
 
-<a id="org50aeb09"></a>
+<a id="orgaf05a57"></a>
 
 ## NegationOfEquation
 
@@ -571,7 +572,7 @@ Good:
     if $a !~ /./ { }
 
 
-<a id="org5750d1a"></a>
+<a id="org93ae086"></a>
 
 ## NoDefaultCase
 
@@ -593,7 +594,7 @@ Good:
     }
 
 
-<a id="orgf25c7e3"></a>
+<a id="org86b144e"></a>
 
 ## OptionalArgumentsGoesFirst
 
@@ -612,7 +613,7 @@ Good:
     ) { }
 
 
-<a id="orgff01509"></a>
+<a id="org9d35cbe"></a>
 
 ## PerExpressionResourceDefaults
 
@@ -629,7 +630,7 @@ Bad:
     }
 
 
-<a id="orgd55110c"></a>
+<a id="orga600947"></a>
 
 ## ReadableArgumentsName
 
@@ -648,7 +649,7 @@ Good:
     ) { }
 
 
-<a id="org8cba3d6"></a>
+<a id="org93a8f42"></a>
 
 ## ReferenceToUndefinedValue
 
@@ -659,7 +660,7 @@ Bad:
     if $some_undefined_variable { }
 
 
-<a id="orgd97bab9"></a>
+<a id="org0fd8e18"></a>
 
 ## RelationToTheLeft
 
@@ -674,7 +675,7 @@ Good:
     Class['a'] ~> Class['b'] -> Class['c']
 
 
-<a id="orga58d957"></a>
+<a id="orgc8da91f"></a>
 
 ## SelectorInAttributeValue
 
@@ -695,7 +696,7 @@ Good:
     }
 
 
-<a id="org52367d2"></a>
+<a id="org621e2d6"></a>
 
 ## SensitiveArgumentWithDefault
 
@@ -714,7 +715,7 @@ Public available default value for sensitive data is nonsense. Good:
     )
 
 
-<a id="orgde1e58a"></a>
+<a id="org23e8751"></a>
 
 ## StatementWithNoEffect
 
@@ -729,7 +730,7 @@ Bad:
     }
 
 
-<a id="orgf46ee37"></a>
+<a id="org2f3cc0d"></a>
 
 ## UnconditionalExec
 
@@ -749,7 +750,7 @@ Good:
     }
 
 
-<a id="orgaaa65b7"></a>
+<a id="org4706b73"></a>
 
 ## UniqueArgumentsNames
 
@@ -764,7 +765,7 @@ Bad:
     ) { }
 
 
-<a id="org83855a4"></a>
+<a id="org2ac04df"></a>
 
 ## UniqueAttributeName
 
@@ -778,7 +779,7 @@ Bad:
     }
 
 
-<a id="org6c6fa54"></a>
+<a id="org0fe9664"></a>
 
 ## UnusedVariables
 
@@ -795,7 +796,7 @@ Bad:
     }
 
 
-<a id="org687dd29"></a>
+<a id="org1d46d2e"></a>
 
 ## UpperCaseName
 
@@ -814,7 +815,7 @@ Good:
     }
 
 
-<a id="orgb5a08c4"></a>
+<a id="orgc183bd0"></a>
 
 ## UselessDoubleQuotes
 
@@ -829,7 +830,7 @@ Good:
     $var = 'simple literal'
 
 
-<a id="orgd85a9a5"></a>
+<a id="org6a8ead3"></a>
 
 ## UselessParens
 
@@ -844,7 +845,24 @@ Good:
     if $var1 or $var2 { }
 
 
-<a id="orgba846f3"></a>
+<a id="orga787a14"></a>
+
+## MagicNumber
+
+Warns if term contains magic number.
+
+Bad:
+
+    if $port == 58271 { }
+
+Good:
+
+    $default_service_port = 58271
+    
+    if $port == $default_service_port { }
+
+
+<a id="org5d26bb2"></a>
 
 # Linter for YAML files
 
@@ -857,14 +875,14 @@ Some basic checks are implemented:
 -   Attempt to merge anchor which type is not array nor map
 
 
-<a id="org53c14e2"></a>
+<a id="orgc7b7371"></a>
 
 # Linter for Hiera YAML files
 
 All lints of YAML files plus:
 
 
-<a id="org5e31778"></a>
+<a id="org23d0281"></a>
 
 ## Reference to a module which has syntax errors
 
@@ -873,7 +891,7 @@ Linter will fail if some<sub>class</sub> was unable to parse:
     some_class::argument: 1
 
 
-<a id="orgc745c51"></a>
+<a id="org362139c"></a>
 
 ## Reference to class which is not found in modules/
 
@@ -882,7 +900,7 @@ Linter will fail if modules/some<sub>class</sub>/init.pp does not exists:
     some_class::argument: 1
 
 
-<a id="orgc38e4a2"></a>
+<a id="org2f1c1c6"></a>
 
 ## Reference in undefined class argument
 
@@ -891,7 +909,7 @@ Linter will fail if some<sub>class</sub> does not accept argument $argument<sub>
     some_class::argument_name: 1
 
 
-<a id="org22bf944"></a>
+<a id="orgd329a10"></a>
 
 ## Single column in the name of key of root map
 

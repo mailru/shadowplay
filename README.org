@@ -767,6 +767,24 @@ Good:
 if $var1 or $var2 { }
 #+END_SRC
 
+** MagicNumber
+
+Warns if term contains magic number.
+
+Bad:
+
+#+BEGIN_SRC puppet
+if $port == 58271 { }
+#+END_SRC
+
+Good:
+
+#+BEGIN_SRC puppet
+$default_service_port = 58271
+
+if $port == $default_service_port { }
+#+END_SRC
+
 * Linter for YAML files
 
 Some basic checks are implemented:
