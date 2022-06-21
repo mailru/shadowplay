@@ -78,11 +78,14 @@ pub fn parse_code_block(input: &str) -> nom::IResult<&str, Vec<String>, nom::err
 
 pub fn parse_toplevel(
     input: &str,
-) -> nom::IResult<&str, crate::puppet_pp_lint::ctx::erb_template::Template, nom::error::Error<&str>> {
+) -> nom::IResult<&str, crate::puppet_pp_lint::ctx::erb_template::Template, nom::error::Error<&str>>
+{
     let parser = alt((map(parse_literal, |_| None), map(parse_code_block, Some)));
 
-    map(many0(parser), |list| crate::puppet_pp_lint::ctx::erb_template::Template {
-        referenced_variables: list.into_iter().flatten().flatten().collect(),
+    map(many0(parser), |list| {
+        crate::puppet_pp_lint::ctx::erb_template::Template {
+            referenced_variables: list.into_iter().flatten().flatten().collect(),
+        }
     })(input)
 }
 
