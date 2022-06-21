@@ -1,4 +1,11 @@
 * Changelog
+** [2022-06-21] v0.17.1
+
+*** Bugfixes
+
+ - Unit test (b7a2b5d)
+
+
 ** [2022-06-21] v0.17.0
 
 *** New features
