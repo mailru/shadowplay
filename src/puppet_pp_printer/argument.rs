@@ -13,7 +13,7 @@ impl<EXTRA> Printer for crate::puppet_lang::argument::Argument<EXTRA> {
                 .append(RcDoc::column(|w| {
                     let offset = (w / crate::puppet_pp_printer::ARROW_STEP + 1)
                         * crate::puppet_pp_printer::ARROW_STEP;
-                    RcDoc::text(format!("{} =", " ".repeat(offset - w)))
+                    RcDoc::text(format!("{}=", " ".repeat(offset - w)))
                 }))
                 .append(RcDoc::softline())
                 .append(crate::puppet_pp_printer::expression::to_doc(v, false)),
