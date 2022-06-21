@@ -19,7 +19,7 @@ impl LintPass for UpperCaseName {
 impl EarlyLintPass for UpperCaseName {
     fn check_resource_set(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         if elt
@@ -54,7 +54,7 @@ impl LintPass for UniqueAttributeName {
 impl EarlyLintPass for UniqueAttributeName {
     fn check_resource_set(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -96,7 +96,7 @@ impl LintPass for EnsureAttributeIsNotTheFirst {
 impl EarlyLintPass for EnsureAttributeIsNotTheFirst {
     fn check_resource_set(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -193,7 +193,7 @@ impl FileModeAttributeIsString {
 impl EarlyLintPass for FileModeAttributeIsString {
     fn check_resource_set(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         if elt.name.name.len() != 1 || elt.name.name[0] != "file" {
@@ -249,7 +249,7 @@ impl LintPass for MultipleResourcesWithoutDefault {
 impl EarlyLintPass for MultipleResourcesWithoutDefault {
     fn check_resource_set(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut has_default = false;
@@ -302,7 +302,7 @@ impl LintPass for SelectorInAttributeValue {
 impl EarlyLintPass for SelectorInAttributeValue {
     fn check_resource_set(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -345,7 +345,7 @@ impl LintPass for UnconditionalExec {
 impl EarlyLintPass for UnconditionalExec {
     fn check_resource_set(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         if elt.name.name.len() != 1 || elt.name.name.first().unwrap() != "exec" {
@@ -397,7 +397,7 @@ impl LintPass for ExecAttributes {
 impl EarlyLintPass for ExecAttributes {
     fn check_resource_set(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         if elt.name.name.len() != 1 || elt.name.name.first().unwrap() != "exec" {
@@ -536,7 +536,7 @@ impl EarlyLintPass for PerExpressionResourceDefaults {
 
 fn check_builtin_invocation<LINTER>(
     linter: &LINTER,
-    ctx: &crate::puppet_pp_lint::ctx::Ctx,
+    ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
     errors: &mut Vec<super::lint::LintError>,
     elt: &crate::puppet_lang::statement::ResourceSet<Range>,
     builtin: &crate::puppet_pp_lint::ctx::builtin_resources::Resource,
@@ -568,7 +568,7 @@ fn check_builtin_invocation<LINTER>(
 
 fn check_defined_resource_invocation<LINTER>(
     linter: &LINTER,
-    ctx: &crate::puppet_pp_lint::ctx::Ctx,
+    ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
     errors: &mut Vec<super::lint::LintError>,
     elt: &crate::puppet_lang::statement::ResourceSet<Range>,
     named_block: &crate::puppet_pp_lint::ctx::NamedBlock,
@@ -621,7 +621,7 @@ impl LintPass for InvalidResourceSetInvocation {
 impl EarlyLintPass for InvalidResourceSetInvocation {
     fn check_resource_set(
         &self,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -706,7 +706,7 @@ impl LintPass for InvalidResourceCollectionInvocation {
 impl EarlyLintPass for InvalidResourceCollectionInvocation {
     fn check_resource_collection(
         &self,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::resource_collection::ResourceCollection<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();

@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::puppet_pp_lint::lint::{EarlyLintPass, LintError, LintPass};
+use crate::{
+    puppet_parser::range::Range,
+    puppet_pp_lint::lint::{EarlyLintPass, LintError, LintPass},
+};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct UnusedVariables;
@@ -15,7 +18,7 @@ impl LintPass for UnusedVariables {
 }
 
 impl EarlyLintPass for UnusedVariables {
-    fn check_ctx(&self, ctx: &crate::puppet_pp_lint::ctx::Ctx) -> Vec<LintError> {
+    fn check_ctx(&self, ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>) -> Vec<LintError> {
         let mut errors = Vec::new();
         let variables = ctx.variables.borrow();
 
@@ -27,16 +30,20 @@ impl EarlyLintPass for UnusedVariables {
 
             match &variable.variant {
                 crate::puppet_pp_lint::ctx::VariableVariant::Builtin => (),
-                crate::puppet_pp_lint::ctx::VariableVariant::Defined(variable) => errors.push(LintError::new(
-                    Box::new(self.clone()),
-                    &format!("Variable '{}' is never used [EXPERIMENTAL]", varname),
-                    &variable.extra,
-                )),
-                crate::puppet_pp_lint::ctx::VariableVariant::Argument(arg) => errors.push(LintError::new(
-                    Box::new(self.clone()),
-                    &format!("Argument '{}' is never used [EXPERIMENTAL]", varname),
-                    &arg.extra,
-                )),
+                crate::puppet_pp_lint::ctx::VariableVariant::Defined(variable) => {
+                    errors.push(LintError::new(
+                        Box::new(self.clone()),
+                        &format!("Variable '{}' is never used [EXPERIMENTAL]", varname),
+                        &variable.extra,
+                    ))
+                }
+                crate::puppet_pp_lint::ctx::VariableVariant::Argument(arg) => {
+                    errors.push(LintError::new(
+                        Box::new(self.clone()),
+                        &format!("Argument '{}' is never used [EXPERIMENTAL]", varname),
+                        &arg.extra,
+                    ))
+                }
                 crate::puppet_pp_lint::ctx::VariableVariant::Phantom => (),
             }
         }

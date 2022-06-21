@@ -10,10 +10,12 @@ impl Check {
     pub fn check_file(
         &self,
         config: &crate::config::Config,
-        ctx: &mut shadowplay::puppet_pp_lint::ctx::Ctx,
+        ctx: &mut shadowplay::puppet_pp_lint::ctx::Ctx<shadowplay::puppet_parser::range::Range>,
         _repo_path: &std::path::Path,
         file_path: &std::path::Path,
     ) -> Vec<error::Error> {
+        ctx.new_file();
+
         let pp = match std::fs::read_to_string(file_path) {
             Err(err) => {
                 return vec![error::Error::of_file(

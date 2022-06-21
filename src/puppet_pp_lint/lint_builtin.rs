@@ -24,7 +24,7 @@ impl LintPass for ErbReferencesToUnknownVariable {
 impl EarlyLintPass for ErbReferencesToUnknownVariable {
     fn check_expression(
         &self,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         _is_toplevel_expr: bool,
         elt: &crate::puppet_lang::expression::Expression<Range>,
     ) -> Vec<super::lint::LintError> {

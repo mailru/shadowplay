@@ -63,20 +63,34 @@ pub struct NamedBlock {
 
 type KnownResources = Rc<std::cell::RefCell<HashMap<Vec<String>, Rc<Option<NamedBlock>>>>>;
 type KnownErbTemplates = Rc<
-    std::cell::RefCell<HashMap<std::path::PathBuf, Rc<Option<crate::puppet_pp_lint::ctx::erb_template::Template>>>>,
+    std::cell::RefCell<
+        HashMap<std::path::PathBuf, Rc<Option<crate::puppet_pp_lint::ctx::erb_template::Template>>>,
+    >,
 >;
 
 #[derive(Clone)]
-pub struct Ctx {
-    pub repository_path: Rc<std::path::PathBuf>,
-    pub resources: KnownResources,
-    pub builtin_resources: Rc<HashMap<&'static str, crate::puppet_pp_lint::ctx::builtin_resources::Resource>>,
-    pub resource_metaparameters: Rc<HashMap<&'static str, Attribute>>,
-    pub variables: std::cell::RefCell<HashMap<String, Rc<Variable>>>,
-    pub erb_templates: KnownErbTemplates,
+pub enum Path<'ast, EXTRA: Clone> {
+    Toplevel(&'ast crate::puppet_lang::toplevel::Toplevel<EXTRA>),
+    Argument(&'ast crate::puppet_lang::argument::Argument<EXTRA>),
+    Statement(&'ast crate::puppet_lang::statement::Statement<EXTRA>),
+    Expression(&'ast crate::puppet_lang::expression::Expression<EXTRA>),
+    ExpressionAssignLeft(&'ast crate::puppet_lang::expression::Expression<EXTRA>),
+    ExpressionAssignRight(&'ast crate::puppet_lang::expression::Expression<EXTRA>),
 }
 
-impl Ctx {
+#[derive(Clone)]
+pub struct Ctx<'ast, EXTRA: Clone> {
+    pub repository_path: Rc<std::path::PathBuf>,
+    pub resources: KnownResources,
+    pub builtin_resources:
+        Rc<HashMap<&'static str, crate::puppet_pp_lint::ctx::builtin_resources::Resource>>,
+    pub resource_metaparameters: Rc<HashMap<&'static str, Attribute>>,
+    pub variables: Rc<std::cell::RefCell<HashMap<String, Rc<Variable>>>>,
+    pub erb_templates: KnownErbTemplates,
+    pub path: Vec<Path<'ast, EXTRA>>,
+}
+
+impl<'ast, EXTRA: Clone> Ctx<'ast, EXTRA> {
     pub fn new(repository_path: &std::path::Path) -> Self {
         let mut resource_metaparameters = HashMap::new();
         let _ = resource_metaparameters.insert("alias", Attribute::default());
@@ -333,8 +347,9 @@ impl Ctx {
             resources: Rc::new(std::cell::RefCell::new(HashMap::new())),
             builtin_resources: Rc::new(crate::puppet_pp_lint::ctx::builtin_resources::generate()),
             resource_metaparameters: Rc::new(resource_metaparameters),
-            variables: RefCell::new(variables),
+            variables: Rc::new(RefCell::new(variables)),
             erb_templates: Rc::new(std::cell::RefCell::new(HashMap::new())),
+            path: Vec::new(),
         }
     }
 
@@ -380,7 +395,9 @@ impl Ctx {
                         crate::puppet_lang::toplevel::ToplevelVariant::Definition(v) => {
                             Some(&v.identifier.name)
                         }
-                        crate::puppet_lang::toplevel::ToplevelVariant::Plan(v) => Some(&v.identifier.name),
+                        crate::puppet_lang::toplevel::ToplevelVariant::Plan(v) => {
+                            Some(&v.identifier.name)
+                        }
                         crate::puppet_lang::toplevel::ToplevelVariant::TypeDef(_) => {
                             // TODO
                             None
@@ -441,7 +458,30 @@ impl Ctx {
         new_ctx
     }
 
-    pub fn register_defined_variable(&self, variable: &crate::puppet_lang::expression::Variable<Range>) {
+    pub fn new_file(&mut self) {
+        // cleanup
+        {
+            let mut variables = self.variables.borrow_mut();
+            variables.retain(|_, v| match &v.variant {
+                VariableVariant::Builtin => true,
+                VariableVariant::Argument(_) => false,
+                VariableVariant::Phantom => true,
+                VariableVariant::Defined(_) => false,
+            });
+        }
+    }
+
+    pub fn add_path(&self, path_elt: Path<'ast, EXTRA>) -> Self {
+        let mut new_ctx = self.clone();
+
+        new_ctx.path.push(path_elt);
+        new_ctx
+    }
+
+    pub fn register_defined_variable(
+        &self,
+        variable: &crate::puppet_lang::expression::Variable<Range>,
+    ) {
         if variable.identifier.name.len() != 1 {
             return;
         }
@@ -460,13 +500,16 @@ impl Ctx {
         let _ = variables.insert(name.to_string(), Rc::new(Variable::phantom()));
     }
 
-    pub fn register_argument_variable(&self, argument: &crate::puppet_lang::argument::Argument<Range>) {
+    pub fn register_argument_variable(
+        &self,
+        argument: &crate::puppet_lang::argument::Argument<Range>,
+    ) {
         let mut variables = self.variables.borrow_mut();
 
         let _ = variables.insert(argument.name.clone(), Rc::new(Variable::argument(argument)));
     }
 
-    pub fn has_variable<EXTRA>(&self, variable: &crate::puppet_lang::expression::Variable<EXTRA>) -> bool {
+    pub fn has_variable(&self, variable: &crate::puppet_lang::expression::Variable<EXTRA>) -> bool {
         // TODO lookup into foreign modules
         if variable.identifier.is_toplevel || variable.identifier.name.len() != 1 {
             return true;
@@ -477,7 +520,10 @@ impl Ctx {
         self.variables.borrow().contains_key(name)
     }
 
-    pub fn erb_of_path(&self, path: &str) -> Rc<Option<crate::puppet_pp_lint::ctx::erb_template::Template>> {
+    pub fn erb_of_path(
+        &self,
+        path: &str,
+    ) -> Rc<Option<crate::puppet_pp_lint::ctx::erb_template::Template>> {
         let path = std::path::Path::new(path);
         let mut path_components = path.components();
 
@@ -499,7 +545,9 @@ impl Ctx {
             }
         }
 
-        let template = Rc::new(crate::puppet_pp_lint::ctx::erb_template::Template::read(&full_path));
+        let template = Rc::new(crate::puppet_pp_lint::ctx::erb_template::Template::read(
+            &full_path,
+        ));
         let mut erb_templates = self.erb_templates.borrow_mut();
         let _ = erb_templates.insert(full_path, template.clone());
         template

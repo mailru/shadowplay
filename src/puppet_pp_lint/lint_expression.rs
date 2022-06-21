@@ -72,7 +72,7 @@ impl UselessParens {
 impl EarlyLintPass for UselessParens {
     fn check_expression(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         is_toplevel_expr: bool,
         elt: &Expression<Range>,
     ) -> Vec<super::lint::LintError> {
@@ -257,7 +257,10 @@ impl EarlyLintPass for UselessParens {
 
         if is_toplevel_expr {
             if let ExpressionVariant::Term(t) = &elt.value {
-                if matches!(t.value, crate::puppet_lang::expression::TermVariant::Parens(_)) {
+                if matches!(
+                    t.value,
+                    crate::puppet_lang::expression::TermVariant::Parens(_)
+                ) {
                     errors.push(LintError::new(
                         Box::new(self.clone()),
                         "Toplevel parens can be safely removed",
@@ -286,7 +289,7 @@ impl LintPass for DoubleNegation {
 impl EarlyLintPass for DoubleNegation {
     fn check_expression(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         _is_toplevel_expr: bool,
         elt: &Expression<Range>,
     ) -> Vec<super::lint::LintError> {
@@ -322,7 +325,7 @@ impl LintPass for NegationOfEquation {
 impl EarlyLintPass for NegationOfEquation {
     fn check_expression(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         _is_toplevel_expr: bool,
         elt: &Expression<Range>,
     ) -> Vec<super::lint::LintError> {
@@ -420,7 +423,7 @@ impl LintPass for InvalidVariableAssignment {
 impl EarlyLintPass for InvalidVariableAssignment {
     fn check_expression(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         _is_toplevel_expr: bool,
         elt: &Expression<Range>,
     ) -> Vec<super::lint::LintError> {

@@ -1,8 +1,8 @@
 use crate::puppet_parser::range::Range;
 use serde::{Deserialize, Serialize};
 
-use crate::puppet_pp_lint::lint::{EarlyLintPass, LintError, LintPass};
 use crate::puppet_lang::ExtraGetter;
+use crate::puppet_pp_lint::lint::{EarlyLintPass, LintError, LintPass};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct StatementWithNoEffect;
@@ -19,12 +19,13 @@ impl LintPass for StatementWithNoEffect {
 impl EarlyLintPass for StatementWithNoEffect {
     fn check_statement_set(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         list: &[crate::puppet_lang::statement::Statement<Range>],
     ) -> Vec<LintError> {
         let list_len = list.len();
         for (idx, elt) in list.iter().enumerate() {
-            if !crate::puppet_pp_lint::tool::statement::has_side_effect(elt) && idx != list_len - 1 {
+            if !crate::puppet_pp_lint::tool::statement::has_side_effect(elt) && idx != list_len - 1
+            {
                 return vec![LintError::new(
                     Box::new(self.clone()),
                     "Statement without effect which is not a return value. Can be safely removed.",

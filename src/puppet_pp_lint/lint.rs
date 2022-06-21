@@ -41,7 +41,7 @@ impl LintError {
 pub trait EarlyLintPass: LintPass {
     fn check_toplevel(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         _: &crate::puppet_lang::toplevel::Toplevel<Range>,
     ) -> Vec<LintError> {
         Vec::new()
@@ -49,7 +49,7 @@ pub trait EarlyLintPass: LintPass {
     fn check_class(&self, _: &crate::puppet_lang::toplevel::Class<Range>) -> Vec<LintError> {
         Vec::new()
     }
-    fn check_ctx(&self, _ctx: &crate::puppet_pp_lint::ctx::Ctx) -> Vec<LintError> {
+    fn check_ctx(&self, _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>) -> Vec<LintError> {
         Vec::new()
     }
     fn check_definition(
@@ -81,7 +81,7 @@ pub trait EarlyLintPass: LintPass {
     }
     fn check_statement_set(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         _: &[crate::puppet_lang::statement::Statement<Range>],
     ) -> Vec<LintError> {
         Vec::new()
@@ -97,7 +97,7 @@ pub trait EarlyLintPass: LintPass {
     }
     fn check_expression(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         _is_toplevel_expr: bool,
         _: &crate::puppet_lang::expression::Expression<Range>,
     ) -> Vec<LintError> {
@@ -105,7 +105,7 @@ pub trait EarlyLintPass: LintPass {
     }
     fn check_term(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         _is_assignment: bool,
         _: &crate::puppet_lang::expression::Term<Range>,
     ) -> Vec<LintError> {
@@ -138,14 +138,14 @@ pub trait EarlyLintPass: LintPass {
     }
     fn check_resource_set(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         _: &crate::puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         Vec::new()
     }
     fn check_resource_collection(
         &self,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         _: &crate::puppet_lang::resource_collection::ResourceCollection<Range>,
     ) -> Vec<LintError> {
         Vec::new()
@@ -182,6 +182,7 @@ pub enum EarlyLintPassVariant {
     ReadableArgumentsName(crate::puppet_pp_lint::lint_argument::ReadableArgumentsName),
     LowerCaseArgumentName(crate::puppet_pp_lint::lint_argument::LowerCaseArgumentName),
     DoNotUseUnless(crate::puppet_pp_lint::lint_unless::DoNotUseUnless),
+    MagicNumber(crate::puppet_pp_lint::lint_term::MagicNumber),
     UselessParens(crate::puppet_pp_lint::lint_expression::UselessParens),
     InvalidVariableAssignment(crate::puppet_pp_lint::lint_expression::InvalidVariableAssignment),
     DoubleNegation(crate::puppet_pp_lint::lint_expression::DoubleNegation),
@@ -267,6 +268,7 @@ impl EarlyLintPassVariant {
             EarlyLintPassVariant::RelationToTheLeft(v) => Box::new(v),
             EarlyLintPassVariant::InvalidStringEscape(v) => Box::new(v),
             EarlyLintPassVariant::UnusedVariables(v) => Box::new(v),
+            EarlyLintPassVariant::MagicNumber(v) => Box::new(v),
         }
     }
 }
@@ -403,6 +405,9 @@ impl Default for Storage {
         v.register_early_pass(EarlyLintPassVariant::UnusedVariables(
             super::lint_ctx::UnusedVariables,
         ));
+        v.register_early_pass(EarlyLintPassVariant::MagicNumber(
+            super::lint_term::MagicNumber,
+        ));
         v
     }
 }
@@ -413,7 +418,7 @@ impl AstLinter {
     pub fn check_string_expression(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::string::StringExpr<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -437,7 +442,7 @@ impl AstLinter {
     pub fn check_array(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         is_assignment: bool,
         array: &crate::puppet_lang::expression::Array<Range>,
     ) -> Vec<LintError> {
@@ -452,7 +457,7 @@ impl AstLinter {
     pub fn check_accessor(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         accessor: &Option<crate::puppet_lang::expression::Accessor<Range>>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -473,7 +478,7 @@ impl AstLinter {
     pub fn check_map(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::expression::Map<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -488,7 +493,7 @@ impl AstLinter {
     pub fn check_variable(
         &self,
         _storage: &Storage,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         _elt: &crate::puppet_lang::expression::Variable<Range>,
     ) -> Vec<LintError> {
         Vec::new()
@@ -497,7 +502,7 @@ impl AstLinter {
     pub fn check_type_specification(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::typing::TypeSpecification<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -593,7 +598,7 @@ impl AstLinter {
     pub fn check_term(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         is_assignment: bool,
         elt: &crate::puppet_lang::expression::Term<Range>,
     ) -> Vec<LintError> {
@@ -638,7 +643,7 @@ impl AstLinter {
     pub fn check_funcall(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::expression::FunctionCall<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -656,7 +661,7 @@ impl AstLinter {
     pub fn check_builtin(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::builtin::BuiltinVariant<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -688,7 +693,7 @@ impl AstLinter {
 
     fn register_assignments(
         &self,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::expression::Expression<Range>,
     ) {
         use crate::puppet_lang::expression::ExpressionVariant;
@@ -713,204 +718,307 @@ impl AstLinter {
     pub fn check_expression(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         is_toplevel_expr: bool,
         is_assignment: bool,
         elt: &crate::puppet_lang::expression::Expression<Range>,
     ) -> Vec<LintError> {
+        let ctx = ctx.add_path(crate::puppet_pp_lint::ctx::Path::Expression(elt));
+
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.inner().check_expression(ctx, is_toplevel_expr, elt));
+            errors.append(&mut lint.inner().check_expression(&ctx, is_toplevel_expr, elt));
         }
 
         use crate::puppet_lang::expression::ExpressionVariant;
         match &elt.value {
             ExpressionVariant::Term(elt) => {
-                errors.append(&mut self.check_term(storage, ctx, is_assignment, elt))
+                errors.append(&mut self.check_term(storage, &ctx, is_assignment, elt))
             }
             ExpressionVariant::Multiply((left, right)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, left));
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    left,
+                ));
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx,
                     false,
                     is_assignment,
                     right,
                 ));
             }
             ExpressionVariant::Divide((left, right)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, left));
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    left,
+                ));
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx,
                     false,
                     is_assignment,
                     right,
                 ));
             }
             ExpressionVariant::Modulo((left, right)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, left));
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    left,
+                ));
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx,
                     false,
                     is_assignment,
                     right,
                 ));
             }
             ExpressionVariant::Plus((left, right)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, left));
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    left,
+                ));
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx,
                     false,
                     is_assignment,
                     right,
                 ));
             }
             ExpressionVariant::Minus((left, right)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, left));
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    left,
+                ));
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx,
                     false,
                     is_assignment,
                     right,
                 ));
             }
             ExpressionVariant::ShiftLeft((left, right)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, left));
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    left,
+                ));
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx,
                     false,
                     is_assignment,
                     right,
                 ));
             }
             ExpressionVariant::ShiftRight((left, right)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, left));
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    left,
+                ));
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx,
                     false,
                     is_assignment,
                     right,
                 ));
             }
             ExpressionVariant::Equal((left, right)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, left));
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    left,
+                ));
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx,
                     false,
                     is_assignment,
                     right,
                 ));
             }
             ExpressionVariant::NotEqual((left, right)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, left));
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    left,
+                ));
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx,
                     false,
                     is_assignment,
                     right,
                 ));
             }
             ExpressionVariant::Gt((left, right)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, left));
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    left,
+                ));
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx,
                     false,
                     is_assignment,
                     right,
                 ));
             }
             ExpressionVariant::GtEq((left, right)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, left));
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    left,
+                ));
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx,
                     false,
                     is_assignment,
                     right,
                 ));
             }
             ExpressionVariant::Lt((left, right)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, left));
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    left,
+                ));
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx,
                     false,
                     is_assignment,
                     right,
                 ));
             }
             ExpressionVariant::LtEq((left, right)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, left));
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    left,
+                ));
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx,
                     false,
                     is_assignment,
                     right,
                 ));
             }
             ExpressionVariant::And((left, right)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, left));
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    left,
+                ));
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx,
                     false,
                     is_assignment,
                     right,
                 ));
             }
             ExpressionVariant::Or((left, right)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, left));
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    left,
+                ));
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx,
                     false,
                     is_assignment,
                     right,
                 ));
             }
             ExpressionVariant::Not(expr) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, expr));
-            }
-            ExpressionVariant::Assign((left, right)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, true, left));
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    expr,
+                ));
+            }
+            ExpressionVariant::Assign((left, right)) => {
+                let ctx_left =
+                    ctx.add_path(crate::puppet_pp_lint::ctx::Path::ExpressionAssignLeft(left));
+                errors.append(&mut self.check_expression(storage, &ctx_left, false, true, left));
+                let ctx_right = ctx.add_path(
+                    crate::puppet_pp_lint::ctx::Path::ExpressionAssignRight(right),
+                );
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx_right,
                     false,
                     is_assignment,
                     right,
                 ));
-                self.register_assignments(ctx, left);
+                self.register_assignments(&ctx, left);
             }
             ExpressionVariant::Selector(elt) => {
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
                     false,
                     false,
                     &elt.condition,
                 ));
-                errors.append(&mut self.check_condition_expression(storage, ctx, &elt.condition));
+                errors.append(&mut self.check_condition_expression(storage, &ctx, &elt.condition));
                 for case in &elt.cases.value {
                     match &case.case {
                         crate::puppet_lang::expression::CaseVariant::Term(term) => {
-                            errors.append(&mut self.check_term(storage, ctx, false, term))
+                            errors.append(&mut self.check_term(storage, &ctx, false, term))
                         }
                         crate::puppet_lang::expression::CaseVariant::Default(_) => {}
                     }
                     errors.append(&mut self.check_expression(
                         storage,
-                        ctx,
+                        &ctx,
                         false,
                         is_assignment,
                         &case.body,
@@ -918,20 +1026,32 @@ impl AstLinter {
                 }
             }
             ExpressionVariant::FunctionCall(elt) => {
-                errors.append(&mut self.check_funcall(storage, ctx, elt))
+                errors.append(&mut self.check_funcall(storage, &ctx, elt))
             }
             ExpressionVariant::BuiltinFunction(elt) => {
-                errors.append(&mut self.check_builtin(storage, ctx, elt));
+                errors.append(&mut self.check_builtin(storage, &ctx, elt));
             }
             ExpressionVariant::MatchRegex((left, _))
             | ExpressionVariant::NotMatchRegex((left, _)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, left));
-            }
-            ExpressionVariant::In((left, right)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, left));
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    left,
+                ));
+            }
+            ExpressionVariant::In((left, right)) => {
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    left,
+                ));
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx,
                     false,
                     is_assignment,
                     right,
@@ -940,20 +1060,26 @@ impl AstLinter {
             ExpressionVariant::ChainCall(elt) => {
                 errors.append(&mut self.check_expression(
                     storage,
-                    ctx,
+                    &ctx,
                     false,
                     is_assignment,
                     &elt.left,
                 ));
-                errors.append(&mut self.check_funcall(storage, ctx, &elt.right));
+                errors.append(&mut self.check_funcall(storage, &ctx, &elt.right));
             }
             ExpressionVariant::MatchType((left, right))
             | ExpressionVariant::NotMatchType((left, right)) => {
-                errors.append(&mut self.check_expression(storage, ctx, false, is_assignment, left));
-                errors.append(&mut self.check_type_specification(storage, ctx, right));
+                errors.append(&mut self.check_expression(
+                    storage,
+                    &ctx,
+                    false,
+                    is_assignment,
+                    left,
+                ));
+                errors.append(&mut self.check_type_specification(storage, &ctx, right));
             }
         };
-        errors.append(&mut self.check_accessor(storage, ctx, &elt.accessor));
+        errors.append(&mut self.check_accessor(storage, &ctx, &elt.accessor));
 
         errors
     }
@@ -961,7 +1087,7 @@ impl AstLinter {
     pub fn check_unless(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::statement::ConditionAndStatement<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -980,7 +1106,7 @@ impl AstLinter {
     pub fn check_condition_expression(
         &self,
         storage: &Storage,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::expression::Expression<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -994,7 +1120,7 @@ impl AstLinter {
     pub fn check_if_else(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::statement::IfElse<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -1047,7 +1173,7 @@ impl AstLinter {
     pub fn check_resource_set(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::statement::ResourceSet<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -1079,7 +1205,7 @@ impl AstLinter {
     pub fn check_resource_collection(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::resource_collection::ResourceCollection<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -1095,7 +1221,7 @@ impl AstLinter {
     pub fn check_relation_elt(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::statement::RelationElt<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -1120,7 +1246,7 @@ impl AstLinter {
     pub fn check_relation(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         prev: &crate::puppet_lang::statement::RelationElt<Range>,
         elt: &crate::puppet_lang::statement::Relation<Range>,
     ) -> Vec<LintError> {
@@ -1137,7 +1263,7 @@ impl AstLinter {
     pub fn check_relation_list(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::statement::RelationList<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -1157,7 +1283,7 @@ impl AstLinter {
     pub fn check_case(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::statement::Case<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -1186,7 +1312,7 @@ impl AstLinter {
     pub fn check_statement_set(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         list: &[crate::puppet_lang::statement::Statement<Range>],
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -1203,7 +1329,7 @@ impl AstLinter {
     pub fn check_deprecated_resource_defaults(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::statement::ResourceDefaults<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -1221,9 +1347,11 @@ impl AstLinter {
     pub fn check_statement(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         statement: &crate::puppet_lang::statement::Statement<Range>,
     ) -> Vec<LintError> {
+        let ctx = ctx.add_path(crate::puppet_pp_lint::ctx::Path::Statement(statement));
+
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
             errors.append(&mut lint.inner().check_statement(statement));
@@ -1232,23 +1360,23 @@ impl AstLinter {
         use crate::puppet_lang::statement::StatementVariant;
         match &statement.value {
             StatementVariant::Unless(elt) => {
-                errors.append(&mut self.check_unless(storage, ctx, elt))
+                errors.append(&mut self.check_unless(storage, &ctx, elt))
             }
             StatementVariant::Toplevel(elt) => {
-                errors.append(&mut self.check_toplevel(storage, ctx, elt))
+                errors.append(&mut self.check_toplevel(storage, &ctx, elt))
             }
             StatementVariant::Expression(elt) => {
-                errors.append(&mut self.check_expression(storage, ctx, true, false, elt))
+                errors.append(&mut self.check_expression(storage, &ctx, true, false, elt))
             }
             StatementVariant::IfElse(elt) => {
-                errors.append(&mut self.check_if_else(storage, ctx, elt))
+                errors.append(&mut self.check_if_else(storage, &ctx, elt))
             }
             StatementVariant::RelationList(elt) => {
-                errors.append(&mut self.check_relation_list(storage, ctx, elt))
+                errors.append(&mut self.check_relation_list(storage, &ctx, elt))
             }
-            StatementVariant::Case(elt) => errors.append(&mut self.check_case(storage, ctx, elt)),
+            StatementVariant::Case(elt) => errors.append(&mut self.check_case(storage, &ctx, elt)),
             StatementVariant::ResourceDefaults(elt) => {
-                errors.append(&mut self.check_deprecated_resource_defaults(storage, ctx, elt))
+                errors.append(&mut self.check_deprecated_resource_defaults(storage, &ctx, elt))
             }
         };
 
@@ -1258,7 +1386,7 @@ impl AstLinter {
     pub fn check_toplevel_variant(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         arguments: &[crate::puppet_lang::argument::Argument<Range>],
         body: &[crate::puppet_lang::statement::Statement<Range>],
     ) -> Vec<LintError> {
@@ -1283,7 +1411,7 @@ impl AstLinter {
     pub fn check_class(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::toplevel::Class<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -1303,18 +1431,20 @@ impl AstLinter {
     pub fn check_argument(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::argument::Argument<Range>,
     ) -> Vec<LintError> {
+        let ctx = ctx.add_path(crate::puppet_pp_lint::ctx::Path::Argument(elt));
+
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
             errors.append(&mut lint.inner().check_argument(elt));
         }
         if let Some(type_spec) = &elt.type_spec {
-            errors.append(&mut self.check_type_specification(storage, ctx, type_spec));
+            errors.append(&mut self.check_type_specification(storage, &ctx, type_spec));
         }
         if let Some(default) = &elt.default {
-            errors.append(&mut self.check_expression(storage, ctx, true, false, default));
+            errors.append(&mut self.check_expression(storage, &ctx, true, false, default));
         }
 
         ctx.register_argument_variable(elt);
@@ -1325,7 +1455,7 @@ impl AstLinter {
     pub fn check_lambda(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::expression::Lambda<Range>,
     ) -> Vec<LintError> {
         let ctx = ctx.clone();
@@ -1341,7 +1471,7 @@ impl AstLinter {
     pub fn check_definition(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::toplevel::Definition<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -1362,7 +1492,7 @@ impl AstLinter {
     pub fn check_plan(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::toplevel::Plan<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -1383,7 +1513,7 @@ impl AstLinter {
     pub fn check_typedef(
         &self,
         storage: &Storage,
-        _ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::toplevel::TypeDef<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
@@ -1397,7 +1527,7 @@ impl AstLinter {
     pub fn check_functiondef(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::toplevel::FunctionDef<Range>,
     ) -> Vec<LintError> {
         let ctx = ctx.new_scope();
@@ -1423,30 +1553,32 @@ impl AstLinter {
     pub fn check_toplevel(
         &self,
         storage: &Storage,
-        ctx: &crate::puppet_pp_lint::ctx::Ctx,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         elt: &crate::puppet_lang::toplevel::Toplevel<Range>,
     ) -> Vec<LintError> {
         let mut errors = Vec::new();
 
+        let ctx = ctx.add_path(crate::puppet_pp_lint::ctx::Path::Toplevel(elt));
+
         match &elt.data {
             crate::puppet_lang::toplevel::ToplevelVariant::Class(elt) => {
-                errors.append(&mut self.check_class(storage, ctx, elt))
+                errors.append(&mut self.check_class(storage, &ctx, elt))
             }
             crate::puppet_lang::toplevel::ToplevelVariant::Definition(elt) => {
-                errors.append(&mut self.check_definition(storage, ctx, elt))
+                errors.append(&mut self.check_definition(storage, &ctx, elt))
             }
             crate::puppet_lang::toplevel::ToplevelVariant::Plan(elt) => {
-                errors.append(&mut self.check_plan(storage, ctx, elt))
+                errors.append(&mut self.check_plan(storage, &ctx, elt))
             }
             crate::puppet_lang::toplevel::ToplevelVariant::TypeDef(elt) => {
-                errors.append(&mut self.check_typedef(storage, ctx, elt))
+                errors.append(&mut self.check_typedef(storage, &ctx, elt))
             }
             crate::puppet_lang::toplevel::ToplevelVariant::FunctionDef(elt) => {
-                errors.append(&mut self.check_functiondef(storage, ctx, elt))
+                errors.append(&mut self.check_functiondef(storage, &ctx, elt))
             }
         }
         for lint in storage.early_pass() {
-            errors.append(&mut lint.inner().check_toplevel(ctx, elt))
+            errors.append(&mut lint.inner().check_toplevel(&ctx, elt))
         }
 
         errors
