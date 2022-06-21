@@ -1,4 +1,16 @@
 * Changelog
+** [2022-06-21] v0.17.0
+
+*** New features
+
+ - Improved Emacs integration (f3a5018)
+
+*** Bugfixes
+
+ - template() can accept multiple arguments (56c2f03)
+ - Removed extra space in argument formatter (8a2f479)
+
+
 ** [2022-06-17] v0.16.5
 
 *** Bugfixes
