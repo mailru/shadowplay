@@ -195,13 +195,9 @@ impl<EXTRA> Printer for crate::puppet_lang::builtin::BuiltinVariant<EXTRA> {
                     .append(RcDoc::softline_())
                     .append(RcDoc::text(")")),
             },
-            crate::puppet_lang::builtin::BuiltinVariant::Template(v) => RcDoc::text("template")
-                .append(RcDoc::text("("))
-                .append(RcDoc::softline_())
-                .append(crate::puppet_pp_printer::expression::to_doc(v, false))
-                .nest(2)
-                .append(RcDoc::softline_())
-                .append(RcDoc::text(")")),
+            crate::puppet_lang::builtin::BuiltinVariant::Template(v) => {
+                builtin_many1_to_doc("template", v, true)
+            }
         }
     }
 }

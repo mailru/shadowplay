@@ -667,6 +667,7 @@ impl AstLinter {
             | crate::puppet_lang::builtin::BuiltinVariant::Require(v)
             | crate::puppet_lang::builtin::BuiltinVariant::Realize(v)
             | crate::puppet_lang::builtin::BuiltinVariant::CreateResources(v)
+            | crate::puppet_lang::builtin::BuiltinVariant::Template(v)
             | crate::puppet_lang::builtin::BuiltinVariant::Include(v) => {
                 for arg in &v.args {
                     errors.append(&mut self.check_expression(storage, ctx, true, false, arg));
@@ -679,9 +680,6 @@ impl AstLinter {
                 if let Some(arg) = arg.as_ref() {
                     errors.append(&mut self.check_expression(storage, ctx, true, false, arg));
                 }
-            }
-            crate::puppet_lang::builtin::BuiltinVariant::Template(arg) => {
-                errors.append(&mut self.check_expression(storage, ctx, true, false, arg));
             }
         }
 

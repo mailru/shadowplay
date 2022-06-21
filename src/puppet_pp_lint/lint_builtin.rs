@@ -34,57 +34,60 @@ impl EarlyLintPass for ErbReferencesToUnknownVariable {
             return Vec::new();
         };
 
-        let arg = if let BuiltinVariant::Template(v) = builtin {
+        let builtin = if let BuiltinVariant::Template(v) = builtin {
             v
         } else {
             return Vec::new();
-        };
-
-        let arg = if let ExpressionVariant::Term(v) = &arg.value {
-            v
-        } else {
-            return Vec::new();
-        };
-
-        let arg = if let TermVariant::String(v) = &arg.value {
-            v
-        } else {
-            return Vec::new();
-        };
-
-        let arg = if let Some(v) = crate::puppet_tool::string::constant_value(arg) {
-            v
-        } else {
-            return Vec::new();
-        };
-
-        let _template = ctx.erb_of_path(&arg);
-        let template: &crate::puppet_pp_lint::ctx::erb_template::Template = if let Some(v) = _template.as_ref() {
-            v
-        } else {
-            return vec![LintError::new(
-                Box::new(self.clone()),
-                &format!("ERB template {:?} does not exists for failed to parse", arg),
-                &elt.extra,
-            )];
         };
 
         let mut errors = Vec::new();
 
-        let variables = ctx.variables.borrow();
-        for var in &template.referenced_variables {
-            match variables.get(var) {
-                None => {
-                    errors.push(LintError::new(
+        for arg in &builtin.args {
+            let arg = if let ExpressionVariant::Term(v) = &arg.value {
+                v
+            } else {
+                return Vec::new();
+            };
+
+            let arg = if let TermVariant::String(v) = &arg.value {
+                v
+            } else {
+                return Vec::new();
+            };
+
+            let arg = if let Some(v) = crate::puppet_tool::string::constant_value(arg) {
+                v
+            } else {
+                return Vec::new();
+            };
+
+            let _template = ctx.erb_of_path(&arg);
+            let template: &crate::puppet_pp_lint::ctx::erb_template::Template =
+                if let Some(v) = _template.as_ref() {
+                    v
+                } else {
+                    return vec![LintError::new(
                         Box::new(self.clone()),
-                        &format!(
+                        &format!("ERB template {:?} does not exists for failed to parse", arg),
+                        &elt.extra,
+                    )];
+                };
+
+            let variables = ctx.variables.borrow();
+            for var in &template.referenced_variables {
+                match variables.get(var) {
+                    None => {
+                        errors.push(LintError::new(
+                            Box::new(self.clone()),
+                            &format!(
                             "ERB template references to undefined in this context variable {:?}",
                             var
                         ),
-                        &elt.extra,
-                    ));
+                            &elt.extra,
+                        ));
+                    }
+                    Some(var) => var.incr_use_count(),
                 }
-                Some(var) => var.incr_use_count(),
             }
         }
 

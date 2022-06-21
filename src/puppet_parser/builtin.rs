@@ -1,10 +1,10 @@
+use crate::puppet_lang::builtin;
+use crate::puppet_lang::builtin::BuiltinVariant;
+use crate::puppet_lang::expression::{Expression, ExpressionVariant};
 use nom::combinator::{eof, opt, success};
 use nom::multi::separated_list1;
 use nom::sequence::terminated;
 use nom::sequence::{pair, tuple};
-use crate::puppet_lang::builtin;
-use crate::puppet_lang::builtin::BuiltinVariant;
-use crate::puppet_lang::expression::{Expression, ExpressionVariant};
 
 use crate::puppet_parser::common::{
     capture_comment, comma_separator, round_parens_delimimited, space0_delimimited, spaced_word,
@@ -48,7 +48,9 @@ where
                     (body, Some(Range::from((right_paren, right_paren))))
                 },
             ),
-            opt(space0_delimimited(crate::puppet_parser::expression::parse_lambda)),
+            opt(space0_delimimited(
+                crate::puppet_parser::expression::parse_lambda,
+            )),
         );
 
         let parse_no_parens = map(&args_parser, |(list, end_range)| ((list, end_range), None));
@@ -173,7 +175,10 @@ where
         keyword,
         |i| {
             map(
-                separated_list1(comma_separator, crate::puppet_parser::expression::parse_expression),
+                separated_list1(
+                    comma_separator,
+                    crate::puppet_parser::expression::parse_expression,
+                ),
                 |list| {
                     let range = list.last().unwrap().extra.clone();
                     (list, Some(range))
@@ -200,10 +205,13 @@ fn parse_return(input: Span) -> IResult<Expression<Range>> {
     builtin_variant_parser(
         "return",
         |i| {
-            map(opt(crate::puppet_parser::expression::parse_expression), |expr| {
-                let range = expr.as_ref().map(|v| v.extra.clone());
-                (expr, range)
-            })(i)
+            map(
+                opt(crate::puppet_parser::expression::parse_expression),
+                |expr| {
+                    let range = expr.as_ref().map(|v| v.extra.clone());
+                    (expr, range)
+                },
+            )(i)
         },
         |(comment, _kw, ((arg, range), _lambda), _accessor)| Expression {
             value: ExpressionVariant::BuiltinFunction(BuiltinVariant::Return(Box::new(arg))),
@@ -215,19 +223,16 @@ fn parse_return(input: Span) -> IResult<Expression<Range>> {
 }
 
 fn parse_template(input: Span) -> IResult<Expression<Range>> {
-    builtin_variant_parser(
+    builtin_many1(
         "template",
-        |i| {
-            map(crate::puppet_parser::expression::parse_expression, |expr| {
-                let range = expr.extra.clone();
-                (expr, Some(range))
-            })(i)
-        },
-        |(comment, _kw, ((arg, range), _lambda), _accessor)| Expression {
-            value: ExpressionVariant::BuiltinFunction(BuiltinVariant::Template(Box::new(arg))),
+        |(comment, _kw, ((args, range), lambda), accessor)| Expression {
+            value: ExpressionVariant::BuiltinFunction(BuiltinVariant::Template(builtin::Many1 {
+                lambda,
+                args,
+            })),
             extra: range,
             comment,
-            accessor: None,
+            accessor,
         },
     )(input)
 }
