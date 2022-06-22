@@ -785,6 +785,18 @@ $default_service_port = 58271
 if $port == $default_service_port { }
 #+END_SRC
 
+** TooManyArguments
+
+Warns if class or definition accepts too many arguments.
+
+** HugeCodeBlock
+
+Points to too long statements lists.
+
+** DeepCode
+
+Alerts on too deep code blocks.
+
 * Linter for YAML files
 
 Some basic checks are implemented:
