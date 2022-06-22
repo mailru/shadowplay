@@ -157,7 +157,7 @@ impl EarlyLintPass for MagicNumber {
         return vec![LintError::new(
             Box::new(self.clone()),
             &format!(
-                "Magic number {}. Assign it as named constant.",
+                "Magic number {}. Assign it to a named constant.",
                 magic_number
             ),
             &elt.extra,
