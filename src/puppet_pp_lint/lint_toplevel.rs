@@ -18,7 +18,10 @@ impl LintPass for OptionalArgumentsGoesFirst {
 }
 
 impl OptionalArgumentsGoesFirst {
-    fn check_order(&self, args: &[crate::puppet_lang::argument::Argument<Range>]) -> Vec<LintError> {
+    fn check_order(
+        &self,
+        args: &[crate::puppet_lang::argument::Argument<Range>],
+    ) -> Vec<LintError> {
         let mut errors = Vec::new();
         let mut found_optional = false;
         for arg in args {
@@ -42,7 +45,10 @@ impl EarlyLintPass for OptionalArgumentsGoesFirst {
         self.check_order(&elt.arguments.value)
     }
 
-    fn check_definition(&self, elt: &crate::puppet_lang::toplevel::Definition<Range>) -> Vec<LintError> {
+    fn check_definition(
+        &self,
+        elt: &crate::puppet_lang::toplevel::Definition<Range>,
+    ) -> Vec<LintError> {
         self.check_order(&elt.arguments.value)
     }
 
@@ -66,7 +72,8 @@ impl LintPass for UniqueArgumentsNames {
 impl UniqueArgumentsNames {
     fn check(&self, args: &[crate::puppet_lang::argument::Argument<Range>]) -> Vec<LintError> {
         let mut errors = Vec::new();
-        let mut names: HashMap<String, &crate::puppet_lang::argument::Argument<Range>> = HashMap::new();
+        let mut names: HashMap<String, &crate::puppet_lang::argument::Argument<Range>> =
+            HashMap::new();
         for arg in args {
             match names.get(&arg.name) {
                 Some(prev) => errors.push(LintError::new(
@@ -93,11 +100,64 @@ impl EarlyLintPass for UniqueArgumentsNames {
         self.check(&elt.arguments.value)
     }
 
-    fn check_definition(&self, elt: &crate::puppet_lang::toplevel::Definition<Range>) -> Vec<LintError> {
+    fn check_definition(
+        &self,
+        elt: &crate::puppet_lang::toplevel::Definition<Range>,
+    ) -> Vec<LintError> {
         self.check(&elt.arguments.value)
     }
 
     fn check_plan(&self, elt: &crate::puppet_lang::toplevel::Plan<Range>) -> Vec<LintError> {
         self.check(&elt.arguments.value)
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct TooManyArguments {
+    pub limit: usize,
+}
+
+impl Default for TooManyArguments {
+    fn default() -> Self {
+        Self { limit: 15 }
+    }
+}
+
+impl LintPass for TooManyArguments {
+    fn name(&self) -> &str {
+        "TooManyArguments"
+    }
+    fn description(&self) -> &str {
+        "Checks if arguments list of definition is overloaded"
+    }
+}
+
+impl TooManyArguments {
+    fn check(&self, args_len: usize, extra: &Range) -> Vec<LintError> {
+        if args_len > self.limit {
+            return vec![LintError::new(
+                Box::new(self.clone()),
+                "Too many arguments. Class decomposition recommended, or try to join args into ready to use structures.",
+                extra,
+            )];
+        }
+        Vec::new()
+    }
+}
+
+impl EarlyLintPass for TooManyArguments {
+    fn check_class(&self, elt: &crate::puppet_lang::toplevel::Class<Range>) -> Vec<LintError> {
+        self.check(elt.arguments.value.len(), &elt.extra)
+    }
+
+    fn check_definition(
+        &self,
+        elt: &crate::puppet_lang::toplevel::Definition<Range>,
+    ) -> Vec<LintError> {
+        self.check(elt.arguments.value.len(), &elt.extra)
+    }
+
+    fn check_plan(&self, elt: &crate::puppet_lang::toplevel::Plan<Range>) -> Vec<LintError> {
+        self.check(elt.arguments.value.len(), &elt.extra)
     }
 }
