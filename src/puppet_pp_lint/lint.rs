@@ -228,6 +228,7 @@ pub enum EarlyLintPassVariant {
     InvalidStringEscape(crate::puppet_pp_lint::lint_string_expr::InvalidStringEscape),
     UnusedVariables(crate::puppet_pp_lint::lint_ctx::UnusedVariables),
     DeepCode(crate::puppet_pp_lint::lint_statement::DeepCode),
+    HugeCodeBlock(crate::puppet_pp_lint::lint_statement::HugeCodeBlock),
 }
 
 impl EarlyLintPassVariant {
@@ -272,6 +273,7 @@ impl EarlyLintPassVariant {
             EarlyLintPassVariant::UnusedVariables(v) => Box::new(v),
             EarlyLintPassVariant::MagicNumber(v) => Box::new(v),
             EarlyLintPassVariant::DeepCode(v) => Box::new(v),
+            EarlyLintPassVariant::HugeCodeBlock(v) => Box::new(v),
         }
     }
 }
@@ -413,6 +415,9 @@ impl Default for Storage {
         ));
         v.register_early_pass(EarlyLintPassVariant::DeepCode(
             super::lint_statement::DeepCode::default(),
+        ));
+        v.register_early_pass(EarlyLintPassVariant::HugeCodeBlock(
+            super::lint_statement::HugeCodeBlock::default(),
         ));
         v
     }

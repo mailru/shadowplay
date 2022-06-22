@@ -113,3 +113,46 @@ impl EarlyLintPass for DeepCode {
         Vec::new()
     }
 }
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct HugeCodeBlock {
+    max_statements_count: usize,
+}
+
+impl Default for HugeCodeBlock {
+    fn default() -> Self {
+        Self {
+            max_statements_count: 50,
+        }
+    }
+}
+
+impl LintPass for HugeCodeBlock {
+    fn name(&self) -> &str {
+        "HugeCodeBlock"
+    }
+    fn description(&self) -> &str {
+        "Warns if statement set is too long"
+    }
+}
+
+impl EarlyLintPass for HugeCodeBlock {
+    fn check_statement_set(
+        &self,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
+        list: &[crate::puppet_lang::statement::Statement<Range>],
+    ) -> Vec<super::lint::LintError> {
+        if list.len() > self.max_statements_count {
+            return vec![LintError::new(
+                Box::new(self.clone()),
+                &format!(
+                    "Statement list contains {} elements. Split it into multiple sub-classes.",
+                    list.len()
+                ),
+                list.first().unwrap().extra(),
+            )];
+        }
+
+        Vec::new()
+    }
+}
