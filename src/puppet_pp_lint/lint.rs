@@ -75,6 +75,7 @@ pub trait EarlyLintPass: LintPass {
     }
     fn check_statement(
         &self,
+        _ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
         _: &crate::puppet_lang::statement::Statement<Range>,
     ) -> Vec<LintError> {
         Vec::new()
@@ -226,6 +227,7 @@ pub enum EarlyLintPassVariant {
     RelationToTheLeft(crate::puppet_pp_lint::lint_statement::RelationToTheLeft),
     InvalidStringEscape(crate::puppet_pp_lint::lint_string_expr::InvalidStringEscape),
     UnusedVariables(crate::puppet_pp_lint::lint_ctx::UnusedVariables),
+    DeepCode(crate::puppet_pp_lint::lint_statement::DeepCode),
 }
 
 impl EarlyLintPassVariant {
@@ -269,6 +271,7 @@ impl EarlyLintPassVariant {
             EarlyLintPassVariant::InvalidStringEscape(v) => Box::new(v),
             EarlyLintPassVariant::UnusedVariables(v) => Box::new(v),
             EarlyLintPassVariant::MagicNumber(v) => Box::new(v),
+            EarlyLintPassVariant::DeepCode(v) => Box::new(v),
         }
     }
 }
@@ -407,6 +410,9 @@ impl Default for Storage {
         ));
         v.register_early_pass(EarlyLintPassVariant::MagicNumber(
             super::lint_term::MagicNumber,
+        ));
+        v.register_early_pass(EarlyLintPassVariant::DeepCode(
+            super::lint_statement::DeepCode::default(),
         ));
         v
     }
@@ -1354,7 +1360,7 @@ impl AstLinter {
 
         let mut errors = Vec::new();
         for lint in storage.early_pass() {
-            errors.append(&mut lint.inner().check_statement(statement));
+            errors.append(&mut lint.inner().check_statement(&ctx, statement));
         }
 
         use crate::puppet_lang::statement::StatementVariant;

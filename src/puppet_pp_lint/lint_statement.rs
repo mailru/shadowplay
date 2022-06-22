@@ -1,3 +1,4 @@
+use crate::puppet_lang::statement::Statement;
 use crate::puppet_parser::range::Range;
 use serde::{Deserialize, Serialize};
 
@@ -70,5 +71,45 @@ impl EarlyLintPass for RelationToTheLeft {
         }
 
         vec![]
+    }
+}
+#[derive(Clone, Serialize, Deserialize)]
+pub struct DeepCode {
+    max_deepness: usize,
+}
+
+impl Default for DeepCode {
+    fn default() -> Self {
+        Self { max_deepness: 9 }
+    }
+}
+
+impl LintPass for DeepCode {
+    fn name(&self) -> &str {
+        "DeepCode"
+    }
+    fn description(&self) -> &str {
+        "Warns if statement is too deep"
+    }
+}
+
+impl EarlyLintPass for DeepCode {
+    fn check_statement(
+        &self,
+        ctx: &crate::puppet_pp_lint::ctx::Ctx<Range>,
+        elt: &Statement<Range>,
+    ) -> Vec<super::lint::LintError> {
+        if ctx.path.len() > self.max_deepness {
+            return vec![LintError::new(
+                Box::new(self.clone()),
+                &format!(
+                    "Statement is at level {} deep inside the code.",
+                    ctx.path.len()
+                ),
+                elt.extra(),
+            )];
+        }
+
+        Vec::new()
     }
 }
