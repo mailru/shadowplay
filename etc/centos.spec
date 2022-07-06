@@ -2,7 +2,7 @@ Summary: Puppet checker, linter and explorer
 Name: shadowplay
 Version: %(cat VERSION)
 Release: 1%{dist}
-License: MailRu Private
+License: MIT/Apache-2.0
 Group: Development/Tools
 Source0: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
