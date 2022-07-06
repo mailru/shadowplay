@@ -36,7 +36,6 @@ fi
 cargo build --release
 
 %install
-rm -rf %{buildroot}
 %{__mkdir} -p %{buildroot}%{_bindir}
 
 %{__install} -pD -m 755 target/release/shadowplay %{buildroot}%{_bindir}/shadowplay
