@@ -33,6 +33,7 @@ Build details: %__hammer_build_url__
 if [ -e VERSION ]; then
    sed -i -e "s/^package[.]version = .*/package.version = \"$(cat VERSION)\"/" Cargo.toml
 fi
+source $HOME/.cargo/env
 cargo build --release
 
 %install
