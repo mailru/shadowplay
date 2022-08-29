@@ -136,7 +136,8 @@ impl Check {
                         yaml_path,
                         error::Type::Hiera,
                         format!(
-                            "Reference to puppet class {:?} which does not have argument {:?}",
+                            "Hiera value {:?} looks like class argument, but class {:?} does not have argument {:?}",
+                            format!("{}:{}", puppet_module.name(), argument),
                             puppet_module.name(),
                             argument,
                         )
